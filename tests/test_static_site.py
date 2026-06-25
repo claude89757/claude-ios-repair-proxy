@@ -78,6 +78,21 @@ def test_admin_site_contains_required_management_ui():
     assert "repair session ID" not in html
 
 
+def test_admin_login_password_can_be_revealed_with_toggle_button():
+    html = (WEB / "admin.html").read_text()
+    js = (WEB / "admin.js").read_text()
+
+    assert 'class="password-field"' in html
+    assert 'id="password-toggle"' in html
+    assert 'aria-label="显示密码"' in html
+    assert 'aria-controls="admin-password"' in html
+    assert 'type="button"' in html
+    assert 'class="password-toggle"' in html
+    assert 'passwordInput.type = "text"' in js
+    assert 'passwordInput.type = "password"' in js
+    assert "aria-pressed" in js
+
+
 def test_admin_client_uses_admin_api_and_cookie_session_only():
     js = (WEB / "admin.js").read_text()
 

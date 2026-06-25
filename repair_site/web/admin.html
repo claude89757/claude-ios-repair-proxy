@@ -36,7 +36,12 @@
         <input id="admin-username" name="username" autocomplete="username" placeholder="输入管理员账号" required>
 
         <label for="admin-password">管理员密码</label>
-        <input id="admin-password" name="password" type="password" autocomplete="current-password" placeholder="输入管理员密码" required>
+        <div class="password-field">
+          <input id="admin-password" name="password" type="password" autocomplete="current-password" placeholder="输入管理员密码" required>
+          <button id="password-toggle" class="password-toggle" type="button" aria-label="显示密码" aria-controls="admin-password" aria-pressed="false">
+            <span class="password-toggle-eye" aria-hidden="true"></span>
+          </button>
+        </div>
 
         <button type="submit">登录后台</button>
       </form>

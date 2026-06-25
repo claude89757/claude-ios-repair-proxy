@@ -253,6 +253,70 @@ input:focus {
   outline: 3px solid rgba(37, 95, 219, 0.16);
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 56px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  width: 44px;
+  min-height: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  transform: translateY(-50%);
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.password-toggle-eye {
+  position: relative;
+  width: 24px;
+  height: 18px;
+}
+
+.password-toggle-eye::before,
+.password-toggle-eye::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.password-toggle-eye::before {
+  width: 21px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.password-toggle-eye::after {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.password-toggle.is-visible .password-toggle-eye::after {
+  width: 22px;
+  height: 2px;
+  background: var(--blue);
+  border-radius: 999px;
+  transform: translate(-50%, -50%) rotate(-35deg);
+}
+
 .claim-feedback {
   min-height: 20px;
   margin: 2px 0 0;
@@ -841,6 +905,10 @@ td {
   .invite-form button,
   .admin-form button {
     width: 100%;
+  }
+
+  .admin-form .password-toggle {
+    width: 44px;
   }
 
   .admin-hero,

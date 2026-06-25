@@ -7,6 +7,8 @@ const refreshButton = document.querySelector("#refresh-button");
 const loginFeedback = document.querySelector("#login-feedback");
 const createFeedback = document.querySelector("#create-feedback");
 const inviteTable = document.querySelector("#invite-table");
+const passwordInput = document.querySelector("#admin-password");
+const passwordToggle = document.querySelector("#password-toggle");
 
 const visibleProxyPasswords = new Map();
 const adminActionPaths = {
@@ -38,6 +40,20 @@ function setBusy(form, isBusy) {
   Array.from(form.elements).forEach((element) => {
     element.disabled = isBusy;
   });
+}
+
+function setPasswordVisible(isVisible) {
+  if (!passwordInput || !passwordToggle) {
+    return;
+  }
+  if (isVisible) {
+    passwordInput.type = "text";
+  } else {
+    passwordInput.type = "password";
+  }
+  passwordToggle.classList.toggle("is-visible", isVisible);
+  passwordToggle.setAttribute("aria-pressed", String(isVisible));
+  passwordToggle.setAttribute("aria-label", isVisible ? "隐藏密码" : "显示密码");
 }
 
 async function readJson(response) {
@@ -330,6 +346,9 @@ async function bootstrap() {
 }
 
 loginForm?.addEventListener("submit", handleLogin);
+passwordToggle?.addEventListener("click", () => {
+  setPasswordVisible(passwordInput?.type === "password");
+});
 createForm?.addEventListener("submit", handleCreate);
 logoutButton?.addEventListener("click", () => {
   void handleLogout();
