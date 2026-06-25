@@ -1,0 +1,16 @@
+[Unit]
+Description=Claude iOS repair status backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/claude-ios-repair
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=-/usr/bin/docker rm -f claude-repair-status
+ExecStart=/usr/bin/docker run --rm --name claude-repair-status --network host -e PYTHONUNBUFFERED=1 claude-ios-repair:latest uvicorn repair_site.status_app.main:app --host 127.0.0.1 --port 9000
+ExecStop=/usr/bin/docker stop claude-repair-status
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

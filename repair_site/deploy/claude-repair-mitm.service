@@ -1,0 +1,20 @@
+[Unit]
+Description=Claude iOS repair mitmproxy
+After=network-online.target claude-repair-status.service
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/claude-ios-repair
+Environment=PYTHONUNBUFFERED=1
+Environment=REPAIR_STATUS_URL=http://127.0.0.1:9000/api/internal/events
+Environment=REPAIR_SESSION_ID=default
+EnvironmentFile=-/etc/claude-repair/mitm.env
+ExecStartPre=/usr/bin/mkdir -p /opt/claude-ios-repair/mitmproxy
+ExecStartPre=-/usr/bin/docker rm -f claude-repair-mitm
+ExecStart=/bin/sh -lc 'exec /usr/bin/docker run --rm --name claude-repair-mitm --network host -e PYTHONUNBUFFERED=1 -e PYTHONPATH=/opt/claude-ios-repair -e REPAIR_STATUS_URL="$REPAIR_STATUS_URL" -e REPAIR_SESSION_ID="$REPAIR_SESSION_ID" -v /opt/claude-ios-repair/mitmproxy:/root/.mitmproxy claude-ios-repair:latest mitmdump --listen-host 0.0.0.0 --listen-port 9443 --mode regular --set block_global=false ${REPAIR_PROXY_AUTH:+--proxyauth "$REPAIR_PROXY_AUTH"} -s /opt/claude-ios-repair/repair_site/mitm/claude_repair_addon.py'
+ExecStop=/usr/bin/docker stop claude-repair-mitm
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
