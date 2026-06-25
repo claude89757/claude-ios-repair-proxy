@@ -17,6 +17,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -157,7 +161,7 @@ h3 {
 
 .button,
 .inline-form button,
-.session-form button {
+.invite-form button {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -174,7 +178,7 @@ h3 {
 
 .primary,
 .inline-form button,
-.session-form button {
+.invite-form button {
   background: var(--blue);
   color: white;
 }
@@ -198,23 +202,31 @@ h3 {
 }
 
 .inline-form,
-.session-form {
+.invite-form {
   display: grid;
   gap: 8px;
   margin-top: 18px;
 }
 
 .inline-form label,
-.session-form label {
+.invite-form label {
   color: var(--ink);
   font-size: 14px;
   font-weight: 850;
 }
 
 .inline-form div,
-.session-form div {
+.invite-form div {
   display: flex;
   gap: 10px;
+}
+
+.inline-form.is-busy button,
+.invite-form.is-busy button,
+.inline-form button:disabled,
+.invite-form button:disabled {
+  opacity: 0.72;
+  cursor: wait;
 }
 
 input {
@@ -231,6 +243,25 @@ input {
 input:focus {
   border-color: var(--blue);
   outline: 3px solid rgba(37, 95, 219, 0.16);
+}
+
+.claim-feedback {
+  min-height: 20px;
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.claim-feedback[data-tone="error"] {
+  color: #b42318;
+}
+
+.claim-feedback[data-tone="success"] {
+  color: var(--green);
+}
+
+.claim-feedback[data-tone="info"] {
+  color: var(--muted);
 }
 
 .flow {
@@ -439,9 +470,53 @@ input:focus {
   gap: 16px;
 }
 
-.session-form {
+.invite-form {
   max-width: 720px;
   margin-top: 0;
+}
+
+.proxy-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.proxy-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.proxy-panel-head .panel-kicker {
+  margin-bottom: 8px;
+}
+
+.proxy-panel-head h3 {
+  margin-bottom: 0;
+}
+
+.proxy-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
+.proxy-grid dt {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.proxy-grid dd {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.proxy-grid dd a {
+  overflow-wrap: anywhere;
 }
 
 .dashboard {
@@ -598,6 +673,10 @@ td {
   .steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .proxy-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 680px) {
@@ -626,14 +705,18 @@ td {
 
   .quick-actions,
   .inline-form div,
-  .session-form div {
+  .invite-form div {
     flex-direction: column;
   }
 
   .button,
   .inline-form button,
-  .session-form button {
+  .invite-form button {
     width: 100%;
+  }
+
+  .proxy-panel-head {
+    flex-direction: column;
   }
 
   .steps {

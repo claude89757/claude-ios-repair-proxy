@@ -95,7 +95,7 @@ def test_ingest_rejects_wrong_internal_secret():
 
 
 def test_ingest_and_snapshot_round_trip():
-    app, _invite_store, _status_store = app_parts()
+    app, _invite_store, status_store = app_parts()
     client = TestClient(app)
     event = {
         "type": "claude_request",
@@ -107,16 +107,15 @@ def test_ingest_and_snapshot_round_trip():
     }
 
     ingest = client.post("/api/internal/events", headers=INTERNAL_HEADERS, json=event)
-    snapshot = client.get("/api/status/repair-abc", headers=INTERNAL_HEADERS)
+    snapshot = status_store.snapshot("repair-abc")
 
     assert ingest.status_code == 204
     assert ingest.content == b""
-    assert snapshot.status_code == 200
-    assert snapshot.json()["events"][0]["rewrite_applied"] is True
+    assert snapshot["events"][0]["rewrite_applied"] is True
 
 
 def test_ingest_snapshot_does_not_echo_sensitive_payload_values():
-    app, _invite_store, _status_store = app_parts()
+    app, _invite_store, status_store = app_parts()
     client = TestClient(app)
     event = {
         "type": "claude_request",
@@ -129,48 +128,31 @@ def test_ingest_snapshot_does_not_echo_sensitive_payload_values():
     }
 
     response = client.post("/api/internal/events", headers=INTERNAL_HEADERS, json=event)
-    snapshot = client.get("/api/status/repair-abc", headers=INTERNAL_HEADERS)
+    snapshot = status_store.snapshot("repair-abc")
 
     assert response.status_code == 204
-    body = str(snapshot.json())
+    body = str(snapshot)
     assert "secret" not in body
     assert "b93c2bd9" not in body
     assert "request_headers" not in body
 
 
-def test_events_endpoint_returns_finite_initial_sse_snapshot():
+def test_legacy_status_endpoint_is_removed():
     app, _invite_store, _status_store = app_parts()
     client = TestClient(app)
 
-    with client.stream(
-        "GET",
-        "/api/status/repair-abc/events?once=true",
-        headers=INTERNAL_HEADERS,
-    ) as response:
-        body = next(response.iter_text())
+    response = client.get("/api/status/repair-abc", headers=INTERNAL_HEADERS)
 
-    assert response.status_code == 200
-    assert response.headers["content-type"].startswith("text/event-stream")
-    assert "event: snapshot" in body
-    assert '"session_id": "repair-abc"' in body
+    assert response.status_code == 404
 
 
-def test_legacy_status_endpoint_requires_internal_secret():
+def test_legacy_status_events_endpoint_is_removed():
     app, _invite_store, _status_store = app_parts()
     client = TestClient(app)
 
-    response = client.get("/api/status/repair-abc")
+    response = client.get("/api/status/repair-abc/events?once=true", headers=INTERNAL_HEADERS)
 
-    assert response.status_code == 401
-
-
-def test_legacy_status_events_endpoint_requires_internal_secret():
-    app, _invite_store, _status_store = app_parts()
-    client = TestClient(app)
-
-    response = client.get("/api/status/repair-abc/events?once=true")
-
-    assert response.status_code == 401
+    assert response.status_code == 404
 
 
 def test_internal_events_rejects_malformed_json():
@@ -187,10 +169,9 @@ def test_internal_events_rejects_malformed_json():
 
 
 def test_create_app_instances_have_isolated_status_stores():
-    first_app, _first_invites, _first_store = app_parts()
-    second_app, _second_invites, _second_store = app_parts()
+    first_app, _first_invites, first_store = app_parts()
+    _second_app, _second_invites, second_store = app_parts()
     first_client = TestClient(first_app)
-    second_client = TestClient(second_app)
 
     event = {
         "type": "proxy_connected",
@@ -198,11 +179,5 @@ def test_create_app_instances_have_isolated_status_stores():
     }
     first_client.post("/api/internal/events", headers=INTERNAL_HEADERS, json=event)
 
-    assert first_client.get(
-        "/api/status/repair-abc",
-        headers=INTERNAL_HEADERS,
-    ).json()["events"]
-    assert second_client.get(
-        "/api/status/repair-abc",
-        headers=INTERNAL_HEADERS,
-    ).json()["events"] == []
+    assert first_store.snapshot("repair-abc")["events"]
+    assert second_store.snapshot("repair-abc")["events"] == []

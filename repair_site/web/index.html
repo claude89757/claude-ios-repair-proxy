@@ -32,14 +32,15 @@
 
       <aside class="entry-panel" aria-labelledby="entry-title">
         <p class="panel-kicker">状态入口</p>
-        <h2 id="entry-title">联系管理员获取临时代理配置</h2>
-        <p>页面不会公开代理地址、用户名或密码。拿到临时配置和 repair session ID 后，再在下方查看实时状态。</p>
-        <form id="hero-session-form" class="inline-form">
-          <label for="hero-session-id">Repair session ID</label>
+        <h2 id="entry-title">验证邀请码并查看临时代理</h2>
+        <p>输入管理员提供的邀请码，验证后页面会显示你的临时代理配置和实时状态。</p>
+        <form id="hero-invite-form" class="inline-form">
+          <label for="hero-invite-code">邀请码</label>
           <div>
-            <input id="hero-session-id" name="session-id" autocomplete="off" inputmode="latin" placeholder="repair-abc">
-            <button type="submit">连接</button>
+            <input id="hero-invite-code" name="invite-code" autocomplete="off" inputmode="latin" placeholder="输入邀请码">
+            <button type="submit">验证</button>
           </div>
+          <p class="claim-feedback" data-claim-feedback></p>
         </form>
       </aside>
     </section>
@@ -88,8 +89,8 @@
       <div class="steps">
         <article>
           <span class="step-number">1</span>
-          <h3>获取临时配置</h3>
-          <p>联系管理员获取临时代理配置、repair session ID 和证书下载入口。不要把配置转发给无关人员。</p>
+          <h3>获取邀请码</h3>
+          <p>联系管理员获取本次修复的邀请码。验证成功后，页面会显示临时代理配置和证书下载入口。</p>
         </article>
         <article>
           <span class="step-number">2</span>
@@ -118,16 +119,39 @@
       <div class="section-head">
         <p class="eyebrow">Dashboard</p>
         <h2 id="status-title">实时状态</h2>
-        <p>输入管理员提供的 repair session ID。这里仅展示已脱敏的设备、状态和事件元数据，不展示 Cookie、请求体、完整设备 ID 或任何代理凭据。</p>
+        <p>输入管理员提供的邀请码，验证后页面会显示你的临时代理配置和实时状态。</p>
       </div>
 
-      <form id="session-form" class="session-form">
-        <label for="session-id">Repair session ID</label>
+      <form id="invite-form" class="invite-form">
+        <label for="invite-code">邀请码</label>
         <div>
-          <input id="session-id" name="session-id" autocomplete="off" inputmode="latin" placeholder="repair-abc">
-          <button type="submit">连接状态</button>
+          <input id="invite-code" name="invite-code" autocomplete="off" inputmode="latin" placeholder="输入邀请码">
+          <button type="submit">验证邀请码</button>
         </div>
+        <p class="claim-feedback" data-claim-feedback></p>
       </form>
+
+      <section id="proxy-config" class="panel proxy-panel" aria-labelledby="proxy-title" hidden>
+        <div class="proxy-panel-head">
+          <div>
+            <p class="panel-kicker">临时代理配置</p>
+            <h3 id="proxy-title">请按以下信息配置当前 Wi-Fi 代理</h3>
+          </div>
+          <a id="proxy-certificate" class="button secondary" href="#" target="_blank" rel="noreferrer noopener">下载证书</a>
+        </div>
+        <dl class="proxy-grid">
+          <dt>服务器</dt>
+          <dd id="proxy-host">-</dd>
+          <dt>端口</dt>
+          <dd id="proxy-port">-</dd>
+          <dt>用户名</dt>
+          <dd id="proxy-username">-</dd>
+          <dt>密码</dt>
+          <dd id="proxy-password">-</dd>
+          <dt>证书链接</dt>
+          <dd id="proxy-certificate-url">-</dd>
+        </dl>
+      </section>
 
       <div class="dashboard" aria-live="polite">
         <section class="panel summary-panel" aria-labelledby="summary-title">

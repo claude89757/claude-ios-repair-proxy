@@ -1,16 +1,26 @@
 const forms = [
-  document.querySelector("#session-form"),
-  document.querySelector("#hero-session-form"),
+  document.querySelector("#invite-form"),
+  document.querySelector("#hero-invite-form"),
 ].filter(Boolean);
 const inputs = [
-  document.querySelector("#session-id"),
-  document.querySelector("#hero-session-id"),
+  document.querySelector("#invite-code"),
+  document.querySelector("#hero-invite-code"),
 ].filter(Boolean);
+const feedbacks = Array.from(document.querySelectorAll("[data-claim-feedback]"));
 const summary = document.querySelector("#device-summary");
 const checklist = document.querySelector("#checklist");
 const eventTable = document.querySelector("#event-table");
+const proxyConfig = document.querySelector("#proxy-config");
+const proxyHost = document.querySelector("#proxy-host");
+const proxyPort = document.querySelector("#proxy-port");
+const proxyUsername = document.querySelector("#proxy-username");
+const proxyPassword = document.querySelector("#proxy-password");
+const proxyCertificateUrl = document.querySelector("#proxy-certificate-url");
+const proxyCertificate = document.querySelector("#proxy-certificate");
 
-let source = null;
+let streamController = null;
+let statusToken = "";
+let activeInviteCode = "";
 
 const checks = [
   ["proxy", "代理已连接"],
@@ -42,6 +52,34 @@ function term(label, value) {
   dt.textContent = label;
   dd.textContent = text(value);
   return [dt, dd];
+}
+
+function setFeedback(message = "", tone = "") {
+  feedbacks.forEach((node) => {
+    node.textContent = message;
+    node.dataset.tone = tone;
+    node.hidden = !message;
+  });
+}
+
+function setBusy(isBusy) {
+  forms.forEach((form) => {
+    form.classList.toggle("is-busy", isBusy);
+    const input = form.querySelector("input");
+    const button = form.querySelector("button");
+    if (input) {
+      input.disabled = isBusy;
+    }
+    if (button) {
+      button.disabled = isBusy;
+    }
+  });
+}
+
+function syncInviteCode(inviteCode) {
+  inputs.forEach((input) => {
+    input.value = inviteCode;
+  });
 }
 
 function renderSummary(data) {
@@ -125,65 +163,305 @@ function render(data) {
   renderEvents(data || {});
 }
 
-async function loadSnapshot(sessionId) {
-  const response = await fetch(`/api/status/${encodeURIComponent(sessionId)}`, {
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) {
-    throw new Error(`status ${response.status}`);
+function setCertificateLink(url) {
+  if (!proxyCertificate || !proxyCertificateUrl) {
+    return;
   }
+
+  if (!url) {
+    proxyCertificate.hidden = true;
+    proxyCertificate.removeAttribute("href");
+    proxyCertificateUrl.textContent = "-";
+    return;
+  }
+
+  proxyCertificate.hidden = false;
+  proxyCertificate.href = url;
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noreferrer noopener";
+  link.textContent = url;
+  replaceChildren(proxyCertificateUrl, [link]);
+}
+
+function renderProxyConfig(claim) {
+  if (!proxyConfig) {
+    return;
+  }
+
+  proxyConfig.hidden = false;
+  if (proxyHost) {
+    proxyHost.textContent = text(claim?.proxy_host);
+  }
+  if (proxyPort) {
+    proxyPort.textContent = text(claim?.proxy_port);
+  }
+  if (proxyUsername) {
+    proxyUsername.textContent = text(claim?.proxy_username);
+  }
+  if (proxyPassword) {
+    proxyPassword.textContent = text(claim?.proxy_password);
+  }
+  setCertificateLink(claim?.certificate_url);
+}
+
+function resetProxyConfig() {
+  if (proxyConfig) {
+    proxyConfig.hidden = true;
+  }
+  if (proxyHost) {
+    proxyHost.textContent = "-";
+  }
+  if (proxyPort) {
+    proxyPort.textContent = "-";
+  }
+  if (proxyUsername) {
+    proxyUsername.textContent = "-";
+  }
+  if (proxyPassword) {
+    proxyPassword.textContent = "-";
+  }
+  setCertificateLink("");
+}
+
+function closeStream() {
+  if (streamController) {
+    streamController.abort();
+    streamController = null;
+  }
+}
+
+function renderWaitingState(label) {
+  render({
+    connection_status: label,
+    certificate_status: "unknown",
+    events: [],
+  });
+}
+
+async function readJson(response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    return null;
+  }
+
+  try {
+    return await response.json();
+  } catch (_error) {
+    return null;
+  }
+}
+
+async function claimInvite(inviteCode) {
+  const response = await fetch("/api/invites/claim", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ invite_code: inviteCode }),
+  });
+  const payload = await readJson(response);
+
+  if (!response.ok) {
+    const error = new Error("claim failed");
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+
+  return payload || {};
+}
+
+async function loadSnapshot() {
+  const response = await fetch("/api/invites/me/status", {
+    headers: {
+      Accept: "application/json",
+      "x-status-token": statusToken,
+    },
+  });
+
+  if (!response.ok) {
+    const error = new Error("snapshot failed");
+    error.status = response.status;
+    throw error;
+  }
+
   return response.json();
 }
 
-async function connect(sessionId) {
-  if (source) {
-    source.close();
+function expireTokenState() {
+  statusToken = "";
+  activeInviteCode = "";
+  closeStream();
+}
+
+async function refreshSnapshot({ silent = false } = {}) {
+  try {
+    render(await loadSnapshot());
+    return true;
+  } catch (error) {
+    if (error?.status === 401) {
+      expireTokenState();
+      setFeedback("状态凭证已失效，请重新输入邀请码。", "error");
+    } else if (!silent) {
+      setFeedback("代理配置已显示，但实时状态暂时不可用。", "info");
+    }
+
+    renderWaitingState("状态暂时不可用");
+    return false;
+  }
+}
+
+function handleSseBlock(block) {
+  let eventType = "message";
+  const dataLines = [];
+
+  block.split(/\r?\n/).forEach((line) => {
+    if (line.startsWith("event:")) {
+      eventType = line.slice("event:".length).trim();
+    } else if (line.startsWith("data:")) {
+      dataLines.push(line.slice("data:".length).trimStart());
+    }
+  });
+
+  const data = dataLines.join("\n");
+  if (eventType === "snapshot") {
+    try {
+      render(JSON.parse(data));
+    } catch (_error) {
+      renderWaitingState("状态数据处理中");
+    }
+    return;
   }
 
-  inputs.forEach((input) => {
-    input.value = sessionId;
-  });
+  if (eventType === "update") {
+    void refreshSnapshot({ silent: true });
+  }
+}
+
+async function consumeStatusStream(signal) {
+  try {
+    const response = await fetch("/api/invites/me/events", {
+      headers: {
+        Accept: "text/event-stream",
+        "x-status-token": statusToken,
+      },
+      signal,
+    });
+
+    if (!response.ok || !response.body) {
+      if (response.status === 401) {
+        expireTokenState();
+        setFeedback("状态凭证已失效，请重新输入邀请码。", "error");
+      } else {
+        renderWaitingState("正在重新连接状态流");
+      }
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+      let boundary = buffer.indexOf("\n\n");
+      while (boundary >= 0) {
+        const block = buffer.slice(0, boundary).trim();
+        buffer = buffer.slice(boundary + 2);
+        if (block) {
+          handleSseBlock(block);
+        }
+        boundary = buffer.indexOf("\n\n");
+      }
+    }
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      renderWaitingState("正在重新连接状态流");
+    }
+  }
+}
+
+function startEventStream() {
+  closeStream();
+  if (!statusToken) {
+    return;
+  }
+
+  streamController = new AbortController();
+  void consumeStatusStream(streamController.signal);
+}
+
+async function activateInvite(inviteCode) {
+  if (activeInviteCode === inviteCode && statusToken) {
+    setFeedback("该邀请码的临时代理配置已加载。", "success");
+    await refreshSnapshot();
+    startEventStream();
+    return;
+  }
+
+  setBusy(true);
+  setFeedback("正在验证邀请码...", "info");
 
   try {
-    render(await loadSnapshot(sessionId));
-  } catch (error) {
-    render({
-      connection_status: "snapshot unavailable",
-      certificate_status: "unknown",
-      events: [{ path: "/api/status", response_status: error.message }],
-    });
-  }
+    const claim = await claimInvite(inviteCode);
+    if (typeof claim.status_token !== "string" || !claim.status_token) {
+      throw new Error("missing status token");
+    }
 
-  source = new EventSource(`/api/status/${encodeURIComponent(sessionId)}/events`);
-  source.addEventListener("snapshot", (event) => {
-    render(JSON.parse(event.data));
-  });
-  source.addEventListener("update", async () => {
-    render(await loadSnapshot(sessionId));
-  });
-  source.onerror = () => {
-    render({
-      connection_status: "sse reconnecting",
-      certificate_status: "unknown",
-      events: [],
-    });
-  };
+    statusToken = claim.status_token;
+    activeInviteCode = inviteCode;
+    renderProxyConfig(claim);
+
+    const snapshotLoaded = await refreshSnapshot({ silent: true });
+    if (snapshotLoaded) {
+      setFeedback("邀请码验证成功，已显示临时代理配置。", "success");
+    } else if (statusToken) {
+      setFeedback("邀请码验证成功，临时代理配置已显示。", "success");
+    }
+
+    startEventStream();
+  } catch (error) {
+    expireTokenState();
+    resetProxyConfig();
+
+    if (error?.status === 400 || error?.status === 404) {
+      setFeedback("邀请码无效或已失效。", "error");
+    } else {
+      setFeedback("暂时无法验证邀请码，请稍后重试。", "error");
+    }
+
+    renderWaitingState("等待邀请码验证");
+  } finally {
+    setBusy(false);
+  }
 }
 
 forms.forEach((form) => {
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const formInput = form.querySelector("input");
-    const sessionId = formInput?.value.trim();
-    if (sessionId) {
-      connect(sessionId);
-      document.querySelector("#status")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const inviteCode = formInput?.value.trim();
+
+    if (!inviteCode) {
+      setFeedback("请输入邀请码。", "error");
+      return;
     }
+
+    syncInviteCode(inviteCode);
+    void activateInvite(inviteCode);
+    document.querySelector("#status")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 });
 
-render({
-  connection_status: "waiting for session",
-  certificate_status: "unknown",
-  events: [],
-});
+resetProxyConfig();
+setFeedback("");
+renderWaitingState("等待邀请码验证");

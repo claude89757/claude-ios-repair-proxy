@@ -223,7 +223,8 @@ def test_token_scoped_events_once_returns_snapshot_stream():
 
     with client.stream(
         "GET",
-        f"/api/invites/me/events?token={token}&once=true",
+        "/api/invites/me/events?once=true",
+        headers={"x-status-token": token},
     ) as response:
         body = next(response.iter_text())
 
@@ -233,11 +234,20 @@ def test_token_scoped_events_once_returns_snapshot_stream():
     assert invite["session_id"] not in body
 
 
-def test_token_scoped_events_rejects_invalid_query_token():
+def test_token_scoped_events_rejects_query_token():
     app, _invite_store, _status_store = app_parts()
     client = TestClient(app)
 
     response = client.get("/api/invites/me/events?token=bad&once=true")
+
+    assert response.status_code == 401
+
+
+def test_token_scoped_events_rejects_missing_header_token():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.get("/api/invites/me/events?once=true")
 
     assert response.status_code == 401
 

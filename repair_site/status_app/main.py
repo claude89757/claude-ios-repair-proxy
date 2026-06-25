@@ -354,11 +354,6 @@ def create_app(
             raise HTTPException(status_code=401, detail="invalid proxy auth")
         return {"session_id": session_id.strip()}
 
-    @created_app.get("/api/status/{session_id}")
-    def status_snapshot(request: Request, session_id: str) -> dict[str, Any]:
-        _require_internal_secret(request)
-        return _status_store(request.app).snapshot(session_id)
-
     @created_app.post("/api/invites/claim")
     async def claim_invite(request: Request) -> dict[str, Any]:
         payload = await _json_object(request)
@@ -397,26 +392,13 @@ def create_app(
     ) -> StreamingResponse:
         session_id = _require_status_session_id(
             request,
-            request.query_params.get("token") or request.headers.get("x-status-token"),
+            request.headers.get("x-status-token"),
         )
         return _status_stream_response(
             _status_store(request.app),
             session_id,
             once=once,
             public=True,
-        )
-
-    @created_app.get("/api/status/{session_id}/events")
-    async def status_events(
-        request: Request,
-        session_id: str,
-        once: bool = False,
-    ) -> StreamingResponse:
-        _require_internal_secret(request)
-        return _status_stream_response(
-            _status_store(request.app),
-            session_id,
-            once=once,
         )
 
     web_root = Path(__file__).resolve().parents[1] / "web"
