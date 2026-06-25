@@ -11,6 +11,7 @@ const proxyUsername = document.querySelector("#proxy-username");
 const proxyPassword = document.querySelector("#proxy-password");
 const proxyCertificateUrl = document.querySelector("#proxy-certificate-url");
 const proxyCertificate = document.querySelector("#proxy-certificate");
+const statusRefreshButton = document.querySelector("#status-refresh");
 
 let streamController = null;
 let statusToken = "";
@@ -68,6 +69,17 @@ function setBusy(isBusy) {
   if (button) {
     button.disabled = isBusy;
   }
+  if (statusRefreshButton) {
+    statusRefreshButton.disabled = isBusy;
+  }
+}
+
+function setRefreshBusy(isBusy) {
+  if (!statusRefreshButton) {
+    return;
+  }
+  statusRefreshButton.disabled = isBusy;
+  statusRefreshButton.classList.toggle("is-busy", isBusy);
 }
 
 function renderSummary(data) {
@@ -303,6 +315,26 @@ async function refreshSnapshot({ silent = false } = {}) {
   }
 }
 
+async function refreshStatusManually() {
+  if (!statusToken) {
+    setFeedback("请先验证邀请码，再刷新实时状态。", "error");
+    renderWaitingState("等待邀请码验证");
+    return;
+  }
+
+  setRefreshBusy(true);
+  setFeedback("正在刷新实时状态...", "info");
+  try {
+    const refreshed = await refreshSnapshot();
+    if (refreshed && statusToken) {
+      setFeedback("实时状态已刷新。", "success");
+      startEventStream();
+    }
+  } finally {
+    setRefreshBusy(false);
+  }
+}
+
 function handleSseBlock(block) {
   let eventType = "message";
   const dataLines = [];
@@ -444,6 +476,10 @@ inviteForm?.addEventListener("submit", (event) => {
 
   void activateInvite(inviteCode);
   document.querySelector("#status")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+statusRefreshButton?.addEventListener("click", () => {
+  void refreshStatusManually();
 });
 
 resetProxyConfig();

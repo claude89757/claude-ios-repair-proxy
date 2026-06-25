@@ -51,6 +51,18 @@ def test_dashboard_client_uses_invite_api_and_header_stream():
     assert "sessionStorage" not in js
 
 
+def test_public_status_dashboard_has_manual_refresh_button():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert 'id="status-refresh"' in html
+    assert 'type="button"' in html
+    assert "刷新状态" in html
+    assert 'document.querySelector("#status-refresh")' in js
+    assert "请先验证邀请码，再刷新实时状态。" in js
+    assert "refreshSnapshot()" in js
+
+
 def test_public_site_has_single_invite_entry_point():
     html = (WEB / "index.html").read_text()
     js = (WEB / "app.js").read_text()
