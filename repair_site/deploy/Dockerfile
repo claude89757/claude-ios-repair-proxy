@@ -9,3 +9,5 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY repair_site ./repair_site
+RUN mkdir -p /opt/claude-ios-repair/data
+VOLUME ["/opt/claude-ios-repair/data"]

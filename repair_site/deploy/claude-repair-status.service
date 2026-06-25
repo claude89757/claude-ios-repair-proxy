@@ -6,8 +6,10 @@ Wants=network-online.target
 [Service]
 WorkingDirectory=/opt/claude-ios-repair
 Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/claude-repair/app.env
+ExecStartPre=/usr/bin/mkdir -p /opt/claude-ios-repair/data
 ExecStartPre=-/usr/bin/docker rm -f claude-repair-status
-ExecStart=/usr/bin/docker run --rm --name claude-repair-status --network host -e PYTHONUNBUFFERED=1 claude-ios-repair:latest uvicorn repair_site.status_app.main:app --host 127.0.0.1 --port 9000
+ExecStart=/usr/bin/docker run --rm --name claude-repair-status --network host --env-file /etc/claude-repair/app.env -e PYTHONUNBUFFERED=1 -v /opt/claude-ios-repair/data:/opt/claude-ios-repair/data claude-ios-repair:latest uvicorn repair_site.status_app.main:app --host 127.0.0.1 --port 9000
 ExecStop=/usr/bin/docker stop claude-repair-status
 Restart=always
 RestartSec=3
