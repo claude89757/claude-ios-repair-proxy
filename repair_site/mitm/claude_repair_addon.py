@@ -222,6 +222,25 @@ class ClaudeRepairAddon:
             }
         )
 
+    def _emit_claude_connect(self, flow: Any) -> None:
+        if not self._is_observable_claude_request(flow):
+            return
+        session_id = self._authenticated_session_id(flow)
+        if session_id is None:
+            return
+        request = getattr(flow, "request", None)
+        self._emit(
+            {
+                "type": "claude_connect",
+                "session_id": session_id,
+                "client_ip": self._client_ip(flow),
+                "connection_status": "connected",
+                "method": "CONNECT",
+                "host": str(getattr(request, "host", "") or ""),
+                "path": "/",
+            }
+        )
+
     def _make_407_response(self) -> Any:
         try:
             from mitmproxy import http as mitmproxy_http
@@ -308,7 +327,8 @@ class ClaudeRepairAddon:
             return
 
     def http_connect(self, flow: Any) -> None:
-        self._require_public_proxy_target(flow)
+        if self._require_public_proxy_target(flow):
+            self._emit_claude_connect(flow)
 
     def requestheaders(self, flow: Any) -> None:
         self._require_public_proxy_target(flow)

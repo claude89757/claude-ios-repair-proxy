@@ -160,7 +160,7 @@ class RepairSession:
             self.first_seen_at = timestamp
         self.last_seen_at = timestamp
         self.connection_status = str(event.get("connection_status") or "connected")
-        if is_claude_service_host(event.get("host")) or event.get("certificate_status") == "trusted":
+        if event.get("type") == "claude_request" or event.get("certificate_status") == "trusted":
             self.certificate_status = "trusted"
         self.events.append(event)
         self.events = self.events[-max_events:]

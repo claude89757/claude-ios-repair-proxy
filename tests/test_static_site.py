@@ -87,6 +87,20 @@ def test_dashboard_latches_completed_repair_checks_for_active_invite():
     assert "resetRepairProgress();" in js
 
 
+def test_dashboard_separates_proxy_connections_from_claude_events():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert "只显示 Claude/Anthropic 相关连接和请求" in html
+    assert "function isClaudeEvent" in js
+    assert 'event?.type === "claude_connect"' in js
+    assert 'event?.type === "claude_request"' in js
+    assert ".filter(isClaudeEvent)" in js
+    assert "CONNECT ${text(event.host)}" in js
+    assert "TLS 未解密" in js
+    assert "尚未观察到 Claude/Anthropic 请求" in js
+
+
 def test_dashboard_caches_only_invite_code_for_browser_restore():
     js = (WEB / "app.js").read_text()
 

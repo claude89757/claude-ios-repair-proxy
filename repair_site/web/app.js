@@ -190,16 +190,44 @@ function cookieSummary(event) {
   return `${session} / ${routing}`;
 }
 
+function isClaudeEvent(event) {
+  return event?.type === "claude_connect" || event?.type === "claude_request";
+}
+
+function eventPathSummary(event) {
+  if (event?.type === "claude_connect") {
+    return `CONNECT ${text(event.host)}`;
+  }
+  return text(event?.path);
+}
+
+function eventRewriteSummary(event) {
+  if (event?.type === "claude_connect") {
+    return "-";
+  }
+  return event?.rewrite_applied ? "yes" : "no";
+}
+
+function eventCookieSummary(event) {
+  if (event?.type === "claude_connect") {
+    return "TLS 未解密";
+  }
+  return cookieSummary(event);
+}
+
 function renderEvents(data) {
-  const rows = (Array.isArray(data?.events) ? data.events : []).slice(-20).reverse();
+  const rows = (Array.isArray(data?.events) ? data.events : [])
+    .filter(isClaudeEvent)
+    .slice(-20)
+    .reverse();
   const elements = rows.map((event) => {
     const tr = document.createElement("tr");
     [
       text(event.timestamp),
-      text(event.path),
+      eventPathSummary(event),
       text(event.response_status),
-      event.rewrite_applied ? "yes" : "no",
-      cookieSummary(event),
+      eventRewriteSummary(event),
+      eventCookieSummary(event),
     ].forEach((value) => {
       const td = document.createElement("td");
       td.textContent = value;
@@ -212,7 +240,7 @@ function renderEvents(data) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 5;
-    td.textContent = "等待 Claude iOS 请求事件";
+    td.textContent = "尚未观察到 Claude/Anthropic 请求；当前只看到代理连接或其他系统流量。";
     tr.appendChild(td);
     elements.push(tr);
   }

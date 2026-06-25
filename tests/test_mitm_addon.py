@@ -201,10 +201,13 @@ def test_http_connect_ignores_stale_proxy_auth_and_response_emits_configured_ses
 
     assert flow.metadata["session_id"] == "sess-port-10001"
     assert "Proxy-Authorization" not in flow.request.headers
-    assert len(posts) == 2
+    assert len(posts) == 3
     assert posts[0][0] == "http://127.0.0.1:9000/api/internal/events"
     assert posts[0][1]["type"] == "proxy_connected"
-    event = posts[1][1]
+    assert posts[1][1]["type"] == "claude_connect"
+    assert posts[1][1]["host"] == "claude.ai"
+    event = posts[2][1]
+    assert event["type"] == "claude_request"
     assert event["session_id"] == "sess-port-10001"
 
 
@@ -229,13 +232,22 @@ def test_http_connect_allows_claude_without_proxy_auth_and_uses_configured_sessi
 
     assert flow.response is None
     assert flow.metadata["session_id"] == "sess-port-10001"
-    assert len(posts) == 1
+    assert len(posts) == 2
     assert posts[0][0].endswith("/api/internal/events")
     assert posts[0][1] == {
         "type": "proxy_connected",
         "session_id": "sess-port-10001",
         "client_ip": "203.0.113.42",
         "connection_status": "connected",
+    }
+    assert posts[1][1] == {
+        "type": "claude_connect",
+        "session_id": "sess-port-10001",
+        "client_ip": "203.0.113.42",
+        "connection_status": "connected",
+        "method": "CONNECT",
+        "host": "claude.ai",
+        "path": "/",
     }
 
 
@@ -292,7 +304,7 @@ def test_http_connect_emits_proxy_connected_event_for_configured_session(monkeyp
 
     addon.http_connect(flow)
 
-    assert len(posts) == 1
+    assert len(posts) == 2
     assert posts[0][0].endswith("/api/internal/events")
     assert posts[0][1] == {
         "type": "proxy_connected",
@@ -300,6 +312,9 @@ def test_http_connect_emits_proxy_connected_event_for_configured_session(monkeyp
         "client_ip": "203.0.113.42",
         "connection_status": "connected",
     }
+    assert posts[1][1]["type"] == "claude_connect"
+    assert posts[1][1]["host"] == "claude.ai"
+    assert posts[1][1]["method"] == "CONNECT"
 
 
 def test_requestheaders_ignores_and_removes_proxy_authorization(monkeypatch):
