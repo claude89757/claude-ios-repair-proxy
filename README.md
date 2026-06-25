@@ -46,7 +46,8 @@ uvicorn repair_site.status_app.main:app --host 127.0.0.1 --port 9000
 - `443`: Nginx public website
 - `9000`: local FastAPI status backend
 - `10001-10999`: per-invite Claude iOS repair proxy ports by default
+- New invites expire after `INVITE_DEFAULT_TTL_SECONDS` seconds by default; production default is `86400` seconds.
 
 ## Security Notes
 
-公开页面不内置代理账号密码。用户通过管理员发放的邀请码获取专属代理端口；iPhone Wi-Fi 代理认证保持关闭。修复代理只放行 Claude/Anthropic 相关域名和少量连通性测试域名，服务端只记录脱敏状态和事件元数据。
+公开页面不内置代理账号密码。用户通过管理员发放的邀请码获取专属代理端口；iPhone Wi-Fi 代理认证保持关闭。专属端口是临时全量转发端口，默认 24 小时失效；服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。

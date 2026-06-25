@@ -23,11 +23,6 @@ COOKIE_DELETIONS = [
     "routingHint=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Domain=claude.ai; Secure; SameSite=None",
 ]
 
-PUBLIC_PROXY_TEST_HOSTS = {
-    "captive.apple.com",
-    "challenges.cloudflare.com",
-    "neverssl.com",
-}
 DEFAULT_REPAIR_SESSION_ID = "public"
 
 
@@ -91,8 +86,7 @@ class ClaudeRepairAddon:
         return str(host or "").strip().lower().rstrip(".")
 
     def _is_public_proxy_allowed(self, flow: Any) -> bool:
-        host = self._normalized_request_host(flow)
-        return is_claude_service_host(host) or host in PUBLIC_PROXY_TEST_HOSTS
+        return bool(self._normalized_request_host(flow))
 
     def _internal_headers(self) -> dict[str, str] | None:
         if not self.internal_secret:

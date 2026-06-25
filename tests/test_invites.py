@@ -35,6 +35,17 @@ def test_create_invite_generates_unique_credentials():
     assert invite["status"] == "active"
 
 
+def test_create_invite_defaults_to_24_hour_expiration():
+    store = InviteStore(settings())
+    before = datetime.now(timezone.utc)
+
+    invite = store.create_invite(note="temporary user")
+
+    after = datetime.now(timezone.utc)
+    expires_at = datetime.fromisoformat(invite["expires_at"])
+    assert before + timedelta(hours=24) <= expires_at <= after + timedelta(hours=24)
+
+
 def test_claim_invite_rejects_disabled_invite():
     store = InviteStore(settings())
     invite = store.create_invite(note="")
@@ -139,6 +150,20 @@ def test_file_backed_persistence_can_read_invite_from_second_store(tmp_path: Pat
     assert persisted["invite_code"] == invite["invite_code"]
     assert persisted["session_id"] == invite["session_id"]
     assert "proxy_password" not in persisted
+
+
+def test_legacy_active_invite_without_expiration_gets_default_on_reopen(tmp_path: Path):
+    database_path = str(tmp_path / "legacy.sqlite3")
+    first_store = InviteStore(settings(database_path=database_path))
+    invite = first_store.create_invite(note="legacy")
+    first_store.conn.execute("UPDATE invites SET expires_at = NULL WHERE id = ?", (invite["id"],))
+    first_store.conn.commit()
+    first_store.close()
+
+    reopened = InviteStore(settings(database_path=database_path))
+    migrated = reopened.get_invite_by_id(invite["id"])
+
+    assert migrated["expires_at"] is not None
 
 
 def test_shared_store_handles_concurrent_create_auth_and_disable(tmp_path: Path):

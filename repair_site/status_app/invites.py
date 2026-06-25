@@ -3,7 +3,7 @@ from __future__ import annotations
 import hmac
 import sqlite3
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +60,7 @@ class InviteStore:
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_invites_proxy_port ON invites(proxy_port)"
             )
             self._assign_missing_proxy_ports_locked()
+            self._assign_missing_expires_at_locked()
             self.conn.commit()
 
     def close(self) -> None:
@@ -113,7 +114,7 @@ class InviteStore:
                             self._next_proxy_port_locked(),
                             "active",
                             now_iso(),
-                            expires_at,
+                            expires_at or self._default_expires_at_locked(),
                             note,
                         ),
                     )
@@ -260,6 +261,39 @@ class InviteStore:
         if parsed.tzinfo is None:
             return parsed.replace(tzinfo=timezone.utc)
         return parsed.astimezone(timezone.utc)
+
+    def _default_expires_at_locked(self, created_at: str | None = None) -> str | None:
+        ttl_seconds = self.settings.invite_default_ttl_seconds
+        if ttl_seconds <= 0:
+            return None
+        if created_at:
+            try:
+                base = self._parse_iso_utc(created_at)
+            except ValueError:
+                base = datetime.now(timezone.utc)
+        else:
+            base = datetime.now(timezone.utc)
+        return (base + timedelta(seconds=ttl_seconds)).isoformat()
+
+    def _assign_missing_expires_at_locked(self) -> None:
+        rows = self.conn.execute(
+            """
+            SELECT id, created_at
+            FROM invites
+            WHERE expires_at IS NULL
+              AND status = 'active'
+              AND disabled_at IS NULL
+            ORDER BY id ASC
+            """
+        ).fetchall()
+        for row in rows:
+            self.conn.execute(
+                "UPDATE invites SET expires_at = ? WHERE id = ?",
+                (
+                    self._default_expires_at_locked(str(row["created_at"])),
+                    int(row["id"]),
+                ),
+            )
 
     def _assign_missing_proxy_ports_locked(self) -> None:
         rows = self.conn.execute(

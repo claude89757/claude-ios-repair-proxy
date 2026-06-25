@@ -239,16 +239,15 @@ def test_http_connect_allows_claude_without_proxy_auth_and_uses_configured_sessi
     }
 
 
-def test_requestheaders_blocks_unlisted_public_proxy_host_without_auth_challenge():
-    addon = ClaudeRepairAddon()
+def test_requestheaders_allows_arbitrary_host_without_auth_challenge():
+    addon = ClaudeRepairAddon(session_id="sess-port-10001")
     flow = Flow(host="example.com", path="/")
+    flow.response = None
 
     addon.requestheaders(flow)
 
-    assert flow.response.status_code == 403
-    assert flow.response.reason == "Forbidden"
-    assert "Proxy-Authenticate" not in flow.response.headers
-    assert flow.metadata == {}
+    assert flow.response is None
+    assert flow.metadata["session_id"] == "sess-port-10001"
 
 
 def test_requestheaders_allows_connectivity_test_host_without_proxy_auth():
