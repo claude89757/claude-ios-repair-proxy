@@ -25,6 +25,7 @@ COOKIE_DELETIONS = [
 
 PUBLIC_PROXY_TEST_HOSTS = {
     "captive.apple.com",
+    "challenges.cloudflare.com",
     "neverssl.com",
 }
 DEFAULT_REPAIR_SESSION_ID = "public"

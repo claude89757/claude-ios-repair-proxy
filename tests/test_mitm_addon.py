@@ -262,6 +262,17 @@ def test_requestheaders_allows_connectivity_test_host_without_proxy_auth():
     assert flow.metadata["session_id"] == "sess-port-10001"
 
 
+def test_requestheaders_allows_cloudflare_challenge_host_without_proxy_auth():
+    addon = ClaudeRepairAddon(session_id="sess-port-10001")
+    flow = Flow(host="challenges.cloudflare.com", path="/cdn-cgi/challenge-platform/h/b")
+    flow.response = None
+
+    addon.requestheaders(flow)
+
+    assert flow.response is None
+    assert flow.metadata["session_id"] == "sess-port-10001"
+
+
 def test_http_connect_emits_proxy_connected_event_for_configured_session(monkeypatch):
     posts = []
 
