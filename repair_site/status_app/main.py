@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
 import hmac
 import json
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
@@ -17,10 +21,13 @@ from repair_site.status_app.config import (
     load_settings,
     require_configured,
     sign_status_token,
+    verify_admin_password,
     verify_status_token,
 )
 from repair_site.status_app.invites import InviteStore
 from repair_site.status_app.store import StatusStore
+
+ADMIN_SESSION_COOKIE = "admin_session"
 
 
 def _settings(app: FastAPI) -> Settings:
@@ -55,6 +62,116 @@ def _require_status_session_id(request: Request, token: str | None) -> str:
     if session_id is None:
         raise HTTPException(status_code=401, detail="invalid status token")
     return session_id
+
+
+def _b64encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
+
+
+def _b64decode(value: str) -> bytes:
+    padded = value + "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode(padded.encode("ascii"))
+
+
+def _sign_admin_session_token(username: str, *, secret: str) -> str:
+    payload = {
+        "purpose": "admin_session",
+        "username": username,
+        "exp": int(time.time()) + 3600,
+    }
+    encoded_payload = _b64encode(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    )
+    signature = _b64encode(
+        hmac.new(
+            secret.encode("utf-8"),
+            encoded_payload.encode("ascii"),
+            hashlib.sha256,
+        ).digest()
+    )
+    return f"{encoded_payload}.{signature}"
+
+
+def _verify_admin_session_token(token: str | None, *, secret: str) -> str | None:
+    if not token:
+        return None
+    try:
+        encoded_payload, signature = token.split(".", 1)
+    except ValueError:
+        return None
+    expected_signature = _b64encode(
+        hmac.new(
+            secret.encode("utf-8"),
+            encoded_payload.encode("ascii"),
+            hashlib.sha256,
+        ).digest()
+    )
+    if not hmac.compare_digest(signature, expected_signature):
+        return None
+    try:
+        payload = json.loads(_b64decode(encoded_payload).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("purpose") != "admin_session":
+        return None
+    exp = payload.get("exp")
+    if not isinstance(exp, int) or exp < int(time.time()):
+        return None
+    username = payload.get("username")
+    if not isinstance(username, str):
+        return None
+    return username
+
+
+def _set_admin_session_cookie(response: Response, settings: Settings) -> None:
+    response.set_cookie(
+        ADMIN_SESSION_COOKIE,
+        _sign_admin_session_token(
+            settings.admin_username,
+            secret=settings.status_token_secret,
+        ),
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+
+
+def _clear_admin_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        ADMIN_SESSION_COOKIE,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+
+
+def _require_admin_username(request: Request) -> str:
+    settings = _settings(request.app)
+    token = request.cookies.get(ADMIN_SESSION_COOKIE)
+    username = _verify_admin_session_token(
+        token,
+        secret=settings.status_token_secret,
+    )
+    if username is None or not hmac.compare_digest(username, settings.admin_username):
+        raise HTTPException(status_code=401, detail="invalid admin session")
+    return settings.admin_username
+
+
+def _validate_expires_at(expires_at: str) -> str:
+    normalized = expires_at.strip()
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="expires_at must be ISO-8601") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat()
 
 
 async def _json_object(request: Request) -> dict[str, Any]:
@@ -151,6 +268,64 @@ def create_app(
     @created_app.get("/api/health")
     def health() -> dict[str, bool]:
         return {"ok": True}
+
+    @created_app.post("/api/admin/login", status_code=204)
+    async def admin_login(request: Request) -> Response:
+        payload = await _json_object(request)
+        username = payload.get("username")
+        password = payload.get("password")
+        settings = _settings(request.app)
+        if (
+            not isinstance(username, str)
+            or not isinstance(password, str)
+            or username != settings.admin_username
+            or not verify_admin_password(password, settings)
+        ):
+            raise HTTPException(status_code=401, detail="invalid admin credentials")
+        response = Response(status_code=204)
+        _set_admin_session_cookie(response, settings)
+        return response
+
+    @created_app.post("/api/admin/logout", status_code=204)
+    def admin_logout() -> Response:
+        response = Response(status_code=204)
+        _clear_admin_session_cookie(response)
+        return response
+
+    @created_app.get("/api/admin/invites")
+    def admin_list_invites(request: Request) -> list[dict[str, Any]]:
+        _require_admin_username(request)
+        return _invite_store(request.app).list_invites()
+
+    @created_app.post("/api/admin/invites")
+    async def admin_create_invite(request: Request) -> dict[str, Any]:
+        _require_admin_username(request)
+        payload = await _json_object(request)
+        note = payload.get("note")
+        expires_at = payload.get("expires_at")
+        if not isinstance(note, str):
+            raise HTTPException(status_code=400, detail="note is required")
+        if expires_at is not None and not isinstance(expires_at, str):
+            raise HTTPException(status_code=400, detail="expires_at must be a string")
+        if isinstance(expires_at, str):
+            expires_at = _validate_expires_at(expires_at)
+        return _invite_store(request.app).create_invite(note=note, expires_at=expires_at)
+
+    @created_app.post("/api/admin/invites/{invite_id}/disable")
+    def admin_disable_invite(request: Request, invite_id: int) -> dict[str, Any]:
+        _require_admin_username(request)
+        invite = _invite_store(request.app).disable_invite(invite_id)
+        if invite is None:
+            raise HTTPException(status_code=404, detail="invite not found")
+        return invite
+
+    @created_app.post("/api/admin/invites/{invite_id}/reset-password")
+    def admin_reset_invite_password(request: Request, invite_id: int) -> dict[str, Any]:
+        _require_admin_username(request)
+        invite = _invite_store(request.app).reset_proxy_password(invite_id)
+        if invite is None:
+            raise HTTPException(status_code=404, detail="invite not found")
+        return invite
 
     @created_app.post("/api/internal/events", status_code=204)
     async def ingest_event(request: Request) -> Response:
