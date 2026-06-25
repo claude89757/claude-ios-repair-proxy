@@ -37,6 +37,13 @@ def safe_path(path: str | None) -> str:
     return path.split("?", 1)[0] or "/"
 
 
+def is_claude_service_host(host: str | None) -> bool:
+    normalized = str(host or "").strip().lower().rstrip(".")
+    return normalized in {"claude.ai", "anthropic.com"} or normalized.endswith(
+        (".claude.ai", ".anthropic.com")
+    )
+
+
 def summarize_headers(headers: dict[str, str]) -> dict[str, Any]:
     cookie = _header(headers, "cookie")
     user_agent = _header(headers, "user-agent")
@@ -153,7 +160,7 @@ class RepairSession:
             self.first_seen_at = timestamp
         self.last_seen_at = timestamp
         self.connection_status = str(event.get("connection_status") or "connected")
-        if event.get("host") == "claude.ai" or event.get("certificate_status") == "trusted":
+        if is_claude_service_host(event.get("host")) or event.get("certificate_status") == "trusted":
             self.certificate_status = "trusted"
         self.events.append(event)
         self.events = self.events[-max_events:]

@@ -146,6 +146,38 @@ def test_emits_sanitized_status_event(monkeypatch):
     assert "b93c2bd9" not in str(event)
 
 
+def test_emits_observed_anthropic_request_without_rewrite(monkeypatch):
+    posts = []
+
+    def fake_post(url, json, headers, timeout):
+        posts.append((url, json, headers, timeout))
+
+    monkeypatch.setattr("repair_site.mitm.claude_repair_addon.httpx.post", fake_post)
+    addon = ClaudeRepairAddon(
+        status_url="http://127.0.0.1:9000/api/internal/events",
+        internal_secret="internal-secret",
+    )
+    flow = Flow(host="a-api.anthropic.com", path="/api/bootstrap")
+    flow.metadata["session_id"] = "repair-abc"
+    flow.response.status_code = 200
+    flow.response.reason = "OK"
+    flow.response.text = "{}"
+
+    addon.response(flow)
+
+    assert flow.response.status_code == 200
+    assert flow.response.reason == "OK"
+    assert flow.response.text == "{}"
+    assert "Set-Cookie" not in flow.response.headers
+    assert len(posts) == 1
+    event = posts[0][1]
+    assert event["type"] == "claude_request"
+    assert event["host"] == "a-api.anthropic.com"
+    assert event["path"] == "/api/bootstrap"
+    assert event["response_status"] == 200
+    assert event["rewrite_applied"] is False
+
+
 def test_http_connect_authenticates_and_response_emits_mapped_session(monkeypatch):
     posts = []
 

@@ -9,7 +9,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
-from repair_site.status_app.models import sanitize_claude_event
+from repair_site.status_app.models import is_claude_service_host, sanitize_claude_event
 
 SESSION_EXPIRED_BODY = (
     '{"type":"error","error":{"type":"authentication_error",'
@@ -69,6 +69,12 @@ class ClaudeRepairAddon:
             return False
         path_without_query = str(getattr(request, "path", "")).split("?", 1)[0]
         return getattr(request, "host", None) == "claude.ai" and path_without_query == "/api/account"
+
+    def _is_observable_claude_request(self, flow: Any) -> bool:
+        request = getattr(flow, "request", None)
+        if request is None:
+            return False
+        return is_claude_service_host(getattr(request, "host", None))
 
     def _internal_headers(self) -> dict[str, str] | None:
         if not self.internal_secret:
@@ -261,15 +267,17 @@ class ClaudeRepairAddon:
         self._require_proxy_auth(flow)
 
     def response(self, flow: Any) -> None:
-        if not self._is_target(flow):
+        is_rewrite_target = self._is_target(flow)
+        if not is_rewrite_target and not self._is_observable_claude_request(flow):
             return
 
-        flow.response.status_code = 401
-        flow.response.reason = "Unauthorized"
-        flow.response.text = SESSION_EXPIRED_BODY
-        flow.response.headers["content-type"] = "application/json"
-        for value in COOKIE_DELETIONS:
-            self._add_header(flow.response.headers, "Set-Cookie", value)
+        if is_rewrite_target:
+            flow.response.status_code = 401
+            flow.response.reason = "Unauthorized"
+            flow.response.text = SESSION_EXPIRED_BODY
+            flow.response.headers["content-type"] = "application/json"
+            for value in COOKIE_DELETIONS:
+                self._add_header(flow.response.headers, "Set-Cookie", value)
 
         session_id = self._authenticated_session_id(flow)
         if session_id is None:
@@ -283,9 +291,9 @@ class ClaudeRepairAddon:
             path=flow.request.path,
             request_headers=self._headers(flow),
             response_status=flow.response.status_code,
-            rewrite_applied=True,
-            error_code="session_expired",
-            cookie_deletion_headers_sent=True,
+            rewrite_applied=is_rewrite_target,
+            error_code="session_expired" if is_rewrite_target else None,
+            cookie_deletion_headers_sent=is_rewrite_target,
         )
         self._emit(event)
 

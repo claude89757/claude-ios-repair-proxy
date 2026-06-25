@@ -21,6 +21,25 @@ def test_ingest_event_creates_session_and_snapshot():
     assert snapshot["events"][0]["host"] == "claude.ai"
 
 
+def test_ingest_anthropic_event_marks_certificate_trusted():
+    store = StatusStore(ttl_seconds=3600)
+
+    store.ingest(
+        {
+            "type": "claude_request",
+            "session_id": "repair-abc",
+            "host": "a-api.anthropic.com",
+            "path": "/api/bootstrap",
+        }
+    )
+
+    snapshot = store.snapshot("repair-abc")
+
+    assert snapshot["connection_status"] == "connected"
+    assert snapshot["certificate_status"] == "trusted"
+    assert snapshot["events"][0]["host"] == "a-api.anthropic.com"
+
+
 def test_unknown_snapshot_is_empty_session():
     store = StatusStore(ttl_seconds=3600)
 
