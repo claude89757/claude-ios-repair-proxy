@@ -83,6 +83,16 @@ def test_admin_login_sets_cookie_and_create_invite_returns_proxy_password():
     assert body["proxy_password"]
 
 
+def test_admin_page_is_served_from_extensionless_route():
+    client, _invite_store, _status_store = admin_client()
+
+    response = client.get("/admin")
+
+    assert response.status_code == 200
+    assert "管理员登录" in response.text
+    assert "Claude iOS 登录卡死修复指南" not in response.text
+
+
 def test_admin_login_rejects_wrong_username_and_password():
     client, _invite_store, _status_store = admin_client()
 

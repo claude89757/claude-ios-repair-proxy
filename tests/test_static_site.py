@@ -51,6 +51,34 @@ def test_dashboard_client_uses_invite_api_and_header_stream():
     assert "sessionStorage" not in js
 
 
+def test_admin_site_contains_required_management_ui():
+    html = (WEB / "admin.html").read_text()
+
+    assert "管理员登录" in html
+    assert "创建邀请码" in html
+    assert "邀请码列表" in html
+    assert "代理密码" in html
+    assert 'type="password"' in html
+    assert "admin-password" in html
+    assert "value=\"secret\"" not in html
+    assert "Repair session ID" not in html
+    assert "repair session ID" not in html
+
+
+def test_admin_client_uses_admin_api_and_cookie_session_only():
+    js = (WEB / "admin.js").read_text()
+
+    assert "/api/admin/login" in js
+    assert "/api/admin/logout" in js
+    assert "/api/admin/invites" in js
+    assert "/disable" in js
+    assert "/reset-password" in js
+    assert 'credentials: "same-origin"' in js
+    assert "localStorage" not in js
+    assert "sessionStorage" not in js
+    assert "?token=" not in js
+
+
 def test_initial_proxy_config_contains_placeholders_only():
     html = (WEB / "index.html").read_text()
 

@@ -161,7 +161,9 @@ h3 {
 
 .button,
 .inline-form button,
-.invite-form button {
+.invite-form button,
+.admin-form button,
+.table-action {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -178,7 +180,8 @@ h3 {
 
 .primary,
 .inline-form button,
-.invite-form button {
+.invite-form button,
+.admin-form button {
   background: var(--blue);
   color: white;
 }
@@ -202,14 +205,16 @@ h3 {
 }
 
 .inline-form,
-.invite-form {
+.invite-form,
+.admin-form {
   display: grid;
   gap: 8px;
   margin-top: 18px;
 }
 
 .inline-form label,
-.invite-form label {
+.invite-form label,
+.admin-form label {
   color: var(--ink);
   font-size: 14px;
   font-weight: 850;
@@ -223,8 +228,11 @@ h3 {
 
 .inline-form.is-busy button,
 .invite-form.is-busy button,
+.admin-form.is-busy button,
 .inline-form button:disabled,
-.invite-form button:disabled {
+.invite-form button:disabled,
+.admin-form button:disabled,
+.table-action:disabled {
   opacity: 0.72;
   cursor: wait;
 }
@@ -262,6 +270,125 @@ input:focus {
 
 .claim-feedback[data-tone="info"] {
   color: var(--muted);
+}
+
+.admin-main {
+  width: min(1240px, calc(100% - 32px));
+}
+
+.admin-hero {
+  min-height: 230px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: clamp(28px, 5vw, 54px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.admin-hero h1 {
+  font-size: 46px;
+}
+
+.admin-hero .lede {
+  max-width: 720px;
+}
+
+.admin-panel {
+  margin-top: 18px;
+}
+
+.admin-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-form {
+  max-width: 560px;
+}
+
+.create-form {
+  max-width: 760px;
+}
+
+.create-form button {
+  justify-self: start;
+}
+
+.admin-feedback {
+  min-height: 22px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-feedback[data-tone="error"] {
+  color: #b42318;
+}
+
+.admin-feedback[data-tone="success"] {
+  color: var(--green);
+}
+
+.admin-feedback[data-tone="info"] {
+  color: var(--muted);
+}
+
+.admin-list-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.admin-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.admin-table {
+  min-width: 1120px;
+}
+
+.admin-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-status.active {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.admin-status.disabled {
+  background: #eef2f7;
+  color: var(--muted);
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.table-action {
+  min-height: 34px;
+  padding: 0 10px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 13px;
 }
 
 .flow {
@@ -711,8 +838,19 @@ td {
 
   .button,
   .inline-form button,
-  .invite-form button {
+  .invite-form button,
+  .admin-form button {
     width: 100%;
+  }
+
+  .admin-hero,
+  .admin-list-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .create-form button {
+    justify-self: stretch;
   }
 
   .proxy-panel-head {

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from repair_site.status_app.config import (
@@ -264,6 +264,7 @@ def create_app(
     created_app.state.settings = app_settings
     created_app.state.invite_store = invite_store
     created_app.state.owns_invite_store = False
+    web_root = Path(__file__).resolve().parents[1] / "web"
 
     @created_app.get("/api/health")
     def health() -> dict[str, bool]:
@@ -401,7 +402,14 @@ def create_app(
             public=True,
         )
 
-    web_root = Path(__file__).resolve().parents[1] / "web"
+    @created_app.get("/admin", include_in_schema=False)
+    @created_app.get("/admin/", include_in_schema=False)
+    def admin_page() -> FileResponse:
+        admin_html = web_root / "admin.html"
+        if not admin_html.exists():
+            raise HTTPException(status_code=404, detail="admin page not found")
+        return FileResponse(admin_html)
+
     if web_root.exists():
         created_app.mount("/", StaticFiles(directory=web_root, html=True), name="web")
 

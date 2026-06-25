@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>管理员后台 - Claude iOS Repair</title>
+  <link rel="icon" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="14" fill="%23255fdb"/%3E%3Cpath d="M18 32h28M32 18v28" stroke="white" stroke-width="7" stroke-linecap="round"/%3E%3C/svg%3E'>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/admin" aria-label="管理员后台首页">Claude iOS Repair Admin</a>
+    <nav aria-label="后台导航">
+      <a href="/">用户指南</a>
+      <a href="#invites">邀请码列表</a>
+    </nav>
+  </header>
+
+  <main class="admin-main">
+    <section class="admin-hero" aria-labelledby="admin-title">
+      <div>
+        <p class="eyebrow">Admin Console</p>
+        <h1 id="admin-title">邀请码管理</h1>
+        <p class="lede">创建一次性修复入口，用户通过邀请码查看自己的临时代理信息和实时状态。</p>
+      </div>
+      <button id="logout-button" class="button secondary" type="button" hidden>退出登录</button>
+    </section>
+
+    <section id="login-panel" class="panel admin-panel" aria-labelledby="login-title">
+      <div class="section-head">
+        <p class="eyebrow">Sign in</p>
+        <h2 id="login-title">管理员登录</h2>
+      </div>
+      <form id="login-form" class="admin-form">
+        <label for="admin-username">管理员账号</label>
+        <input id="admin-username" name="username" autocomplete="username" placeholder="输入管理员账号" required>
+
+        <label for="admin-password">管理员密码</label>
+        <input id="admin-password" name="password" type="password" autocomplete="current-password" placeholder="输入管理员密码" required>
+
+        <button type="submit">登录后台</button>
+      </form>
+      <p id="login-feedback" class="admin-feedback" aria-live="polite"></p>
+    </section>
+
+    <section id="admin-workspace" class="admin-workspace" hidden>
+      <section class="panel admin-panel" aria-labelledby="create-title">
+        <div class="section-head">
+          <p class="eyebrow">Invite</p>
+          <h2 id="create-title">创建邀请码</h2>
+        </div>
+        <form id="create-form" class="admin-form create-form">
+          <label for="invite-note">备注</label>
+          <input id="invite-note" name="note" autocomplete="off" placeholder="例如：张三 iPhone 15" required>
+
+          <label for="invite-expires-at">过期时间</label>
+          <input id="invite-expires-at" name="expires_at" type="datetime-local">
+
+          <button type="submit">创建邀请码</button>
+        </form>
+        <p id="create-feedback" class="admin-feedback" aria-live="polite"></p>
+      </section>
+
+      <section id="invites" class="panel admin-panel invites-panel" aria-labelledby="invites-title">
+        <div class="admin-list-head">
+          <div>
+            <p class="eyebrow">Users</p>
+            <h2 id="invites-title">邀请码列表</h2>
+          </div>
+          <button id="refresh-button" class="button secondary" type="button">刷新</button>
+        </div>
+
+        <p class="admin-note">代理密码只在创建或重置后临时显示。刷新页面后，历史密码不会从服务端返回。</p>
+
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>邀请码</th>
+                <th>状态</th>
+                <th>备注</th>
+                <th>代理用户名</th>
+                <th>代理密码</th>
+                <th>过期时间</th>
+                <th>最后使用</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="invite-table">
+              <tr>
+                <td colspan="8">登录后加载邀请码</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/admin.js" defer></script>
+</body>
+</html>
