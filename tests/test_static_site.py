@@ -56,6 +56,17 @@ def test_public_site_supports_chinese_english_language_toggle():
     assert "Turn off any other VPN, proxy, or tunneling app" in js
 
 
+def test_public_site_links_to_github_repository_from_topbar():
+    html = (WEB / "index.html").read_text()
+
+    assert "https://github.com/claude89757/claude-ios-repair-proxy" in html
+    assert 'class="github-link"' in html
+    assert 'aria-label="GitHub 开源地址"' in html
+    assert 'target="_blank"' in html
+    assert 'rel="noreferrer noopener"' in html
+    assert ">GitHub<" in html
+
+
 def test_public_site_supports_language_specific_paths():
     deploy = (DEPLOY / "nginx.conf").read_text()
     js = (WEB / "app.js").read_text()

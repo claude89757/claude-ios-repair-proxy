@@ -79,6 +79,7 @@ nav a {
   gap: 14px;
 }
 
+.github-link,
 .language-toggle {
   min-width: 58px;
   min-height: 34px;
@@ -96,6 +97,12 @@ nav a {
   cursor: pointer;
 }
 
+.github-link {
+  text-decoration: none;
+}
+
+.github-link:hover,
+.github-link:focus-visible,
 .language-toggle:hover,
 .language-toggle:focus-visible {
   background: var(--blue-soft);
@@ -950,7 +957,16 @@ td {
 
   .topbar-actions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .topbar-actions nav {
+    flex: 1 1 100%;
+  }
+
+  .github-link {
+    flex: 0 0 auto;
   }
 
   .language-toggle {
