@@ -107,7 +107,7 @@ def test_ingest_and_snapshot_round_trip():
     }
 
     ingest = client.post("/api/internal/events", headers=INTERNAL_HEADERS, json=event)
-    snapshot = client.get("/api/status/repair-abc")
+    snapshot = client.get("/api/status/repair-abc", headers=INTERNAL_HEADERS)
 
     assert ingest.status_code == 204
     assert ingest.content == b""
@@ -129,7 +129,7 @@ def test_ingest_snapshot_does_not_echo_sensitive_payload_values():
     }
 
     response = client.post("/api/internal/events", headers=INTERNAL_HEADERS, json=event)
-    snapshot = client.get("/api/status/repair-abc")
+    snapshot = client.get("/api/status/repair-abc", headers=INTERNAL_HEADERS)
 
     assert response.status_code == 204
     body = str(snapshot.json())
@@ -142,13 +142,35 @@ def test_events_endpoint_returns_finite_initial_sse_snapshot():
     app, _invite_store, _status_store = app_parts()
     client = TestClient(app)
 
-    with client.stream("GET", "/api/status/repair-abc/events?once=true") as response:
+    with client.stream(
+        "GET",
+        "/api/status/repair-abc/events?once=true",
+        headers=INTERNAL_HEADERS,
+    ) as response:
         body = next(response.iter_text())
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
     assert "event: snapshot" in body
     assert '"session_id": "repair-abc"' in body
+
+
+def test_legacy_status_endpoint_requires_internal_secret():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.get("/api/status/repair-abc")
+
+    assert response.status_code == 401
+
+
+def test_legacy_status_events_endpoint_requires_internal_secret():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.get("/api/status/repair-abc/events?once=true")
+
+    assert response.status_code == 401
 
 
 def test_internal_events_rejects_malformed_json():
@@ -176,5 +198,11 @@ def test_create_app_instances_have_isolated_status_stores():
     }
     first_client.post("/api/internal/events", headers=INTERNAL_HEADERS, json=event)
 
-    assert first_client.get("/api/status/repair-abc").json()["events"]
-    assert second_client.get("/api/status/repair-abc").json()["events"] == []
+    assert first_client.get(
+        "/api/status/repair-abc",
+        headers=INTERNAL_HEADERS,
+    ).json()["events"]
+    assert second_client.get(
+        "/api/status/repair-abc",
+        headers=INTERNAL_HEADERS,
+    ).json()["events"] == []

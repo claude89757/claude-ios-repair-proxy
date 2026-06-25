@@ -90,6 +90,87 @@ def test_claim_invite_rejects_non_object_json():
     assert response.status_code == 400
 
 
+def test_internal_proxy_auth_verify_returns_session_id_only():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+    invite = invite_store.create_invite(note="ios user")
+
+    response = client.post(
+        "/api/internal/proxy-auth/verify",
+        headers=INTERNAL_HEADERS,
+        json={
+            "proxy_username": invite["proxy_username"],
+            "proxy_password": invite["proxy_password"],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"session_id": invite["session_id"]}
+    assert "proxy_username" not in response.json()
+    assert "proxy_password" not in response.json()
+    assert "invite_code" not in response.json()
+
+
+def test_internal_proxy_auth_verify_rejects_invalid_secret():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+    invite = invite_store.create_invite(note="ios user")
+
+    response = client.post(
+        "/api/internal/proxy-auth/verify",
+        headers={"x-internal-secret": "wrong-secret"},
+        json={
+            "proxy_username": invite["proxy_username"],
+            "proxy_password": invite["proxy_password"],
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_internal_proxy_auth_verify_rejects_invalid_password():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+    invite = invite_store.create_invite(note="ios user")
+
+    response = client.post(
+        "/api/internal/proxy-auth/verify",
+        headers=INTERNAL_HEADERS,
+        json={
+            "proxy_username": invite["proxy_username"],
+            "proxy_password": "wrong-password",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_internal_proxy_auth_verify_rejects_malformed_json():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/internal/proxy-auth/verify",
+        headers={**INTERNAL_HEADERS, "content-type": "application/json"},
+        content="{bad",
+    )
+
+    assert response.status_code == 400
+
+
+def test_internal_proxy_auth_verify_rejects_non_object_json():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/internal/proxy-auth/verify",
+        headers=INTERNAL_HEADERS,
+        json=["bad"],
+    )
+
+    assert response.status_code == 400
+
+
 def test_token_scoped_status_reads_internal_session_events():
     app, invite_store, _status_store = app_parts()
     client = TestClient(app)

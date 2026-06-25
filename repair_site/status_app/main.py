@@ -338,8 +338,25 @@ def create_app(
         _status_store(request.app).ingest(event)
         return Response(status_code=204)
 
+    @created_app.post("/api/internal/proxy-auth/verify")
+    async def verify_proxy_auth(request: Request) -> dict[str, str]:
+        _require_internal_secret(request)
+        payload = await _json_object(request)
+        proxy_username = payload.get("proxy_username")
+        proxy_password = payload.get("proxy_password")
+        if not isinstance(proxy_username, str) or not isinstance(proxy_password, str):
+            raise HTTPException(status_code=401, detail="invalid proxy auth")
+        invite = _invite_store(request.app).verify_proxy_auth(proxy_username, proxy_password)
+        if invite is None:
+            raise HTTPException(status_code=401, detail="invalid proxy auth")
+        session_id = invite.get("session_id")
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise HTTPException(status_code=401, detail="invalid proxy auth")
+        return {"session_id": session_id.strip()}
+
     @created_app.get("/api/status/{session_id}")
     def status_snapshot(request: Request, session_id: str) -> dict[str, Any]:
+        _require_internal_secret(request)
         return _status_store(request.app).snapshot(session_id)
 
     @created_app.post("/api/invites/claim")
@@ -395,6 +412,7 @@ def create_app(
         session_id: str,
         once: bool = False,
     ) -> StreamingResponse:
+        _require_internal_secret(request)
         return _status_stream_response(
             _status_store(request.app),
             session_id,
