@@ -38,3 +38,10 @@ def test_dockerfile_declares_persistent_invite_data_volume():
 
     assert "RUN mkdir -p /opt/claude-ios-repair/data" in dockerfile
     assert 'VOLUME ["/opt/claude-ios-repair/data"]' in dockerfile
+
+
+def test_nginx_serves_admin_page_without_falling_back_to_public_index():
+    nginx = read_deploy_file("nginx.conf")
+
+    assert "location = /admin" in nginx
+    assert "try_files /admin.html =404;" in nginx
