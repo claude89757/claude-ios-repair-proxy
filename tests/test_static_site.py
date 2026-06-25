@@ -56,6 +56,22 @@ def test_public_site_supports_chinese_english_language_toggle():
     assert "Turn off any other VPN, proxy, or tunneling app" in js
 
 
+def test_public_site_supports_language_specific_paths():
+    deploy = (DEPLOY / "nginx.conf").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert "try_files $uri $uri/ /index.html;" in deploy
+    assert "PATH_LANGUAGE_PREFIXES" in js
+    assert "function languageFromPath" in js
+    assert "function pathForLanguage" in js
+    assert "window.location.pathname" in js
+    assert "window.history.replaceState" in js
+    assert "window.history.pushState" in js
+    assert "window.location.hash" in js
+    assert '"/en"' in js
+    assert '"/zh"' in js
+
+
 def test_public_site_does_not_show_duplicate_certificate_download_buttons():
     html = (WEB / "index.html").read_text()
 

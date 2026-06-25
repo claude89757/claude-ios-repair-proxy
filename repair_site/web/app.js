@@ -12,6 +12,8 @@ const statusRefreshButton = document.querySelector("#status-refresh");
 const languageToggle = document.querySelector("#language-toggle");
 const INVITE_CACHE_KEY = "claudeRepairInviteCode";
 const LANGUAGE_CACHE_KEY = "claudeRepairLanguage";
+const PATH_LANGUAGE_PREFIXES = new Set(["en", "zh"]);
+const LANGUAGE_PATHS = { en: "/en", zh: "/zh" };
 
 const I18N = {
   zh: {
@@ -221,7 +223,7 @@ const I18N = {
 let streamController = null;
 let statusToken = "";
 let activeInviteCode = "";
-let currentLanguage = loadCachedLanguage();
+let currentLanguage = loadInitialLanguage();
 let currentSnapshot = null;
 let currentFeedback = { key: "", message: "", tone: "" };
 
@@ -267,6 +269,55 @@ function saveCachedLanguage(language) {
   } catch (_error) {
     // Language preference is cosmetic; the page still works without storage.
   }
+}
+
+function languageFromPath(pathname = window.location.pathname) {
+  const prefix = pathname.split("/").filter(Boolean)[0] || "";
+  return PATH_LANGUAGE_PREFIXES.has(prefix) ? prefix : "";
+}
+
+function pathForLanguage(language) {
+  const normalizedLanguage = normalizeLanguage(language);
+  const segments = window.location.pathname.split("/").filter(Boolean);
+
+  if (!segments.length) {
+    return LANGUAGE_PATHS[normalizedLanguage];
+  }
+
+  if (PATH_LANGUAGE_PREFIXES.has(segments[0])) {
+    segments[0] = normalizedLanguage;
+  } else {
+    segments.unshift(normalizedLanguage);
+  }
+
+  return `/${segments.join("/")}`;
+}
+
+function replaceCurrentPath(pathname) {
+  const target = `${pathname}${window.location.search}${window.location.hash}`;
+  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (target !== current) {
+    window.history.replaceState(null, "", target);
+  }
+}
+
+function pushLanguagePath(language) {
+  const target = `${pathForLanguage(language)}${window.location.search}${window.location.hash}`;
+  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (target !== current) {
+    window.history.pushState(null, "", target);
+  }
+}
+
+function loadInitialLanguage() {
+  const pathLanguage = languageFromPath();
+  if (!pathLanguage) {
+    return loadCachedLanguage();
+  }
+
+  saveCachedLanguage(pathLanguage);
+  replaceCurrentPath(pathForLanguage(pathLanguage));
+  return pathLanguage;
 }
 
 function t(key) {
@@ -316,10 +367,13 @@ function applyLanguage(language = currentLanguage) {
   refreshDynamicLanguage();
 }
 
-function setLanguage(language) {
+function setLanguage(language, { updatePath = false } = {}) {
   currentLanguage = normalizeLanguage(language);
   saveCachedLanguage(currentLanguage);
   applyLanguage(currentLanguage);
+  if (updatePath) {
+    pushLanguagePath(currentLanguage);
+  }
 }
 
 function text(value, fallback = "-") {
@@ -858,7 +912,12 @@ statusRefreshButton?.addEventListener("click", () => {
 });
 
 languageToggle?.addEventListener("click", () => {
-  setLanguage(currentLanguage === "en" ? "zh" : "en");
+  setLanguage(currentLanguage === "en" ? "zh" : "en", { updatePath: true });
+});
+
+window.addEventListener("popstate", () => {
+  const pathLanguage = languageFromPath();
+  setLanguage(pathLanguage || loadCachedLanguage());
 });
 
 applyLanguage(currentLanguage);
