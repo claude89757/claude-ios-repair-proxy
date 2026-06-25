@@ -34,10 +34,10 @@
         <p class="panel-kicker">状态入口</p>
         <h2 id="entry-title">验证邀请码并查看临时代理</h2>
         <p>输入管理员提供的邀请码，验证后页面会显示你的临时代理配置和实时状态。</p>
-        <form id="hero-invite-form" class="inline-form">
-          <label for="hero-invite-code">邀请码</label>
+        <form id="invite-form" class="inline-form">
+          <label for="invite-code">邀请码</label>
           <div>
-            <input id="hero-invite-code" name="invite-code" autocomplete="off" inputmode="latin" placeholder="输入邀请码">
+            <input id="invite-code" name="invite-code" autocomplete="off" inputmode="latin" placeholder="输入邀请码">
             <button type="submit">验证</button>
           </div>
           <p class="claim-feedback" data-claim-feedback></p>
@@ -119,17 +119,8 @@
       <div class="section-head">
         <p class="eyebrow">Dashboard</p>
         <h2 id="status-title">实时状态</h2>
-        <p>输入管理员提供的邀请码，验证后页面会显示你的临时代理配置和实时状态。</p>
+        <p>邀请码验证后，这里会显示你的临时代理配置、设备状态和 Claude 请求事件。</p>
       </div>
-
-      <form id="invite-form" class="invite-form">
-        <label for="invite-code">邀请码</label>
-        <div>
-          <input id="invite-code" name="invite-code" autocomplete="off" inputmode="latin" placeholder="输入邀请码">
-          <button type="submit">验证邀请码</button>
-        </div>
-        <p class="claim-feedback" data-claim-feedback></p>
-      </form>
 
       <section id="proxy-config" class="panel proxy-panel" aria-labelledby="proxy-title" hidden>
         <div class="proxy-panel-head">

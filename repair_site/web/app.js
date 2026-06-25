@@ -1,11 +1,5 @@
-const forms = [
-  document.querySelector("#invite-form"),
-  document.querySelector("#hero-invite-form"),
-].filter(Boolean);
-const inputs = [
-  document.querySelector("#invite-code"),
-  document.querySelector("#hero-invite-code"),
-].filter(Boolean);
+const inviteForm = document.querySelector("#invite-form");
+const inviteInput = document.querySelector("#invite-code");
 const feedbacks = Array.from(document.querySelectorAll("[data-claim-feedback]"));
 const summary = document.querySelector("#device-summary");
 const checklist = document.querySelector("#checklist");
@@ -63,23 +57,17 @@ function setFeedback(message = "", tone = "") {
 }
 
 function setBusy(isBusy) {
-  forms.forEach((form) => {
-    form.classList.toggle("is-busy", isBusy);
-    const input = form.querySelector("input");
-    const button = form.querySelector("button");
-    if (input) {
-      input.disabled = isBusy;
-    }
-    if (button) {
-      button.disabled = isBusy;
-    }
-  });
-}
-
-function syncInviteCode(inviteCode) {
-  inputs.forEach((input) => {
-    input.value = inviteCode;
-  });
+  if (!inviteForm) {
+    return;
+  }
+  inviteForm.classList.toggle("is-busy", isBusy);
+  const button = inviteForm.querySelector("button");
+  if (inviteInput) {
+    inviteInput.disabled = isBusy;
+  }
+  if (button) {
+    button.disabled = isBusy;
+  }
 }
 
 function renderSummary(data) {
@@ -445,21 +433,17 @@ async function activateInvite(inviteCode) {
   }
 }
 
-forms.forEach((form) => {
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const formInput = form.querySelector("input");
-    const inviteCode = formInput?.value.trim();
+inviteForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const inviteCode = inviteInput?.value.trim();
 
-    if (!inviteCode) {
-      setFeedback("请输入邀请码。", "error");
-      return;
-    }
+  if (!inviteCode) {
+    setFeedback("请输入邀请码。", "error");
+    return;
+  }
 
-    syncInviteCode(inviteCode);
-    void activateInvite(inviteCode);
-    document.querySelector("#status")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
+  void activateInvite(inviteCode);
+  document.querySelector("#status")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 resetProxyConfig();

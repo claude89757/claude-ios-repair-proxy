@@ -51,6 +51,19 @@ def test_dashboard_client_uses_invite_api_and_header_stream():
     assert "sessionStorage" not in js
 
 
+def test_public_site_has_single_invite_entry_point():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert html.count("<form ") == 1
+    assert html.count('name="invite-code"') == 1
+    assert html.count("data-claim-feedback") == 1
+    assert 'id="invite-form"' in html
+    assert 'id="invite-code"' in html
+    assert "hero-invite-form" not in html + js
+    assert "hero-invite-code" not in html + js
+
+
 def test_admin_site_contains_required_management_ui():
     html = (WEB / "admin.html").read_text()
 
