@@ -51,6 +51,10 @@ class InviteStore:
             )
             self.conn.commit()
 
+    def close(self) -> None:
+        with self._lock:
+            self.conn.close()
+
     def _row_to_invite(
         self,
         row: sqlite3.Row | None,

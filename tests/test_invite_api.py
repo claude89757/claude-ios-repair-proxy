@@ -1,0 +1,175 @@
+import asyncio
+
+from fastapi.testclient import TestClient
+
+from repair_site.status_app.config import Settings, verify_status_token
+from repair_site.status_app.invites import InviteStore
+from repair_site.status_app.store import StatusStore
+
+from repair_site.status_app.main import _status_stream_response, create_app
+
+
+INTERNAL_HEADERS = {"x-internal-secret": "internal-secret"}
+
+
+def settings(database_path: str = ":memory:") -> Settings:
+    return Settings(
+        admin_username="admin",
+        admin_password_hash="sha256:unused",
+        invite_secret="invite-secret",
+        status_token_secret="status-secret",
+        internal_api_secret="internal-secret",
+        database_path=database_path,
+    )
+
+
+def app_parts():
+    app_settings = settings()
+    invite_store = InviteStore(app_settings)
+    status_store = StatusStore(ttl_seconds=3600)
+    app = create_app(
+        settings=app_settings,
+        invite_store=invite_store,
+        status_store=status_store,
+    )
+    return app, invite_store, status_store
+
+
+def test_claim_invite_returns_proxy_config_and_status_token():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+    invite = invite_store.create_invite(note="ios user")
+
+    response = client.post(
+        "/api/invites/claim",
+        json={"invite_code": invite["invite_code"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {
+        "proxy_host": "sg2.claude89757.cc",
+        "proxy_port": 9443,
+        "proxy_username": invite["proxy_username"],
+        "proxy_password": invite["proxy_password"],
+        "certificate_url": "/certs/mitmproxy-ca-cert.cer",
+        "status_token": body["status_token"],
+    }
+    assert "session_id" not in body
+    assert verify_status_token(body["status_token"], secret="status-secret") == invite["session_id"]
+
+
+def test_claim_invite_rejects_invalid_code():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.post("/api/invites/claim", json={"invite_code": "INV-MISSING"})
+
+    assert response.status_code == 404
+
+
+def test_claim_invite_rejects_malformed_json():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/invites/claim",
+        content="{bad",
+        headers={"content-type": "application/json"},
+    )
+
+    assert response.status_code == 400
+
+
+def test_claim_invite_rejects_non_object_json():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.post("/api/invites/claim", json=["INV-123"])
+
+    assert response.status_code == 400
+
+
+def test_token_scoped_status_reads_internal_session_events():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+    invite = invite_store.create_invite(note="ios user")
+    event = {
+        "type": "claude_request",
+        "session_id": invite["session_id"],
+        "timestamp": "2026-06-25T00:00:00+00:00",
+        "host": "claude.ai",
+        "path": "/api/account",
+    }
+
+    ingest = client.post("/api/internal/events", headers=INTERNAL_HEADERS, json=event)
+    claim = client.post("/api/invites/claim", json={"invite_code": invite["invite_code"]})
+    token = claim.json()["status_token"]
+    response = client.get("/api/invites/me/status", headers={"x-status-token": token})
+
+    assert ingest.status_code == 204
+    assert response.status_code == 200
+    assert "session_id" not in response.json()
+    assert "session_id" not in response.json()["events"][0]
+    assert response.json()["events"][0]["host"] == "claude.ai"
+
+
+def test_token_scoped_status_rejects_invalid_token():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/invites/me/status",
+        headers={"x-status-token": "bad-token"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_token_scoped_events_once_returns_snapshot_stream():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+    invite = invite_store.create_invite(note="ios user")
+    client.post(
+        "/api/internal/events",
+        headers=INTERNAL_HEADERS,
+        json={"type": "proxy_connected", "session_id": invite["session_id"]},
+    )
+    token = client.post(
+        "/api/invites/claim",
+        json={"invite_code": invite["invite_code"]},
+    ).json()["status_token"]
+
+    with client.stream(
+        "GET",
+        f"/api/invites/me/events?token={token}&once=true",
+    ) as response:
+        body = next(response.iter_text())
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert "event: snapshot" in body
+    assert invite["session_id"] not in body
+
+
+def test_token_scoped_events_rejects_invalid_query_token():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.get("/api/invites/me/events?token=bad&once=true")
+
+    assert response.status_code == 401
+
+
+def test_status_event_stream_cleans_up_subscriber_on_client_close():
+    async def run_stream_cleanup_check() -> None:
+        _app, _invite_store, status_store = app_parts()
+        response = _status_stream_response(status_store, "repair-abc")
+
+        assert "repair-abc" in status_store.subscribers
+        iterator = response.body_iterator
+        assert await anext(iterator) == "event: snapshot\n"
+        await iterator.aclose()
+        assert "repair-abc" not in status_store.subscribers
+
+    asyncio.run(run_stream_cleanup_check())

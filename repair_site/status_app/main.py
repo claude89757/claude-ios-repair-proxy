@@ -1,50 +1,101 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from repair_site.status_app.config import (
+    Settings,
+    load_settings,
+    require_configured,
+    sign_status_token,
+    verify_status_token,
+)
+from repair_site.status_app.invites import InviteStore
 from repair_site.status_app.store import StatusStore
 
-app = FastAPI(title="Claude iOS Repair Status")
-store = StatusStore(ttl_seconds=3600)
+
+def _settings(app: FastAPI) -> Settings:
+    return cast(Settings, app.state.settings)
 
 
-@app.get("/api/health")
-def health() -> dict[str, bool]:
-    return {"ok": True}
+def _invite_store(app: FastAPI) -> InviteStore:
+    invite_store = getattr(app.state, "invite_store", None)
+    if invite_store is None:
+        raise HTTPException(status_code=503, detail="invite store is not initialized")
+    return cast(InviteStore, invite_store)
 
 
-@app.post("/api/internal/events", status_code=204)
-async def ingest_event(request: Request) -> Response:
-    event: dict[str, Any] = await request.json()
-    session_id = event.get("session_id")
-    if not isinstance(session_id, str) or not session_id.strip():
-        raise HTTPException(status_code=400, detail="session_id is required")
-    event["session_id"] = session_id.strip()
-    store.ingest(event)
-    return Response(status_code=204)
+def _status_store(app: FastAPI) -> StatusStore:
+    return cast(StatusStore, app.state.status_store)
 
 
-@app.get("/api/status/{session_id}")
-def status_snapshot(session_id: str) -> dict[str, Any]:
-    return store.snapshot(session_id)
+def _require_internal_secret(request: Request) -> None:
+    expected = _settings(request.app).internal_api_secret
+    provided = request.headers.get("x-internal-secret", "")
+    if not expected or not provided or not hmac.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="invalid internal secret")
 
 
-@app.get("/api/status/{session_id}/events")
-async def status_events(session_id: str, once: bool = False) -> StreamingResponse:
-    queue = store.subscribe(session_id)
+def _require_status_session_id(request: Request, token: str | None) -> str:
+    if token is None or not token.strip():
+        raise HTTPException(status_code=401, detail="invalid status token")
+    session_id = verify_status_token(
+        token.strip(),
+        secret=_settings(request.app).status_token_secret,
+    )
+    if session_id is None:
+        raise HTTPException(status_code=401, detail="invalid status token")
+    return session_id
+
+
+async def _json_object(request: Request) -> dict[str, Any]:
+    try:
+        payload = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="invalid json") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="json object required")
+    return cast(dict[str, Any], payload)
+
+
+def _strip_session_ids(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _strip_session_ids(item)
+            for key, item in value.items()
+            if key != "session_id"
+        }
+    if isinstance(value, list):
+        return [_strip_session_ids(item) for item in value]
+    return value
+
+
+def _status_stream_response(
+    status_store: StatusStore,
+    session_id: str,
+    *,
+    once: bool = False,
+    public: bool = False,
+) -> StreamingResponse:
+    queue = status_store.subscribe(session_id)
+
+    def encode_payload(payload: dict[str, Any]) -> str:
+        output = _strip_session_ids(payload) if public else payload
+        return json.dumps(output)
 
     async def stream() -> AsyncIterator[str]:
         try:
             yield "event: snapshot\n"
-            yield "data: " + json.dumps(store.snapshot(session_id)) + "\n\n"
+            yield "data: " + encode_payload(status_store.snapshot(session_id)) + "\n\n"
             if once:
                 return
 
@@ -52,16 +103,135 @@ async def status_events(session_id: str, once: bool = False) -> StreamingRespons
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=25)
                     yield "event: update\n"
-                    yield "data: " + json.dumps(event) + "\n\n"
+                    yield "data: " + encode_payload(event) + "\n\n"
                 except asyncio.TimeoutError:
                     yield "event: ping\n"
                     yield "data: {}\n\n"
         finally:
-            store.unsubscribe(session_id, queue)
+            status_store.unsubscribe(session_id, queue)
 
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 
-WEB_ROOT = Path(__file__).resolve().parents[1] / "web"
-if WEB_ROOT.exists():
-    app.mount("/", StaticFiles(directory=WEB_ROOT, html=True), name="web")
+def set_invite_store_for_tests(new_store: InviteStore, new_settings: Settings) -> None:
+    app.state.invite_store = new_store
+    app.state.settings = new_settings
+    app.state.owns_invite_store = False
+
+
+def create_app(
+    *,
+    settings: Settings | None = None,
+    invite_store: InviteStore | None = None,
+    status_store: StatusStore | None = None,
+) -> FastAPI:
+    app_settings = settings or load_settings()
+    app_status_store = status_store or StatusStore(ttl_seconds=3600)
+
+    @asynccontextmanager
+    async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
+        if getattr(app_instance.state, "invite_store", None) is None:
+            require_configured(_settings(app_instance))
+            app_instance.state.invite_store = InviteStore(_settings(app_instance))
+            app_instance.state.owns_invite_store = True
+        try:
+            yield
+        finally:
+            if getattr(app_instance.state, "owns_invite_store", False):
+                cast(InviteStore, app_instance.state.invite_store).close()
+                app_instance.state.invite_store = None
+                app_instance.state.owns_invite_store = False
+
+    created_app = FastAPI(title="Claude iOS Repair Status", lifespan=lifespan)
+    created_app.state.status_store = app_status_store
+    created_app.state.settings = app_settings
+    created_app.state.invite_store = invite_store
+    created_app.state.owns_invite_store = False
+
+    @created_app.get("/api/health")
+    def health() -> dict[str, bool]:
+        return {"ok": True}
+
+    @created_app.post("/api/internal/events", status_code=204)
+    async def ingest_event(request: Request) -> Response:
+        _require_internal_secret(request)
+        event = await _json_object(request)
+        session_id = event.get("session_id")
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise HTTPException(status_code=400, detail="session_id is required")
+        event["session_id"] = session_id.strip()
+        _status_store(request.app).ingest(event)
+        return Response(status_code=204)
+
+    @created_app.get("/api/status/{session_id}")
+    def status_snapshot(request: Request, session_id: str) -> dict[str, Any]:
+        return _status_store(request.app).snapshot(session_id)
+
+    @created_app.post("/api/invites/claim")
+    async def claim_invite(request: Request) -> dict[str, Any]:
+        payload = await _json_object(request)
+        invite_code = payload.get("invite_code")
+        if not isinstance(invite_code, str) or not invite_code.strip():
+            raise HTTPException(status_code=400, detail="invite_code is required")
+
+        invite = _invite_store(request.app).claim_invite(invite_code)
+        if invite is None:
+            raise HTTPException(status_code=404, detail="invite not found")
+
+        return {
+            "proxy_host": "sg2.claude89757.cc",
+            "proxy_port": 9443,
+            "proxy_username": invite["proxy_username"],
+            "proxy_password": invite["proxy_password"],
+            "certificate_url": "/certs/mitmproxy-ca-cert.cer",
+            "status_token": sign_status_token(
+                invite["session_id"],
+                secret=_settings(request.app).status_token_secret,
+            ),
+        }
+
+    @created_app.get("/api/invites/me/status")
+    def invite_status(request: Request) -> dict[str, Any]:
+        session_id = _require_status_session_id(
+            request,
+            request.headers.get("x-status-token"),
+        )
+        return cast(dict[str, Any], _strip_session_ids(_status_store(request.app).snapshot(session_id)))
+
+    @created_app.get("/api/invites/me/events")
+    async def invite_status_events(
+        request: Request,
+        once: bool = False,
+    ) -> StreamingResponse:
+        session_id = _require_status_session_id(
+            request,
+            request.query_params.get("token") or request.headers.get("x-status-token"),
+        )
+        return _status_stream_response(
+            _status_store(request.app),
+            session_id,
+            once=once,
+            public=True,
+        )
+
+    @created_app.get("/api/status/{session_id}/events")
+    async def status_events(
+        request: Request,
+        session_id: str,
+        once: bool = False,
+    ) -> StreamingResponse:
+        return _status_stream_response(
+            _status_store(request.app),
+            session_id,
+            once=once,
+        )
+
+    web_root = Path(__file__).resolve().parents[1] / "web"
+    if web_root.exists():
+        created_app.mount("/", StaticFiles(directory=web_root, html=True), name="web")
+
+    return created_app
+
+
+store = StatusStore(ttl_seconds=3600)
+app = create_app(status_store=store)
