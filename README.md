@@ -1,6 +1,6 @@
 # Claude iOS Repair Proxy
 
-一个用于 Claude iOS App 登录卡死修复的临时代理服务。
+一个用于 Claude iOS App 登录卡死修复的临时代理服务，主要针对 App 启动后反复出现 `"Something went wrong, try again"` 且无法回到登录页的场景。
 
 服务包含：
 
@@ -8,6 +8,18 @@
 - FastAPI 实时状态后端
 - mitmproxy 修复代理
 - 邀请码、代理账号和状态会话的服务端管理逻辑
+
+## Issue Background
+
+这个项目和 Claude iOS App 的 `"Something went wrong, try again"` 报错强相关。典型现象是用户打开 App 后只能看到错误提示，点击重试仍然回到同一个报错，删除并重装 App 也不一定能恢复登录入口。
+
+相关讨论：
+
+- [Reddit: "Something went wrong, try again" error. Help required.](https://www.reddit.com/r/ClaudeAI/comments/1tn3gf7/something_went_wrong_try_again_error_help_required/)
+
+目前的判断是，这类问题常见于旧的移动端登录状态、会话 cookie 或设备认证状态无法被 Claude iOS App 正常清理，导致 App 在启动阶段持续重试旧会话而不是展示登录页。本服务通过临时代理和受控 rewrite 流程，尝试让客户端收到正常的登录过期响应，从而回到可重新登录的状态。
+
+请只在自己的设备和账号上使用。不要提交、记录或共享真实 cookie、session key、代理账号密码、mitmproxy 证书或其他敏感信息。
 
 ## Local Development
 
