@@ -107,6 +107,24 @@ def test_admin_client_uses_admin_api_and_cookie_session_only():
     assert "?token=" not in js
 
 
+def test_admin_forms_are_read_before_controls_are_disabled():
+    js = (WEB / "admin.js").read_text()
+
+    login_start = js.index("async function handleLogin")
+    login_end = js.index("async function handleCreate")
+    login_block = js[login_start:login_end]
+    assert login_block.index("const data = new FormData(loginForm);") < login_block.index(
+        "setBusy(loginForm, true);"
+    )
+
+    create_start = js.index("async function handleCreate")
+    create_end = js.index("async function handleInviteAction")
+    create_block = js[create_start:create_end]
+    assert create_block.index("const data = new FormData(createForm);") < create_block.index(
+        "setBusy(createForm, true);"
+    )
+
+
 def test_initial_proxy_config_contains_placeholders_only():
     html = (WEB / "index.html").read_text()
 

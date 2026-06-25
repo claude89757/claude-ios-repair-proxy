@@ -219,11 +219,11 @@ function expiresAtFromInput(value) {
 
 async function handleLogin(event) {
   event.preventDefault();
-  setBusy(loginForm, true);
-  setFeedback(loginFeedback, "正在登录...", "info");
+  const data = new FormData(loginForm);
 
   try {
-    const data = new FormData(loginForm);
+    setBusy(loginForm, true);
+    setFeedback(loginFeedback, "正在登录...", "info");
     await adminFetch("/api/admin/login", {
       method: "POST",
       body: JSON.stringify({
@@ -247,11 +247,11 @@ async function handleLogin(event) {
 
 async function handleCreate(event) {
   event.preventDefault();
-  setBusy(createForm, true);
-  setFeedback(createFeedback, "正在创建邀请码...", "info");
+  const data = new FormData(createForm);
 
   try {
-    const data = new FormData(createForm);
+    setBusy(createForm, true);
+    setFeedback(createFeedback, "正在创建邀请码...", "info");
     const payload = {
       note: text(data.get("note"), "").trim(),
     };
