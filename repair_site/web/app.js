@@ -9,18 +9,228 @@ const proxyHost = document.querySelector("#proxy-host");
 const proxyPort = document.querySelector("#proxy-port");
 const proxyCertificateUrl = document.querySelector("#proxy-certificate-url");
 const statusRefreshButton = document.querySelector("#status-refresh");
+const languageToggle = document.querySelector("#language-toggle");
 const INVITE_CACHE_KEY = "claudeRepairInviteCode";
+const LANGUAGE_CACHE_KEY = "claudeRepairLanguage";
+
+const I18N = {
+  zh: {
+    "page.title": "Claude iOS 登录卡死修复指南",
+    "nav.guide": "修复步骤",
+    "nav.status": "实时状态",
+    "nav.safety": "安全",
+    "hero.eyebrow": "iPhone / Claude App / 临时修复代理",
+    "hero.title": "Claude iOS 登录卡死修复指南",
+    "hero.lede":
+      "主要用于账号被 ban、禁用或异常后，Claude iOS 反复出现 “Something went wrong, try again”，删除并重装后仍回不到登录页的场景。按步骤临时连接修复代理，清理旧 session、cookie、routing hint 后立即关闭代理并撤销证书信任。",
+    "hero.cta": "开始修复",
+    "entry.kicker": "状态入口",
+    "entry.title": "验证邀请码并查看临时代理",
+    "entry.copy": "输入管理员提供的邀请码，验证后页面会显示默认 24 小时失效的专属代理端口和脱敏实时状态。",
+    "entry.label": "邀请码",
+    "entry.placeholder": "输入邀请码",
+    "entry.submit": "验证",
+    "flow.phoneScreen": "重新登录",
+    "flow.proxyLink": "临时代理",
+    "flow.proxy": "修复代理",
+    "flow.certLink": "证书信任",
+    "flow.cert": "CA 证书",
+    "guide.kicker": "操作顺序",
+    "guide.title": "修复步骤",
+    "step1.title": "获取邀请码",
+    "step1.copy": "联系管理员获取本次修复的邀请码。公开页面不内置代理账号密码；验证成功后，页面会显示临时代理配置和证书链接。",
+    "step2.title": "安装并信任证书",
+    "step2.item1": '使用 Safari 打开 <a href="/certs/mitmproxy-ca-cert.cer">证书链接</a>，允许下载描述文件。',
+    "step2.item2": "进入 <strong>设置 → 通用 → VPN 与设备管理</strong>，确认证书描述文件已经安装。",
+    "step2.item3": "进入 <strong>设置 → 通用 → 关于本机 → 证书信任设置</strong>，确认 mitmproxy 证书已经打开“完全信任”。",
+    "step3.title": "只让 Wi-Fi 走代理",
+    "step3.item1": "打开飞行模式，然后只打开 Wi-Fi，保持蜂窝网络关闭。",
+    "step3.item2": "关闭手机上的其它 VPN、代理或梯子工具，否则 Claude 流量可能不会走到修复代理。",
+    "step3.item3": "进入当前 Wi-Fi 的信息页，找到 HTTP 代理，选择手动。",
+    "step3.item4": "填写页面显示的服务器和端口，认证保持关闭，其余认证字段不用填写。",
+    "step4.title": "打开 Claude",
+    "step4.copy": "强退 Claude 后重新打开一次。代理会尝试把旧登录态改写为登录过期响应，帮助 App 清理残留并回到登录页。看到登录页或检查项完成后及时停止。",
+    "step5.title": "恢复网络",
+    "step5.copy": "关闭 iPhone HTTP 代理，回到证书信任设置中关闭修复 CA 的完全信任。专属端口默认 24 小时失效，不需要长期保留。",
+    "status.title": "实时状态",
+    "status.refresh": "刷新状态",
+    "status.copy": "邀请码验证后，这里会显示你的专属代理端口、脱敏状态和事件元数据。正常已登录的 Claude App 可能只显示代理已连接，不一定触发修复事件。",
+    "proxy.kicker": "临时代理配置",
+    "proxy.title": "请按以下信息配置当前 Wi-Fi 的 HTTP 代理，认证保持关闭；专属端口默认 24 小时失效",
+    "proxy.host": "服务器",
+    "proxy.port": "端口",
+    "proxy.certUrl": "证书链接",
+    "summary.title": "设备状态",
+    "summary.connection": "连接状态",
+    "summary.certificate": "证书状态",
+    "summary.firstSeen": "首次看到",
+    "summary.lastSeen": "最后活动",
+    "summary.clientIp": "客户端 IP",
+    "summary.appVersion": "App 版本",
+    "summary.iosVersion": "iOS 版本",
+    "summary.deviceId": "设备标识",
+    "checklist.title": "检查项",
+    "checks.proxy": "代理已连接",
+    "checks.cert": "证书已信任并可解密 Claude 请求",
+    "checks.account": "已观察到 /api/account",
+    "checks.rewrite": "已执行 session_expired rewrite",
+    "checks.cookies": "已发送 Cookie 删除 Header",
+    "state.complete": "完成",
+    "state.wait": "等待",
+    "events.title": "Claude 请求事件",
+    "events.note": "只显示 Claude/Anthropic 相关连接和请求；普通代理连接不会显示在此表。",
+    "events.time": "时间",
+    "events.response": "响应",
+    "events.cookie": "Cookie 标记",
+    "events.tlsUninspected": "TLS 未解密",
+    "events.empty": "尚未观察到 Claude/Anthropic 请求；当前只看到代理连接或其他系统流量。",
+    "cookie.yes": "yes",
+    "cookie.no": "no",
+    "safety.kicker": "使用后处理",
+    "safety.title": "安全说明",
+    "safety.item1": "请只在自己的设备和账号上使用，修复代理只用于清理卡住的本地旧会话，不用于绕过账号限制。",
+    "safety.item2": "修复期间不要提交、记录或共享真实 Cookie、sessionKey、routingHint、Authorization、mitmproxy 证书或设备标识。",
+    "safety.item3": "服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。",
+    "safety.item4": "完成后关闭 Wi-Fi 代理，并取消修复 CA 的完全信任；专属端口默认 24 小时失效。",
+    "safety.item5": "如果状态只显示已连接但没有 Claude 请求，优先检查是否还有其它 VPN、代理或梯子工具未关闭。",
+    "safety.item6": "如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。",
+    "feedback.restoring": "正在恢复上次的邀请码...",
+    "feedback.tokenExpired": "状态凭证已失效，请重新输入邀请码。",
+    "feedback.statusUnavailable": "代理配置已显示，但实时状态暂时不可用。",
+    "feedback.refreshNeedsInvite": "请先验证邀请码，再刷新实时状态。",
+    "feedback.refreshing": "正在刷新实时状态...",
+    "feedback.refreshed": "实时状态已刷新。",
+    "feedback.loaded": "该邀请码的临时代理配置已加载。",
+    "feedback.validating": "正在验证邀请码...",
+    "feedback.claimLoaded": "邀请码验证成功，已显示临时代理配置。",
+    "feedback.claimConfigLoaded": "邀请码验证成功，临时代理配置已显示。",
+    "feedback.invalidInvite": "邀请码无效或已失效。",
+    "feedback.claimUnavailable": "暂时无法验证邀请码，请稍后重试。",
+    "feedback.enterInvite": "请输入邀请码。",
+    "status.waitingInvite": "等待邀请码验证",
+    "status.unavailable": "状态暂时不可用",
+    "status.processing": "状态数据处理中",
+    "status.reconnecting": "正在重新连接状态流",
+    "statusValue.not_connected": "not connected",
+    "statusValue.connected": "connected",
+    "statusValue.unknown": "unknown",
+  },
+  en: {
+    "page.title": "Claude iOS sign-in loop repair guide",
+    "nav.guide": "Steps",
+    "nav.status": "Live status",
+    "nav.safety": "Safety",
+    "hero.eyebrow": "iPhone / Claude App / Temporary repair proxy",
+    "hero.title": "Claude iOS sign-in loop repair guide",
+    "hero.lede":
+      'Use this when Claude iOS keeps showing "Something went wrong, try again" after an account ban, disablement, or abnormal session state, and reinstalling the app still does not bring back the sign-in screen. Temporarily route traffic through the repair proxy, clear stale session, cookie, and routing hint state, then turn the proxy and CA trust off immediately.',
+    "hero.cta": "Start repair",
+    "entry.kicker": "Status entry",
+    "entry.title": "Verify invite and view temporary proxy",
+    "entry.copy": "Enter the invite code from the administrator. After verification, this page shows your dedicated proxy port and sanitized live status. The port expires after 24 hours by default.",
+    "entry.label": "Invite code",
+    "entry.placeholder": "Enter invite code",
+    "entry.submit": "Verify",
+    "flow.phoneScreen": "Sign in again",
+    "flow.proxyLink": "Temporary proxy",
+    "flow.proxy": "Repair proxy",
+    "flow.certLink": "Certificate trust",
+    "flow.cert": "CA certificate",
+    "guide.kicker": "Order",
+    "guide.title": "Repair steps",
+    "step1.title": "Get an invite",
+    "step1.copy": "Contact the administrator for an invite code. The public page does not include proxy credentials. After verification, it shows the temporary proxy configuration and certificate link.",
+    "step2.title": "Install and trust the certificate",
+    "step2.item1": 'Open the <a href="/certs/mitmproxy-ca-cert.cer">certificate link</a> in Safari and allow the profile download.',
+    "step2.item2": "Go to <strong>Settings → General → VPN & Device Management</strong> and confirm the certificate profile is installed.",
+    "step2.item3": "Go to <strong>Settings → General → About → Certificate Trust Settings</strong> and make sure the mitmproxy certificate is fully trusted.",
+    "step3.title": "Route only Wi-Fi through the proxy",
+    "step3.item1": "Turn on Airplane Mode, then enable Wi-Fi only and keep cellular data off.",
+    "step3.item2": "Turn off any other VPN, proxy, or tunneling app on the phone, otherwise Claude traffic may not reach the repair proxy.",
+    "step3.item3": "Open the current Wi-Fi details page, find HTTP Proxy, and choose Manual.",
+    "step3.item4": "Enter the server and port shown on this page. Keep authentication off and leave the other auth fields empty.",
+    "step4.title": "Open Claude",
+    "step4.copy": "Force quit Claude and open it again. The proxy attempts to rewrite the stale sign-in state into a session-expired response so the app can clear local residue and return to sign-in. Stop once the sign-in screen or completed checks appear.",
+    "step5.title": "Restore network",
+    "step5.copy": "Turn off the iPhone HTTP proxy, then disable full trust for the repair CA certificate. The dedicated port expires after 24 hours by default and should not be kept long term.",
+    "status.title": "Live status",
+    "status.refresh": "Refresh status",
+    "status.copy": "After invite verification, this area shows your dedicated proxy port, sanitized status, and event metadata. A normally signed-in Claude App may only show that the proxy is connected and may not trigger repair events.",
+    "proxy.kicker": "Temporary proxy configuration",
+    "proxy.title": "Configure the current Wi-Fi HTTP proxy with the following values. Keep authentication off. The dedicated port expires after 24 hours by default.",
+    "proxy.host": "Server",
+    "proxy.port": "Port",
+    "proxy.certUrl": "Certificate link",
+    "summary.title": "Device status",
+    "summary.connection": "Connection",
+    "summary.certificate": "Certificate",
+    "summary.firstSeen": "First seen",
+    "summary.lastSeen": "Last activity",
+    "summary.clientIp": "Client IP",
+    "summary.appVersion": "App version",
+    "summary.iosVersion": "iOS version",
+    "summary.deviceId": "Device ID",
+    "checklist.title": "Checks",
+    "checks.proxy": "Proxy connected",
+    "checks.cert": "Certificate trusted and Claude requests decryptable",
+    "checks.account": "Observed /api/account",
+    "checks.rewrite": "Ran session_expired rewrite",
+    "checks.cookies": "Sent Cookie deletion headers",
+    "state.complete": "Done",
+    "state.wait": "Waiting",
+    "events.title": "Claude request events",
+    "events.note": "Only Claude/Anthropic connections and requests are shown here. Ordinary proxy connection events are hidden from this table.",
+    "events.time": "Time",
+    "events.response": "Response",
+    "events.cookie": "Cookie marker",
+    "events.tlsUninspected": "TLS not decrypted",
+    "events.empty": "No Claude/Anthropic request observed yet. Only proxy connections or other system traffic have been seen.",
+    "cookie.yes": "yes",
+    "cookie.no": "no",
+    "safety.kicker": "After use",
+    "safety.title": "Safety notes",
+    "safety.item1": "Use this only on your own device and account. The repair proxy is for clearing stuck local session state, not for bypassing account restrictions.",
+    "safety.item2": "Do not submit, log, or share real Cookie, sessionKey, routingHint, Authorization, mitmproxy certificates, or device identifiers during repair.",
+    "safety.item3": "The service stores only sanitized status and event metadata. It does not store cookies, request bodies, or full device identifiers.",
+    "safety.item4": "After repair, turn off the Wi-Fi proxy and disable full trust for the repair CA. The dedicated port expires after 24 hours by default.",
+    "safety.item5": "If status only shows connected but no Claude requests, first check whether another VPN, proxy, or tunneling app is still enabled.",
+    "safety.item6": "If status does not change for a long time, verify the iPhone Wi-Fi, certificate trust, and proxy configuration match this page.",
+    "feedback.restoring": "Restoring the last invite code...",
+    "feedback.tokenExpired": "The status credential expired. Enter the invite code again.",
+    "feedback.statusUnavailable": "Proxy configuration is shown, but live status is temporarily unavailable.",
+    "feedback.refreshNeedsInvite": "Verify an invite code before refreshing live status.",
+    "feedback.refreshing": "Refreshing live status...",
+    "feedback.refreshed": "Live status refreshed.",
+    "feedback.loaded": "Temporary proxy configuration for this invite is already loaded.",
+    "feedback.validating": "Verifying invite code...",
+    "feedback.claimLoaded": "Invite verified. Temporary proxy configuration is shown.",
+    "feedback.claimConfigLoaded": "Invite verified. Temporary proxy configuration is shown.",
+    "feedback.invalidInvite": "Invite code is invalid or expired.",
+    "feedback.claimUnavailable": "Unable to verify the invite right now. Try again later.",
+    "feedback.enterInvite": "Enter an invite code.",
+    "status.waitingInvite": "Waiting for invite verification",
+    "status.unavailable": "Status temporarily unavailable",
+    "status.processing": "Processing status data",
+    "status.reconnecting": "Reconnecting status stream",
+    "statusValue.not_connected": "not connected",
+    "statusValue.connected": "connected",
+    "statusValue.unknown": "unknown",
+  },
+};
 
 let streamController = null;
 let statusToken = "";
 let activeInviteCode = "";
+let currentLanguage = loadCachedLanguage();
+let currentSnapshot = null;
+let currentFeedback = { key: "", message: "", tone: "" };
 
 const checks = [
-  ["proxy", "代理已连接"],
-  ["cert", "证书已信任并可解密 Claude 请求"],
-  ["account", "已观察到 /api/account"],
-  ["rewrite", "已执行 session_expired rewrite"],
-  ["cookies", "已发送 Cookie 删除 Header"],
+  ["proxy", "checks.proxy"],
+  ["cert", "checks.cert"],
+  ["account", "checks.account"],
+  ["rewrite", "checks.rewrite"],
+  ["cookies", "checks.cookies"],
 ];
 
 function initialRepairProgress() {
@@ -37,6 +247,79 @@ let repairProgress = initialRepairProgress();
 
 function resetRepairProgress() {
   repairProgress = initialRepairProgress();
+}
+
+function normalizeLanguage(language) {
+  return language === "en" ? "en" : "zh";
+}
+
+function loadCachedLanguage() {
+  try {
+    return normalizeLanguage(localStorage.getItem(LANGUAGE_CACHE_KEY));
+  } catch (_error) {
+    return "zh";
+  }
+}
+
+function saveCachedLanguage(language) {
+  try {
+    localStorage.setItem(LANGUAGE_CACHE_KEY, normalizeLanguage(language));
+  } catch (_error) {
+    // Language preference is cosmetic; the page still works without storage.
+  }
+}
+
+function t(key) {
+  return I18N[currentLanguage]?.[key] || I18N.zh[key] || key;
+}
+
+function translateStatus(value) {
+  const raw = text(value);
+  const key = `statusValue.${raw.replace(/\s+/g, "_")}`;
+  return I18N[currentLanguage]?.[key] || raw;
+}
+
+function translateStaticText() {
+  document.documentElement.lang = currentLanguage === "en" ? "en" : "zh-CN";
+  document.title = t("page.title");
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.innerHTML = t(node.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    node.setAttribute("placeholder", t(node.dataset.i18nPlaceholder));
+  });
+}
+
+function updateLanguageToggle() {
+  if (!languageToggle) {
+    return;
+  }
+  languageToggle.textContent = currentLanguage === "en" ? "中文" : "EN";
+  languageToggle.setAttribute("aria-pressed", currentLanguage === "en" ? "true" : "false");
+}
+
+function refreshDynamicLanguage() {
+  if (currentSnapshot) {
+    renderSummary(currentSnapshot);
+    renderChecklist(currentSnapshot);
+    renderEvents(currentSnapshot);
+  }
+  if (currentFeedback.key) {
+    setFeedback(t(currentFeedback.key), currentFeedback.tone, currentFeedback.key);
+  }
+}
+
+function applyLanguage(language = currentLanguage) {
+  currentLanguage = normalizeLanguage(language);
+  translateStaticText();
+  updateLanguageToggle();
+  refreshDynamicLanguage();
+}
+
+function setLanguage(language) {
+  currentLanguage = normalizeLanguage(language);
+  saveCachedLanguage(currentLanguage);
+  applyLanguage(currentLanguage);
 }
 
 function text(value, fallback = "-") {
@@ -79,7 +362,7 @@ function restoreCachedInvite() {
   if (inviteInput) {
     inviteInput.value = inviteCode;
   }
-  setFeedback("正在恢复上次的邀请码...", "info");
+  setFeedbackKey("feedback.restoring", "info");
   void activateInvite(inviteCode, { restored: true });
 }
 
@@ -100,12 +383,17 @@ function term(label, value) {
   return [dt, dd];
 }
 
-function setFeedback(message = "", tone = "") {
+function setFeedback(message = "", tone = "", key = "") {
+  currentFeedback = { key, message, tone };
   feedbacks.forEach((node) => {
     node.textContent = message;
     node.dataset.tone = tone;
     node.hidden = !message;
   });
+}
+
+function setFeedbackKey(key, tone = "") {
+  setFeedback(t(key), tone, key);
 }
 
 function setBusy(isBusy) {
@@ -135,15 +423,18 @@ function setRefreshBusy(isBusy) {
 
 function renderSummary(data) {
   const latest = latestEvent(data);
+  const connectionStatus = data?.connection_status_key
+    ? t(data.connection_status_key)
+    : translateStatus(data?.connection_status || "not connected");
   const fields = [
-    ["连接状态", data?.connection_status || "not connected"],
-    ["证书状态", data?.certificate_status || "unknown"],
-    ["首次看到", data?.first_seen_at],
-    ["最后活动", data?.last_seen_at],
-    ["客户端 IP", latest.client_ip],
-    ["App 版本", latest.claude_app_version],
-    ["iOS 版本", latest.ios_version],
-    ["设备标识", latest.device_id_hash],
+    [t("summary.connection"), connectionStatus],
+    [t("summary.certificate"), translateStatus(data?.certificate_status || "unknown")],
+    [t("summary.firstSeen"), data?.first_seen_at],
+    [t("summary.lastSeen"), data?.last_seen_at],
+    [t("summary.clientIp"), latest.client_ip],
+    [t("summary.appVersion"), latest.claude_app_version],
+    [t("summary.iosVersion"), latest.ios_version],
+    [t("summary.deviceId"), latest.device_id_hash],
   ];
   replaceChildren(summary, fields.flatMap(([label, value]) => term(label, value)));
 }
@@ -170,13 +461,13 @@ function mergeRepairProgress(data) {
 function renderChecklist(data) {
   const state = mergeRepairProgress(data);
 
-  const items = checks.map(([key, label]) => {
+  const items = checks.map(([key, labelKey]) => {
     const li = document.createElement("li");
     const labelSpan = document.createElement("span");
     const stateSpan = document.createElement("span");
-    labelSpan.textContent = label;
+    labelSpan.textContent = t(labelKey);
     stateSpan.className = `check-state ${state[key] ? "yes" : "no"}`;
-    stateSpan.textContent = state[key] ? "完成" : "等待";
+    stateSpan.textContent = state[key] ? t("state.complete") : t("state.wait");
     li.append(labelSpan, stateSpan);
     return li;
   });
@@ -185,8 +476,12 @@ function renderChecklist(data) {
 }
 
 function cookieSummary(event) {
-  const session = event?.session_key_present ? "sessionKey yes" : "sessionKey no";
-  const routing = event?.routing_hint_present ? "routingHint yes" : "routingHint no";
+  const session = event?.session_key_present
+    ? `sessionKey ${t("cookie.yes")}`
+    : `sessionKey ${t("cookie.no")}`;
+  const routing = event?.routing_hint_present
+    ? `routingHint ${t("cookie.yes")}`
+    : `routingHint ${t("cookie.no")}`;
   return `${session} / ${routing}`;
 }
 
@@ -210,7 +505,7 @@ function eventRewriteSummary(event) {
 
 function eventCookieSummary(event) {
   if (event?.type === "claude_connect") {
-    return "TLS 未解密";
+    return t("events.tlsUninspected");
   }
   return cookieSummary(event);
 }
@@ -240,7 +535,7 @@ function renderEvents(data) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 5;
-    td.textContent = "尚未观察到 Claude/Anthropic 请求；当前只看到代理连接或其他系统流量。";
+    td.textContent = t("events.empty");
     tr.appendChild(td);
     elements.push(tr);
   }
@@ -249,6 +544,7 @@ function renderEvents(data) {
 }
 
 function render(data) {
+  currentSnapshot = data || {};
   renderSummary(data || {});
   renderChecklist(data || {});
   renderEvents(data || {});
@@ -307,9 +603,10 @@ function closeStream() {
   }
 }
 
-function renderWaitingState(label) {
+function renderWaitingState(statusKey) {
   render({
-    connection_status: label,
+    connection_status: t(statusKey),
+    connection_status_key: statusKey,
     certificate_status: "unknown",
     events: [],
   });
@@ -380,29 +677,29 @@ async function refreshSnapshot({ silent = false } = {}) {
   } catch (error) {
     if (error?.status === 401) {
       expireTokenState();
-      setFeedback("状态凭证已失效，请重新输入邀请码。", "error");
+      setFeedbackKey("feedback.tokenExpired", "error");
     } else if (!silent) {
-      setFeedback("代理配置已显示，但实时状态暂时不可用。", "info");
+      setFeedbackKey("feedback.statusUnavailable", "info");
     }
 
-    renderWaitingState("状态暂时不可用");
+    renderWaitingState("status.unavailable");
     return false;
   }
 }
 
 async function refreshStatusManually() {
   if (!statusToken) {
-    setFeedback("请先验证邀请码，再刷新实时状态。", "error");
-    renderWaitingState("等待邀请码验证");
+    setFeedbackKey("feedback.refreshNeedsInvite", "error");
+    renderWaitingState("status.waitingInvite");
     return;
   }
 
   setRefreshBusy(true);
-  setFeedback("正在刷新实时状态...", "info");
+  setFeedbackKey("feedback.refreshing", "info");
   try {
     const refreshed = await refreshSnapshot();
     if (refreshed && statusToken) {
-      setFeedback("实时状态已刷新。", "success");
+      setFeedbackKey("feedback.refreshed", "success");
       startEventStream();
     }
   } finally {
@@ -427,7 +724,7 @@ function handleSseBlock(block) {
     try {
       render(JSON.parse(data));
     } catch (_error) {
-      renderWaitingState("状态数据处理中");
+      renderWaitingState("status.processing");
     }
     return;
   }
@@ -450,9 +747,9 @@ async function consumeStatusStream(signal) {
     if (!response.ok || !response.body) {
       if (response.status === 401) {
         expireTokenState();
-        setFeedback("状态凭证已失效，请重新输入邀请码。", "error");
+        setFeedbackKey("feedback.tokenExpired", "error");
       } else {
-        renderWaitingState("正在重新连接状态流");
+        renderWaitingState("status.reconnecting");
       }
       return;
     }
@@ -480,7 +777,7 @@ async function consumeStatusStream(signal) {
     }
   } catch (error) {
     if (error?.name !== "AbortError") {
-      renderWaitingState("正在重新连接状态流");
+      renderWaitingState("status.reconnecting");
     }
   }
 }
@@ -497,7 +794,7 @@ function startEventStream() {
 
 async function activateInvite(inviteCode, { restored = false } = {}) {
   if (activeInviteCode === inviteCode && statusToken) {
-    setFeedback("该邀请码的临时代理配置已加载。", "success");
+    setFeedbackKey("feedback.loaded", "success");
     await refreshSnapshot();
     startEventStream();
     return;
@@ -505,7 +802,7 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
 
   resetRepairProgress();
   setBusy(true);
-  setFeedback(restored ? "正在恢复上次的邀请码..." : "正在验证邀请码...", "info");
+  setFeedbackKey(restored ? "feedback.restoring" : "feedback.validating", "info");
 
   try {
     const claim = await claimInvite(inviteCode);
@@ -520,9 +817,9 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
 
     const snapshotLoaded = await refreshSnapshot({ silent: true });
     if (snapshotLoaded) {
-      setFeedback("邀请码验证成功，已显示临时代理配置。", "success");
+      setFeedbackKey("feedback.claimLoaded", "success");
     } else if (statusToken) {
-      setFeedback("邀请码验证成功，临时代理配置已显示。", "success");
+      setFeedbackKey("feedback.claimConfigLoaded", "success");
     }
 
     startEventStream();
@@ -532,12 +829,12 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
 
     if (error?.status === 400 || error?.status === 404) {
       clearCachedInviteCode();
-      setFeedback("邀请码无效或已失效。", "error");
+      setFeedbackKey("feedback.invalidInvite", "error");
     } else {
-      setFeedback("暂时无法验证邀请码，请稍后重试。", "error");
+      setFeedbackKey("feedback.claimUnavailable", "error");
     }
 
-    renderWaitingState("等待邀请码验证");
+    renderWaitingState("status.waitingInvite");
   } finally {
     setBusy(false);
   }
@@ -548,7 +845,7 @@ inviteForm?.addEventListener("submit", (event) => {
   const inviteCode = inviteInput?.value.trim();
 
   if (!inviteCode) {
-    setFeedback("请输入邀请码。", "error");
+    setFeedbackKey("feedback.enterInvite", "error");
     return;
   }
 
@@ -560,7 +857,12 @@ statusRefreshButton?.addEventListener("click", () => {
   void refreshStatusManually();
 });
 
+languageToggle?.addEventListener("click", () => {
+  setLanguage(currentLanguage === "en" ? "zh" : "en");
+});
+
+applyLanguage(currentLanguage);
 resetProxyConfig();
 setFeedback("");
-renderWaitingState("等待邀请码验证");
+renderWaitingState("status.waitingInvite");
 restoreCachedInvite();

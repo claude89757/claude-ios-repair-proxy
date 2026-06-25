@@ -24,6 +24,8 @@ def test_site_contains_required_user_guidance():
     assert "只打开 Wi-Fi" in html
     assert "HTTP 代理" in html
     assert "认证保持关闭" in html
+    assert "关闭手机上的其它 VPN、代理或梯子工具" in html
+    assert "否则 Claude 流量可能不会走到修复代理" in html
     assert "实时状态" in html
     assert "正常已登录" in html
     assert "不一定触发修复事件" in html
@@ -34,6 +36,24 @@ def test_site_contains_required_user_guidance():
     assert "Repair session ID" not in html
     assert "repair session ID" not in html
     assert "default" not in html
+
+
+def test_public_site_supports_chinese_english_language_toggle():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert 'id="language-toggle"' in html
+    assert 'class="language-toggle"' in html
+    assert 'aria-label="Switch language"' in html
+    assert 'data-i18n=' in html
+    assert 'data-i18n-placeholder=' in html
+    assert "LANGUAGE_CACHE_KEY" in js
+    assert "claudeRepairLanguage" in js
+    assert "function applyLanguage" in js
+    assert "function setLanguage" in js
+    assert "document.querySelectorAll(\"[data-i18n]\")" in js
+    assert "Claude iOS sign-in loop repair guide" in js
+    assert "Turn off any other VPN, proxy, or tunneling app" in js
 
 
 def test_public_site_does_not_show_duplicate_certificate_download_buttons():

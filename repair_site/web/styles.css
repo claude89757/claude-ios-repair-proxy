@@ -73,6 +73,35 @@ nav a {
   text-decoration: none;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.language-toggle {
+  min-width: 58px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 12px;
+  background: var(--surface);
+  color: var(--blue);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.language-toggle:hover,
+.language-toggle:focus-visible {
+  background: var(--blue-soft);
+  outline: none;
+}
+
 main {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
@@ -915,8 +944,17 @@ td {
   }
 
   nav {
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .topbar-actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .language-toggle {
+    flex: 0 0 auto;
   }
 
   main {
