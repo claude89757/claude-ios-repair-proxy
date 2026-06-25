@@ -176,14 +176,54 @@ def test_http_connect_authenticates_and_response_emits_mapped_session(monkeypatc
     addon.response(flow)
 
     assert flow.metadata["session_id"] == "repair-connect"
-    assert len(posts) == 2
+    assert len(posts) == 3
     assert posts[0][0] == "http://127.0.0.1:9000/api/internal/proxy-auth/verify"
     assert posts[0][1] == {
         "proxy_username": "proxy-user",
         "proxy_password": "proxy-pass",
     }
-    event = posts[1][1]
+    assert posts[1][1]["type"] == "proxy_connected"
+    event = posts[2][1]
     assert event["session_id"] == "repair-connect"
+
+
+def test_http_connect_emits_proxy_connected_event_after_authentication(monkeypatch):
+    posts = []
+
+    class FakeAuthResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"session_id": "repair-connect"}
+
+    def fake_post(url, json, headers, timeout):
+        posts.append((url, json, headers, timeout))
+        if url.endswith("/proxy-auth/verify"):
+            return FakeAuthResponse()
+        return None
+
+    monkeypatch.setattr("repair_site.mitm.claude_repair_addon.httpx.post", fake_post)
+    addon = ClaudeRepairAddon(
+        status_url="http://127.0.0.1:9000/api/internal/events",
+        auth_url="http://127.0.0.1:9000/api/internal/proxy-auth/verify",
+        internal_secret="internal-secret",
+    )
+    flow = Flow()
+    flow.request.method = "CONNECT"
+    flow.request.headers["Proxy-Authorization"] = basic_auth()
+
+    addon.http_connect(flow)
+
+    assert len(posts) == 2
+    assert posts[0][0].endswith("/proxy-auth/verify")
+    assert posts[1][0].endswith("/api/internal/events")
+    assert posts[1][1] == {
+        "type": "proxy_connected",
+        "session_id": "repair-connect",
+        "client_ip": "203.0.113.42",
+        "connection_status": "connected",
+    }
 
 
 def test_requestheaders_authenticates_and_removes_proxy_authorization(monkeypatch):

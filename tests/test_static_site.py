@@ -14,6 +14,8 @@ def test_site_contains_required_user_guidance():
     assert "proxy-config" in html
     assert "/certs/mitmproxy-ca-cert.cer" in html
     assert "实时状态" in html
+    assert "正常已登录" in html
+    assert "不一定触发修复事件" in html
     assert "Repair session ID" not in html
     assert "repair session ID" not in html
     assert "default" not in html

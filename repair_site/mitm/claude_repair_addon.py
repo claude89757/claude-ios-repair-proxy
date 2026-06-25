@@ -195,6 +195,14 @@ class ClaudeRepairAddon:
         headers = getattr(getattr(flow, "request", None), "headers", None)
         if headers is not None:
             self._pop_header(headers, "Proxy-Authorization")
+        self._emit(
+            {
+                "type": "proxy_connected",
+                "session_id": session_id,
+                "client_ip": self._client_ip(flow),
+                "connection_status": "connected",
+            }
+        )
 
     def _make_407_response(self) -> Any:
         try:
