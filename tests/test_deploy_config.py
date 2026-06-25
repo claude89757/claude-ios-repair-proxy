@@ -46,3 +46,13 @@ def test_nginx_serves_admin_page_without_falling_back_to_public_index():
     assert "root /opt/claude-ios-repair/repair_site/web;" in nginx
     assert "location = /admin" in nginx
     assert "try_files /admin.html =404;" in nginx
+
+
+def test_nginx_serves_mitmproxy_certificate_without_spa_fallback():
+    nginx = read_deploy_file("nginx.conf")
+
+    assert "location = /certs/mitmproxy-ca-cert.cer" in nginx
+    assert "alias /opt/claude-ios-repair/mitmproxy/mitmproxy-ca-cert.cer;" in nginx
+    assert "default_type application/x-x509-ca-cert;" in nginx
+    assert "location /certs/" in nginx
+    assert "return 404;" in nginx
