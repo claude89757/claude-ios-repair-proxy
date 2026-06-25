@@ -47,8 +47,22 @@ def test_dashboard_client_uses_invite_api_and_header_stream():
     assert "fetch(" in js
     assert "EventSource" not in js
     assert "/api/status/" not in js
-    assert "localStorage" not in js
     assert "sessionStorage" not in js
+
+
+def test_dashboard_caches_only_invite_code_for_browser_restore():
+    js = (WEB / "app.js").read_text()
+
+    assert "localStorage" in js
+    assert "claudeRepairInviteCode" in js
+    assert "restoreCachedInvite" in js
+    assert "saveCachedInviteCode(inviteCode)" in js
+    assert "localStorage.setItem(INVITE_CACHE_KEY, inviteCode)" in js
+    assert "localStorage.setItem" in js
+    assert "localStorage.setItem(INVITE_CACHE_KEY, statusToken)" not in js
+    assert "localStorage.setItem(INVITE_CACHE_KEY, claim.status_token)" not in js
+    assert "localStorage.setItem(INVITE_CACHE_KEY, claim.proxy_password)" not in js
+    assert "proxyPassword.textContent = text(claim?.proxy_password)" in js
 
 
 def test_public_status_dashboard_has_manual_refresh_button():

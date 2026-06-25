@@ -12,6 +12,7 @@ const proxyPassword = document.querySelector("#proxy-password");
 const proxyCertificateUrl = document.querySelector("#proxy-certificate-url");
 const proxyCertificate = document.querySelector("#proxy-certificate");
 const statusRefreshButton = document.querySelector("#status-refresh");
+const INVITE_CACHE_KEY = "claudeRepairInviteCode";
 
 let streamController = null;
 let statusToken = "";
@@ -30,6 +31,43 @@ function text(value, fallback = "-") {
     return fallback;
   }
   return String(value);
+}
+
+function loadCachedInviteCode() {
+  try {
+    return (localStorage.getItem(INVITE_CACHE_KEY) || "").trim();
+  } catch (_error) {
+    return "";
+  }
+}
+
+function saveCachedInviteCode(inviteCode) {
+  try {
+    localStorage.setItem(INVITE_CACHE_KEY, inviteCode);
+  } catch (_error) {
+    // Browser storage can be disabled; the repair flow still works without it.
+  }
+}
+
+function clearCachedInviteCode() {
+  try {
+    localStorage.removeItem(INVITE_CACHE_KEY);
+  } catch (_error) {
+    // Ignore storage failures so invalid invites still reset the visible state.
+  }
+}
+
+function restoreCachedInvite() {
+  const inviteCode = loadCachedInviteCode();
+  if (!inviteCode) {
+    return;
+  }
+
+  if (inviteInput) {
+    inviteInput.value = inviteCode;
+  }
+  setFeedback("正在恢复上次的邀请码...", "info");
+  void activateInvite(inviteCode, { restored: true });
 }
 
 function latestEvent(data) {
@@ -420,7 +458,7 @@ function startEventStream() {
   void consumeStatusStream(streamController.signal);
 }
 
-async function activateInvite(inviteCode) {
+async function activateInvite(inviteCode, { restored = false } = {}) {
   if (activeInviteCode === inviteCode && statusToken) {
     setFeedback("该邀请码的临时代理配置已加载。", "success");
     await refreshSnapshot();
@@ -429,7 +467,7 @@ async function activateInvite(inviteCode) {
   }
 
   setBusy(true);
-  setFeedback("正在验证邀请码...", "info");
+  setFeedback(restored ? "正在恢复上次的邀请码..." : "正在验证邀请码...", "info");
 
   try {
     const claim = await claimInvite(inviteCode);
@@ -437,6 +475,7 @@ async function activateInvite(inviteCode) {
       throw new Error("missing status token");
     }
 
+    saveCachedInviteCode(inviteCode);
     statusToken = claim.status_token;
     activeInviteCode = inviteCode;
     renderProxyConfig(claim);
@@ -454,6 +493,7 @@ async function activateInvite(inviteCode) {
     resetProxyConfig();
 
     if (error?.status === 400 || error?.status === 404) {
+      clearCachedInviteCode();
       setFeedback("邀请码无效或已失效。", "error");
     } else {
       setFeedback("暂时无法验证邀请码，请稍后重试。", "error");
@@ -485,3 +525,4 @@ statusRefreshButton?.addEventListener("click", () => {
 resetProxyConfig();
 setFeedback("");
 renderWaitingState("等待邀请码验证");
+restoreCachedInvite();
