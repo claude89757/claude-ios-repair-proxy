@@ -7,7 +7,7 @@
 - HTTPS 指南网站和证书下载入口
 - FastAPI 实时状态后端
 - mitmproxy 修复代理
-- 邀请码、代理账号和状态会话的服务端管理逻辑
+- 邀请码、专属代理端口和状态会话的服务端管理逻辑
 
 ## Issue Background
 
@@ -19,7 +19,7 @@
 
 目前的判断是，这类问题主要来自被 ban/禁用账号的本地登录信息残留：Claude iOS App 继续携带旧的 session、cookie、routing hint 或设备认证状态启动，服务端返回账号或认证错误后，客户端仍持续重试旧登录态，而不是清理状态并展示登录页。本服务通过临时代理和受控 rewrite 流程，尝试让客户端收到正常的登录过期响应，从而清理残留状态并回到可重新登录的界面。
 
-请只在自己的设备和账号上使用。不要提交、记录或共享真实 cookie、session key、代理账号密码、mitmproxy 证书或其他敏感信息。
+请只在自己的设备和账号上使用。不要提交、记录或共享真实 cookie、session key、mitmproxy 证书或其他敏感信息。
 
 ## Local Development
 
@@ -45,8 +45,8 @@ uvicorn repair_site.status_app.main:app --host 127.0.0.1 --port 9000
 
 - `443`: Nginx public website
 - `9000`: local FastAPI status backend
-- `9443`: Claude iOS repair proxy
+- `10001-10999`: per-invite Claude iOS repair proxy ports by default
 
 ## Security Notes
 
-公开页面不内置代理账号密码。用户通过管理员发放的邀请码获取临时代理配置；服务端只记录脱敏状态和事件元数据。
+公开页面不内置代理账号密码。用户通过管理员发放的邀请码获取专属代理端口；iPhone Wi-Fi 代理认证保持关闭。修复代理只放行 Claude/Anthropic 相关域名和少量连通性测试域名，服务端只记录脱敏状态和事件元数据。

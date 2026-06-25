@@ -178,20 +178,11 @@ def test_emits_observed_anthropic_request_without_rewrite(monkeypatch):
     assert event["rewrite_applied"] is False
 
 
-def test_http_connect_authenticates_and_response_emits_mapped_session(monkeypatch):
+def test_http_connect_ignores_stale_proxy_auth_and_response_emits_configured_session(monkeypatch):
     posts = []
-
-    class FakeAuthResponse:
-        status_code = 200
-
-        @staticmethod
-        def json():
-            return {"session_id": "repair-connect"}
 
     def fake_post(url, json, headers, timeout):
         posts.append((url, json, headers, timeout))
-        if url.endswith("/proxy-auth/verify"):
-            return FakeAuthResponse()
         return None
 
     monkeypatch.setattr("repair_site.mitm.claude_repair_addon.httpx.post", fake_post)
@@ -199,6 +190,7 @@ def test_http_connect_authenticates_and_response_emits_mapped_session(monkeypatc
         status_url="http://127.0.0.1:9000/api/internal/events",
         auth_url="http://127.0.0.1:9000/api/internal/proxy-auth/verify",
         internal_secret="internal-secret",
+        session_id="sess-port-10001",
     )
     flow = Flow()
     flow.request.method = "CONNECT"
@@ -207,32 +199,74 @@ def test_http_connect_authenticates_and_response_emits_mapped_session(monkeypatc
     addon.http_connect(flow)
     addon.response(flow)
 
-    assert flow.metadata["session_id"] == "repair-connect"
-    assert len(posts) == 3
-    assert posts[0][0] == "http://127.0.0.1:9000/api/internal/proxy-auth/verify"
-    assert posts[0][1] == {
-        "proxy_username": "proxy-user",
-        "proxy_password": "proxy-pass",
-    }
-    assert posts[1][1]["type"] == "proxy_connected"
-    event = posts[2][1]
-    assert event["session_id"] == "repair-connect"
+    assert flow.metadata["session_id"] == "sess-port-10001"
+    assert "Proxy-Authorization" not in flow.request.headers
+    assert len(posts) == 2
+    assert posts[0][0] == "http://127.0.0.1:9000/api/internal/events"
+    assert posts[0][1]["type"] == "proxy_connected"
+    event = posts[1][1]
+    assert event["session_id"] == "sess-port-10001"
 
 
-def test_http_connect_emits_proxy_connected_event_after_authentication(monkeypatch):
+def test_http_connect_allows_claude_without_proxy_auth_and_uses_configured_session(monkeypatch):
     posts = []
-
-    class FakeAuthResponse:
-        status_code = 200
-
-        @staticmethod
-        def json():
-            return {"session_id": "repair-connect"}
 
     def fake_post(url, json, headers, timeout):
         posts.append((url, json, headers, timeout))
-        if url.endswith("/proxy-auth/verify"):
-            return FakeAuthResponse()
+
+    monkeypatch.setattr("repair_site.mitm.claude_repair_addon.httpx.post", fake_post)
+    addon = ClaudeRepairAddon(
+        status_url="http://127.0.0.1:9000/api/internal/events",
+        internal_secret="internal-secret",
+        session_id="sess-port-10001",
+    )
+    flow = Flow()
+    flow.request.method = "CONNECT"
+    flow.request.host = "claude.ai"
+    flow.response = None
+
+    addon.http_connect(flow)
+
+    assert flow.response is None
+    assert flow.metadata["session_id"] == "sess-port-10001"
+    assert len(posts) == 1
+    assert posts[0][0].endswith("/api/internal/events")
+    assert posts[0][1] == {
+        "type": "proxy_connected",
+        "session_id": "sess-port-10001",
+        "client_ip": "203.0.113.42",
+        "connection_status": "connected",
+    }
+
+
+def test_requestheaders_blocks_unlisted_public_proxy_host_without_auth_challenge():
+    addon = ClaudeRepairAddon()
+    flow = Flow(host="example.com", path="/")
+
+    addon.requestheaders(flow)
+
+    assert flow.response.status_code == 403
+    assert flow.response.reason == "Forbidden"
+    assert "Proxy-Authenticate" not in flow.response.headers
+    assert flow.metadata == {}
+
+
+def test_requestheaders_allows_connectivity_test_host_without_proxy_auth():
+    addon = ClaudeRepairAddon(session_id="sess-port-10001")
+    flow = Flow(host="neverssl.com", path="/online")
+    flow.response = None
+
+    addon.requestheaders(flow)
+
+    assert flow.response is None
+    assert flow.metadata["session_id"] == "sess-port-10001"
+
+
+def test_http_connect_emits_proxy_connected_event_for_configured_session(monkeypatch):
+    posts = []
+
+    def fake_post(url, json, headers, timeout):
+        posts.append((url, json, headers, timeout))
         return None
 
     monkeypatch.setattr("repair_site.mitm.claude_repair_addon.httpx.post", fake_post)
@@ -240,6 +274,7 @@ def test_http_connect_emits_proxy_connected_event_after_authentication(monkeypat
         status_url="http://127.0.0.1:9000/api/internal/events",
         auth_url="http://127.0.0.1:9000/api/internal/proxy-auth/verify",
         internal_secret="internal-secret",
+        session_id="sess-port-10001",
     )
     flow = Flow()
     flow.request.method = "CONNECT"
@@ -247,72 +282,57 @@ def test_http_connect_emits_proxy_connected_event_after_authentication(monkeypat
 
     addon.http_connect(flow)
 
-    assert len(posts) == 2
-    assert posts[0][0].endswith("/proxy-auth/verify")
-    assert posts[1][0].endswith("/api/internal/events")
-    assert posts[1][1] == {
+    assert len(posts) == 1
+    assert posts[0][0].endswith("/api/internal/events")
+    assert posts[0][1] == {
         "type": "proxy_connected",
-        "session_id": "repair-connect",
+        "session_id": "sess-port-10001",
         "client_ip": "203.0.113.42",
         "connection_status": "connected",
     }
 
 
-def test_requestheaders_authenticates_and_removes_proxy_authorization(monkeypatch):
-    class FakeAuthResponse:
-        status_code = 200
-
-        @staticmethod
-        def json():
-            return {"session_id": "repair-request"}
+def test_requestheaders_ignores_and_removes_proxy_authorization(monkeypatch):
+    posts = []
 
     def fake_post(url, json, headers, timeout):
-        assert url.endswith("/proxy-auth/verify")
-        assert headers == {"x-internal-secret": "internal-secret"}
-        assert json == {
-            "proxy_username": "proxy-user",
-            "proxy_password": "proxy-pass",
-        }
-        assert timeout == 2.0
-        return FakeAuthResponse()
+        posts.append((url, json, headers, timeout))
 
     monkeypatch.setattr("repair_site.mitm.claude_repair_addon.httpx.post", fake_post)
     addon = ClaudeRepairAddon(
         auth_url="http://127.0.0.1:9000/api/internal/proxy-auth/verify",
         internal_secret="internal-secret",
+        session_id="sess-port-10001",
     )
     flow = Flow()
     flow.request.headers["Proxy-Authorization"] = basic_auth()
 
     addon.requestheaders(flow)
 
-    assert flow.metadata["session_id"] == "repair-request"
+    assert flow.metadata["session_id"] == "sess-port-10001"
     assert "Proxy-Authorization" not in flow.request.headers
+    assert posts == []
 
 
 def test_requestheaders_removes_lowercase_proxy_authorization(monkeypatch):
-    class FakeAuthResponse:
-        status_code = 200
-
-        @staticmethod
-        def json():
-            return {"session_id": "repair-request"}
-
+    posts = []
     def fake_post(url, json, headers, timeout):
-        return FakeAuthResponse()
+        posts.append((url, json, headers, timeout))
 
     monkeypatch.setattr("repair_site.mitm.claude_repair_addon.httpx.post", fake_post)
     addon = ClaudeRepairAddon(
         auth_url="http://127.0.0.1:9000/api/internal/proxy-auth/verify",
         internal_secret="internal-secret",
+        session_id="sess-port-10001",
     )
     flow = Flow()
     flow.request.headers["proxy-authorization"] = basic_auth()
 
     addon.requestheaders(flow)
 
-    assert flow.metadata["session_id"] == "repair-request"
+    assert flow.metadata["session_id"] == "sess-port-10001"
     assert "proxy-authorization" not in flow.request.headers
+    assert posts == []
 
 
 def test_connect_session_mapping_uses_connection_object_weakrefs(monkeypatch):
@@ -340,55 +360,52 @@ def test_connect_session_mapping_uses_connection_object_weakrefs(monkeypatch):
     assert id(flow.client_conn) not in addon._authenticated_sessions
 
 
-def test_http_connect_missing_proxy_auth_returns_407():
-    addon = ClaudeRepairAddon()
+def test_http_connect_missing_proxy_auth_uses_configured_session():
+    addon = ClaudeRepairAddon(session_id="sess-port-10001")
     flow = Flow()
     flow.request.method = "CONNECT"
+    flow.response = None
 
     addon.http_connect(flow)
 
-    assert flow.response.status_code == 407
-    assert flow.response.headers["Proxy-Authenticate"] == 'Basic realm="claude-repair"'
+    assert flow.response is None
+    assert flow.metadata["session_id"] == "sess-port-10001"
 
 
-def test_http_connect_ignores_legacy_default_session_without_proxy_auth():
+def test_http_connect_can_use_configured_public_session_id_without_proxy_auth():
     addon = ClaudeRepairAddon(session_id="default")
     flow = Flow()
     flow.request.method = "CONNECT"
+    flow.response = None
 
     addon.http_connect(flow)
 
-    assert flow.response.status_code == 407
-    assert flow.metadata == {}
+    assert flow.response is None
+    assert flow.metadata["session_id"] == "default"
 
 
-def test_requestheaders_wrong_proxy_auth_returns_407(monkeypatch):
-    class FakeAuthResponse:
-        status_code = 401
-
-        @staticmethod
-        def json():
-            return {"detail": "invalid proxy auth"}
-
+def test_requestheaders_wrong_proxy_auth_is_ignored_for_allowed_host(monkeypatch):
+    posts = []
     def fake_post(url, json, headers, timeout):
-        return FakeAuthResponse()
+        posts.append((url, json, headers, timeout))
 
     monkeypatch.setattr("repair_site.mitm.claude_repair_addon.httpx.post", fake_post)
     addon = ClaudeRepairAddon(
         auth_url="http://127.0.0.1:9000/api/internal/proxy-auth/verify",
         internal_secret="internal-secret",
+        session_id="sess-port-10001",
     )
     flow = Flow()
     flow.request.headers["Proxy-Authorization"] = basic_auth()
 
     addon.requestheaders(flow)
 
-    assert flow.response.status_code == 407
-    assert flow.response.headers["Proxy-Authenticate"] == 'Basic realm="claude-repair"'
-    assert flow.metadata == {}
+    assert flow.metadata["session_id"] == "sess-port-10001"
+    assert "Proxy-Authorization" not in flow.request.headers
+    assert posts == []
 
 
-def test_requestheaders_missing_internal_secret_fails_closed(monkeypatch):
+def test_requestheaders_missing_internal_secret_still_allows_public_proxy(monkeypatch):
     posts = []
 
     def fake_post(url, json, headers, timeout):
@@ -398,13 +415,15 @@ def test_requestheaders_missing_internal_secret_fails_closed(monkeypatch):
     addon = ClaudeRepairAddon(
         auth_url="http://127.0.0.1:9000/api/internal/proxy-auth/verify",
         internal_secret=None,
+        session_id="sess-port-10001",
     )
     flow = Flow()
     flow.request.headers["Proxy-Authorization"] = basic_auth()
 
     addon.requestheaders(flow)
 
-    assert flow.response.status_code == 407
+    assert flow.metadata["session_id"] == "sess-port-10001"
+    assert "Proxy-Authorization" not in flow.request.headers
     assert posts == []
 
 

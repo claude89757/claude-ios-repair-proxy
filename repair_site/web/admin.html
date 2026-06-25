@@ -21,7 +21,7 @@
       <div>
         <p class="eyebrow">Admin Console</p>
         <h1 id="admin-title">邀请码管理</h1>
-        <p class="lede">创建一次性修复入口，用户通过邀请码查看自己的临时代理信息和实时状态。</p>
+        <p class="lede">创建一次性修复入口，用户通过邀请码查看自己的专属代理端口和实时状态。</p>
       </div>
       <button id="logout-button" class="button secondary" type="button" hidden>退出登录</button>
     </section>
@@ -75,7 +75,7 @@
           <button id="refresh-button" class="button secondary" type="button">刷新</button>
         </div>
 
-        <p class="admin-note">代理密码只在创建或重置后临时显示。刷新页面后，历史密码不会从服务端返回。</p>
+        <p class="admin-note">每个邀请码会分配一个独立代理端口。用户配置 Wi-Fi 代理时关闭认证，只填写服务器和端口。</p>
 
         <div class="table-wrap">
           <table class="admin-table">
@@ -84,8 +84,7 @@
                 <th>邀请码</th>
                 <th>状态</th>
                 <th>备注</th>
-                <th>代理用户名</th>
-                <th>代理密码</th>
+                <th>代理端口</th>
                 <th>过期时间</th>
                 <th>最后使用</th>
                 <th>操作</th>
@@ -93,7 +92,7 @@
             </thead>
             <tbody id="invite-table">
               <tr>
-                <td colspan="8">登录后加载邀请码</td>
+                <td colspan="7">登录后加载邀请码</td>
               </tr>
             </tbody>
           </table>

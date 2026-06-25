@@ -18,6 +18,8 @@ class Settings:
     status_token_secret: str
     internal_api_secret: str
     database_path: str
+    proxy_port_start: int = 10001
+    proxy_port_end: int = 10999
 
 
 def load_settings() -> Settings:
@@ -31,6 +33,8 @@ def load_settings() -> Settings:
             "INVITE_DATABASE_PATH",
             "/opt/claude-ios-repair/data/invites.sqlite3",
         ),
+        proxy_port_start=int(os.getenv("PROXY_PORT_START", "10001")),
+        proxy_port_end=int(os.getenv("PROXY_PORT_END", "10999")),
     )
 
 

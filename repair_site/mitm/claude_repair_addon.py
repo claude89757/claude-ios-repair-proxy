@@ -23,6 +23,12 @@ COOKIE_DELETIONS = [
     "routingHint=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Domain=claude.ai; Secure; SameSite=None",
 ]
 
+PUBLIC_PROXY_TEST_HOSTS = {
+    "captive.apple.com",
+    "neverssl.com",
+}
+DEFAULT_REPAIR_SESSION_ID = "public"
+
 
 class ClaudeRepairAddon:
     def __init__(
@@ -37,7 +43,7 @@ class ClaudeRepairAddon:
             self.status_url
         )
         self.internal_secret = internal_secret or os.getenv("INTERNAL_API_SECRET")
-        self.session_id = session_id or os.getenv("REPAIR_SESSION_ID")
+        self.session_id = session_id or os.getenv("REPAIR_SESSION_ID") or DEFAULT_REPAIR_SESSION_ID
         self._authenticated_sessions: MutableMapping[Any, str] = weakref.WeakKeyDictionary()
 
     def _client_ip(self, flow: Any) -> str | None:
@@ -75,6 +81,17 @@ class ClaudeRepairAddon:
         if request is None:
             return False
         return is_claude_service_host(getattr(request, "host", None))
+
+    def _normalized_request_host(self, flow: Any) -> str:
+        request = getattr(flow, "request", None)
+        host = getattr(request, "host", None)
+        if host is None:
+            host = getattr(request, "pretty_host", None)
+        return str(host or "").strip().lower().rstrip(".")
+
+    def _is_public_proxy_allowed(self, flow: Any) -> bool:
+        host = self._normalized_request_host(flow)
+        return is_claude_service_host(host) or host in PUBLIC_PROXY_TEST_HOSTS
 
     def _internal_headers(self) -> dict[str, str] | None:
         if not self.internal_secret:
@@ -229,6 +246,25 @@ class ClaudeRepairAddon:
 
             return SimpleResponse()
 
+    def _make_403_response(self) -> Any:
+        try:
+            from mitmproxy import http as mitmproxy_http
+
+            return mitmproxy_http.Response.make(
+                403,
+                b"Proxy target not allowed",
+                {"content-type": "text/plain"},
+            )
+        except ImportError:
+            class SimpleResponse:
+                def __init__(self) -> None:
+                    self.status_code = 403
+                    self.reason = "Forbidden"
+                    self.headers = {"content-type": "text/plain"}
+                    self.text = "Proxy target not allowed"
+
+            return SimpleResponse()
+
     def _require_proxy_auth(self, flow: Any) -> bool:
         existing_session_id = self._authenticated_session_id(flow)
         if existing_session_id is not None:
@@ -246,6 +282,22 @@ class ClaudeRepairAddon:
         self._mark_authenticated(flow, session_id)
         return True
 
+    def _require_public_proxy_target(self, flow: Any) -> bool:
+        if not self._is_public_proxy_allowed(flow):
+            flow.response = self._make_403_response()
+            return False
+
+        existing_session_id = self._authenticated_session_id(flow)
+        if existing_session_id is not None:
+            self._set_flow_session_id(flow, existing_session_id)
+            headers = getattr(getattr(flow, "request", None), "headers", None)
+            if headers is not None:
+                self._pop_header(headers, "Proxy-Authorization")
+            return True
+
+        self._mark_authenticated(flow, self.session_id)
+        return True
+
     def _emit(self, event: dict[str, Any]) -> None:
         headers = self._internal_headers()
         if not self.status_url or headers is None:
@@ -261,10 +313,10 @@ class ClaudeRepairAddon:
             return
 
     def http_connect(self, flow: Any) -> None:
-        self._require_proxy_auth(flow)
+        self._require_public_proxy_target(flow)
 
     def requestheaders(self, flow: Any) -> None:
-        self._require_proxy_auth(flow)
+        self._require_public_proxy_target(flow)
 
     def response(self, flow: Any) -> None:
         is_rewrite_target = self._is_target(flow)

@@ -40,6 +40,7 @@ class InviteStore:
                     session_id TEXT NOT NULL UNIQUE,
                     proxy_username TEXT NOT NULL UNIQUE,
                     proxy_password_version INTEGER NOT NULL,
+                    proxy_port INTEGER UNIQUE,
                     status TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     expires_at TEXT,
@@ -49,6 +50,16 @@ class InviteStore:
                 )
                 """
             )
+            columns = {
+                str(row["name"])
+                for row in self.conn.execute("PRAGMA table_info(invites)").fetchall()
+            }
+            if "proxy_port" not in columns:
+                self.conn.execute("ALTER TABLE invites ADD COLUMN proxy_port INTEGER")
+            self.conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_invites_proxy_port ON invites(proxy_port)"
+            )
+            self._assign_missing_proxy_ports_locked()
             self.conn.commit()
 
     def close(self) -> None:
@@ -87,17 +98,19 @@ class InviteStore:
                             session_id,
                             proxy_username,
                             proxy_password_version,
+                            proxy_port,
                             status,
                             created_at,
                             expires_at,
                             note
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             new_invite_code(),
                             new_session_id(),
                             new_proxy_username(),
                             1,
+                            self._next_proxy_port_locked(),
                             "active",
                             now_iso(),
                             expires_at,
@@ -125,6 +138,31 @@ class InviteStore:
                 if (invite := self._row_to_invite(row, include_password=False))
                 is not None
             ]
+
+    def list_active_proxy_targets(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self.conn.execute(
+                """
+                SELECT *
+                FROM invites
+                WHERE status = 'active'
+                  AND disabled_at IS NULL
+                  AND proxy_port IS NOT NULL
+                ORDER BY proxy_port ASC
+                """
+            ).fetchall()
+            targets: list[dict[str, Any]] = []
+            for row in rows:
+                invite = self._row_to_invite(row, include_password=False)
+                if invite is None or self._is_expired(invite):
+                    continue
+                targets.append(
+                    {
+                        "session_id": invite["session_id"],
+                        "proxy_port": int(invite["proxy_port"]),
+                    }
+                )
+            return targets
 
     def get_invite_by_id(
         self,
@@ -222,3 +260,25 @@ class InviteStore:
         if parsed.tzinfo is None:
             return parsed.replace(tzinfo=timezone.utc)
         return parsed.astimezone(timezone.utc)
+
+    def _assign_missing_proxy_ports_locked(self) -> None:
+        rows = self.conn.execute(
+            "SELECT id FROM invites WHERE proxy_port IS NULL ORDER BY id ASC"
+        ).fetchall()
+        for row in rows:
+            self.conn.execute(
+                "UPDATE invites SET proxy_port = ? WHERE id = ?",
+                (self._next_proxy_port_locked(), int(row["id"])),
+            )
+
+    def _next_proxy_port_locked(self) -> int:
+        if self.settings.proxy_port_start > self.settings.proxy_port_end:
+            raise RuntimeError("proxy port range is invalid")
+        rows = self.conn.execute(
+            "SELECT proxy_port FROM invites WHERE proxy_port IS NOT NULL"
+        ).fetchall()
+        used_ports = {int(row["proxy_port"]) for row in rows}
+        for port in range(self.settings.proxy_port_start, self.settings.proxy_port_end + 1):
+            if port not in used_ports:
+                return port
+        raise RuntimeError("proxy port range exhausted")

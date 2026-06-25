@@ -10,10 +10,8 @@ const inviteTable = document.querySelector("#invite-table");
 const passwordInput = document.querySelector("#admin-password");
 const passwordToggle = document.querySelector("#password-toggle");
 
-const visibleProxyPasswords = new Map();
 const adminActionPaths = {
   disable: (inviteId) => `/api/admin/invites/${inviteId}/disable`,
-  "reset-password": (inviteId) => `/api/admin/invites/${inviteId}/reset-password`,
 };
 
 function text(value, fallback = "-") {
@@ -102,7 +100,6 @@ function showLoggedOut(message = "") {
   if (logoutButton) {
     logoutButton.hidden = true;
   }
-  visibleProxyPasswords.clear();
   createForm?.reset();
   renderTableMessage("登录后加载邀请码");
   setFeedback(loginFeedback, message, message ? "error" : "");
@@ -153,7 +150,7 @@ function cell(content) {
 function renderTableMessage(message) {
   const tr = document.createElement("tr");
   const td = document.createElement("td");
-  td.colSpan = 8;
+  td.colSpan = 7;
   td.textContent = message;
   tr.appendChild(td);
   inviteTable.replaceChildren(tr);
@@ -176,7 +173,6 @@ function renderInvites(invites) {
     const actions = document.createElement("div");
     actions.className = "admin-actions";
     actions.append(
-      actionButton("重置密码", "reset-password", invite.id),
       actionButton("停用", "disable", invite.id, invite.status !== "active"),
     );
 
@@ -184,8 +180,7 @@ function renderInvites(invites) {
       cell(invite.invite_code),
       cell(statusBadge(invite.status)),
       cell(invite.note),
-      cell(invite.proxy_username),
-      cell(visibleProxyPasswords.get(invite.id)),
+      cell(invite.proxy_port),
       cell(formatDate(invite.expires_at)),
       cell(formatDate(invite.last_used_at)),
       cell(actions),
@@ -264,11 +259,8 @@ async function handleCreate(event) {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    if (invite?.id && invite?.proxy_password) {
-      visibleProxyPasswords.set(invite.id, invite.proxy_password);
-    }
     createForm.reset();
-    setFeedback(createFeedback, "邀请码已创建，代理密码已临时显示在列表中。", "success");
+    setFeedback(createFeedback, "邀请码已创建，代理端口已分配。", "success");
     await loadInvites();
   } catch (error) {
     if (error?.status === 401) {
@@ -305,12 +297,7 @@ async function handleInviteAction(event) {
     const invite = await adminFetch(actionPath, {
       method: "POST",
     });
-    if (action === "reset-password" && invite?.proxy_password) {
-      visibleProxyPasswords.set(invite.id, invite.proxy_password);
-      setFeedback(createFeedback, "代理密码已重置，并临时显示在列表中。", "success");
-    } else {
-      setFeedback(createFeedback, "邀请码已停用。", "success");
-    }
+    setFeedback(createFeedback, "邀请码已停用。", "success");
     await loadInvites();
   } catch (error) {
     if (error?.status === 401) {

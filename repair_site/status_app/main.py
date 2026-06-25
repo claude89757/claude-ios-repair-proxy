@@ -196,6 +196,12 @@ def _strip_session_ids(value: Any) -> Any:
     return value
 
 
+def _strip_proxy_password(value: dict[str, Any]) -> dict[str, Any]:
+    output = dict(value)
+    output.pop("proxy_password", None)
+    return output
+
+
 def _status_stream_response(
     status_store: StatusStore,
     session_id: str,
@@ -310,7 +316,9 @@ def create_app(
             raise HTTPException(status_code=400, detail="expires_at must be a string")
         if isinstance(expires_at, str):
             expires_at = _validate_expires_at(expires_at)
-        return _invite_store(request.app).create_invite(note=note, expires_at=expires_at)
+        return _strip_proxy_password(
+            _invite_store(request.app).create_invite(note=note, expires_at=expires_at)
+        )
 
     @created_app.post("/api/admin/invites/{invite_id}/disable")
     def admin_disable_invite(request: Request, invite_id: int) -> dict[str, Any]:
@@ -318,7 +326,7 @@ def create_app(
         invite = _invite_store(request.app).disable_invite(invite_id)
         if invite is None:
             raise HTTPException(status_code=404, detail="invite not found")
-        return invite
+        return _strip_proxy_password(invite)
 
     @created_app.post("/api/admin/invites/{invite_id}/reset-password")
     def admin_reset_invite_password(request: Request, invite_id: int) -> dict[str, Any]:
@@ -326,7 +334,7 @@ def create_app(
         invite = _invite_store(request.app).reset_proxy_password(invite_id)
         if invite is None:
             raise HTTPException(status_code=404, detail="invite not found")
-        return invite
+        return _strip_proxy_password(invite)
 
     @created_app.post("/api/internal/events", status_code=204)
     async def ingest_event(request: Request) -> Response:
@@ -368,9 +376,7 @@ def create_app(
 
         return {
             "proxy_host": "sg2.claude89757.cc",
-            "proxy_port": 9443,
-            "proxy_username": invite["proxy_username"],
-            "proxy_password": invite["proxy_password"],
+            "proxy_port": invite["proxy_port"],
             "certificate_url": "/certs/mitmproxy-ca-cert.cer",
             "status_token": sign_status_token(
                 invite["session_id"],

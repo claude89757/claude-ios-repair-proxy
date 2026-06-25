@@ -7,8 +7,6 @@ const eventTable = document.querySelector("#event-table");
 const proxyConfig = document.querySelector("#proxy-config");
 const proxyHost = document.querySelector("#proxy-host");
 const proxyPort = document.querySelector("#proxy-port");
-const proxyUsername = document.querySelector("#proxy-username");
-const proxyPassword = document.querySelector("#proxy-password");
 const proxyCertificateUrl = document.querySelector("#proxy-certificate-url");
 const proxyCertificate = document.querySelector("#proxy-certificate");
 const statusRefreshButton = document.querySelector("#status-refresh");
@@ -236,12 +234,6 @@ function renderProxyConfig(claim) {
   if (proxyPort) {
     proxyPort.textContent = text(claim?.proxy_port);
   }
-  if (proxyUsername) {
-    proxyUsername.textContent = text(claim?.proxy_username);
-  }
-  if (proxyPassword) {
-    proxyPassword.textContent = text(claim?.proxy_password);
-  }
   setCertificateLink(claim?.certificate_url);
 }
 
@@ -254,12 +246,6 @@ function resetProxyConfig() {
   }
   if (proxyPort) {
     proxyPort.textContent = "-";
-  }
-  if (proxyUsername) {
-    proxyUsername.textContent = "-";
-  }
-  if (proxyPassword) {
-    proxyPassword.textContent = "-";
   }
   setCertificateLink("");
 }

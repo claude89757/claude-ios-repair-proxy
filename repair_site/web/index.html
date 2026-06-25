@@ -33,7 +33,7 @@
       <aside class="entry-panel" aria-labelledby="entry-title">
         <p class="panel-kicker">状态入口</p>
         <h2 id="entry-title">验证邀请码并查看临时代理</h2>
-        <p>输入管理员提供的邀请码，验证后页面会显示你的临时代理配置和实时状态。</p>
+        <p>输入管理员提供的邀请码，验证后页面会显示你的专属代理端口和实时状态。</p>
         <form id="invite-form" class="inline-form">
           <label for="invite-code">邀请码</label>
           <div>
@@ -100,7 +100,7 @@
         <article>
           <span class="step-number">3</span>
           <h3>设置 Wi-Fi 代理</h3>
-          <p>在当前 Wi-Fi 的 HTTP 代理里选择手动，填写管理员提供的服务器、端口、用户名和密码。</p>
+          <p>在当前 Wi-Fi 的 HTTP 代理里选择手动，只填写页面显示的服务器和端口，认证保持关闭。</p>
         </article>
         <article>
           <span class="step-number">4</span>
@@ -122,14 +122,14 @@
           <h2 id="status-title">实时状态</h2>
           <button id="status-refresh" class="button secondary" type="button">刷新状态</button>
         </div>
-        <p>邀请码验证后，这里会显示你的临时代理配置、设备状态和 Claude 请求事件。正常已登录的 Claude App 可能只显示代理已连接，不一定触发修复事件。</p>
+        <p>邀请码验证后，这里会显示你的专属代理端口、设备状态和 Claude 请求事件。正常已登录的 Claude App 可能只显示代理已连接，不一定触发修复事件。</p>
       </div>
 
       <section id="proxy-config" class="panel proxy-panel" aria-labelledby="proxy-title" hidden>
         <div class="proxy-panel-head">
           <div>
             <p class="panel-kicker">临时代理配置</p>
-            <h3 id="proxy-title">请按以下信息配置当前 Wi-Fi 代理</h3>
+            <h3 id="proxy-title">请按以下信息配置当前 Wi-Fi 代理，认证保持关闭</h3>
           </div>
           <a id="proxy-certificate" class="button secondary" href="#" target="_blank" rel="noreferrer noopener">下载证书</a>
         </div>
@@ -138,10 +138,6 @@
           <dd id="proxy-host">-</dd>
           <dt>端口</dt>
           <dd id="proxy-port">-</dd>
-          <dt>用户名</dt>
-          <dd id="proxy-username">-</dd>
-          <dt>密码</dt>
-          <dd id="proxy-password">-</dd>
           <dt>证书链接</dt>
           <dd id="proxy-certificate-url">-</dd>
         </dl>

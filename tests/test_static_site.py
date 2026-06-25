@@ -64,7 +64,9 @@ def test_dashboard_caches_only_invite_code_for_browser_restore():
     assert "localStorage.setItem(INVITE_CACHE_KEY, statusToken)" not in js
     assert "localStorage.setItem(INVITE_CACHE_KEY, claim.status_token)" not in js
     assert "localStorage.setItem(INVITE_CACHE_KEY, claim.proxy_password)" not in js
-    assert "proxyPassword.textContent = text(claim?.proxy_password)" in js
+    assert "claim.proxy_password" not in js
+    assert "proxyPassword" not in js
+    assert "proxyUsername" not in js
 
 
 def test_public_status_dashboard_has_manual_refresh_button():
@@ -98,7 +100,9 @@ def test_admin_site_contains_required_management_ui():
     assert "管理员登录" in html
     assert "创建邀请码" in html
     assert "邀请码列表" in html
-    assert "代理密码" in html
+    assert "代理端口" in html
+    assert "代理密码" not in html
+    assert "代理用户名" not in html
     assert 'type="password"' in html
     assert "admin-password" in html
     assert "value=\"secret\"" not in html
@@ -128,7 +132,7 @@ def test_admin_client_uses_admin_api_and_cookie_session_only():
     assert "/api/admin/logout" in js
     assert "/api/admin/invites" in js
     assert "/disable" in js
-    assert "/reset-password" in js
+    assert "/reset-password" not in js
     assert 'credentials: "same-origin"' in js
     assert "localStorage" not in js
     assert "sessionStorage" not in js
@@ -159,11 +163,13 @@ def test_initial_proxy_config_contains_placeholders_only():
     for element_id in [
         "proxy-host",
         "proxy-port",
-        "proxy-username",
-        "proxy-password",
         "proxy-certificate-url",
     ]:
         assert re.search(rf'id="{element_id}"[^>]*>-</dd>', html)
+
+    assert "proxy-username" not in html
+    assert "proxy-password" not in html
+    assert "用户名和密码" not in html
 
 
 def test_deploy_config_does_not_expose_legacy_status_route():

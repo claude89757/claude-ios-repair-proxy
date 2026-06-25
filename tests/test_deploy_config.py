@@ -17,16 +17,16 @@ def test_status_service_uses_app_env_and_persistent_invite_database_volume():
     assert "-v /opt/claude-ios-repair/data:/opt/claude-ios-repair/data" in service
 
 
-def test_mitm_service_uses_internal_invite_auth_and_no_legacy_proxy_auth():
+def test_mitm_service_runs_port_supervisor_and_uses_invite_data_volume():
     service = read_deploy_file("claude-repair-mitm.service")
 
     assert "EnvironmentFile=-/etc/claude-repair/app.env" in service
-    assert (
-        "Environment=REPAIR_AUTH_URL=http://127.0.0.1:9000/api/internal/proxy-auth/verify"
-        in service
-    )
-    assert "-e REPAIR_AUTH_URL=" in service
-    assert "-e INTERNAL_API_SECRET=" in service
+    assert "python -m repair_site.mitm.port_supervisor" in service
+    assert "-v /opt/claude-ios-repair/data:/opt/claude-ios-repair/data" in service
+    assert "--env-file /etc/claude-repair/app.env" in service
+    assert "REPAIR_STATUS_URL" in service
+    assert "REPAIR_AUTH_URL" not in service
+    assert "--listen-port 9443" not in service
     assert "--proxyauth" not in service
     assert "REPAIR_PROXY_AUTH" not in service
     assert "REPAIR_SESSION_ID" not in service

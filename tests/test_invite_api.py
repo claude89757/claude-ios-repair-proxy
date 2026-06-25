@@ -49,14 +49,24 @@ def test_claim_invite_returns_proxy_config_and_status_token():
     body = response.json()
     assert body == {
         "proxy_host": "sg2.claude89757.cc",
-        "proxy_port": 9443,
-        "proxy_username": invite["proxy_username"],
-        "proxy_password": invite["proxy_password"],
+        "proxy_port": invite["proxy_port"],
         "certificate_url": "/certs/mitmproxy-ca-cert.cer",
         "status_token": body["status_token"],
     }
     assert "session_id" not in body
+    assert "proxy_username" not in body
+    assert "proxy_password" not in body
     assert verify_status_token(body["status_token"], secret="status-secret") == invite["session_id"]
+
+
+def test_created_invites_receive_unique_proxy_ports():
+    _app, invite_store, _status_store = app_parts()
+
+    first = invite_store.create_invite(note="ios user 1")
+    second = invite_store.create_invite(note="ios user 2")
+
+    assert first["proxy_port"] == 10001
+    assert second["proxy_port"] == 10002
 
 
 def test_claim_invite_rejects_invalid_code():

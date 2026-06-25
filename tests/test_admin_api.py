@@ -58,7 +58,7 @@ def cookie_attributes(response, cookie_name: str) -> dict[str, str | bool]:
     }
 
 
-def test_admin_login_sets_cookie_and_create_invite_returns_proxy_password():
+def test_admin_login_sets_cookie_and_create_invite_returns_proxy_port():
     client, _invite_store, _status_store = admin_client()
 
     login_response = login(client)
@@ -78,9 +78,9 @@ def test_admin_login_sets_cookie_and_create_invite_returns_proxy_password():
     body = create_response.json()
     assert body["note"] == "ios user"
     assert body["invite_code"].startswith("INV-")
+    assert body["proxy_port"] == 10001
     assert body["proxy_username"].startswith("repair_")
-    assert isinstance(body["proxy_password"], str)
-    assert body["proxy_password"]
+    assert "proxy_password" not in body
 
 
 def test_admin_page_is_served_from_extensionless_route():
@@ -137,6 +137,7 @@ def test_admin_list_invites_omits_proxy_password():
     assert list_response.status_code == 200
     invites = list_response.json()
     assert len(invites) == 1
+    assert invites[0]["proxy_port"] == 10001
     assert "proxy_password" not in invites[0]
 
 
@@ -178,23 +179,19 @@ def test_admin_disable_missing_invite_returns_404():
     assert response.status_code == 404
 
 
-def test_admin_reset_password_returns_new_password_and_invalidates_old_auth():
+def test_admin_reset_password_invalidates_old_auth_without_returning_password():
     client, invite_store, _status_store = admin_client()
     assert login(client).status_code == 204
-    invite = client.post("/api/admin/invites", json={"note": "ios user"}).json()
+    invite = invite_store.create_invite(note="ios user")
     old_password = invite["proxy_password"]
 
     reset_response = client.post(f"/api/admin/invites/{invite['id']}/reset-password")
 
     assert reset_response.status_code == 200
     reset_body = reset_response.json()
-    assert reset_body["proxy_password"] != old_password
+    assert "proxy_password" not in reset_body
     assert (
         invite_store.verify_proxy_auth(invite["proxy_username"], old_password) is None
-    )
-    assert invite_store.verify_proxy_auth(
-        invite["proxy_username"],
-        reset_body["proxy_password"],
     )
 
 
