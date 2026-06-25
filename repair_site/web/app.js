@@ -8,7 +8,6 @@ const proxyConfig = document.querySelector("#proxy-config");
 const proxyHost = document.querySelector("#proxy-host");
 const proxyPort = document.querySelector("#proxy-port");
 const proxyCertificateUrl = document.querySelector("#proxy-certificate-url");
-const proxyCertificate = document.querySelector("#proxy-certificate");
 const statusRefreshButton = document.querySelector("#status-refresh");
 const INVITE_CACHE_KEY = "claudeRepairInviteCode";
 
@@ -23,6 +22,22 @@ const checks = [
   ["rewrite", "已执行 session_expired rewrite"],
   ["cookies", "已发送 Cookie 删除 Header"],
 ];
+
+function initialRepairProgress() {
+  return {
+    proxy: false,
+    cert: false,
+    account: false,
+    rewrite: false,
+    cookies: false,
+  };
+}
+
+let repairProgress = initialRepairProgress();
+
+function resetRepairProgress() {
+  repairProgress = initialRepairProgress();
+}
 
 function text(value, fallback = "-") {
   if (value === null || value === undefined || value === "") {
@@ -133,15 +148,27 @@ function renderSummary(data) {
   replaceChildren(summary, fields.flatMap(([label, value]) => term(label, value)));
 }
 
-function renderChecklist(data) {
+function observedChecklistState(data) {
   const events = Array.isArray(data?.events) ? data.events : [];
-  const state = {
+  return {
     proxy: data?.connection_status === "connected",
     cert: data?.certificate_status === "trusted",
     account: events.some((event) => event.path === "/api/account"),
     rewrite: events.some((event) => event.rewrite_applied === true),
     cookies: events.some((event) => event.cookie_deletion_headers_sent === true),
   };
+}
+
+function mergeRepairProgress(data) {
+  const observed = observedChecklistState(data);
+  Object.keys(repairProgress).forEach((key) => {
+    repairProgress[key] = Boolean(repairProgress[key] || observed[key]);
+  });
+  return repairProgress;
+}
+
+function renderChecklist(data) {
+  const state = mergeRepairProgress(data);
 
   const items = checks.map(([key, label]) => {
     const li = document.createElement("li");
@@ -200,19 +227,14 @@ function render(data) {
 }
 
 function setCertificateLink(url) {
-  if (!proxyCertificate || !proxyCertificateUrl) {
+  if (!proxyCertificateUrl) {
     return;
   }
 
   if (!url) {
-    proxyCertificate.hidden = true;
-    proxyCertificate.removeAttribute("href");
     proxyCertificateUrl.textContent = "-";
     return;
   }
-
-  proxyCertificate.hidden = false;
-  proxyCertificate.href = url;
 
   const link = document.createElement("a");
   link.href = url;
@@ -319,6 +341,7 @@ async function loadSnapshot() {
 function expireTokenState() {
   statusToken = "";
   activeInviteCode = "";
+  resetRepairProgress();
   closeStream();
 }
 
@@ -452,6 +475,7 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
     return;
   }
 
+  resetRepairProgress();
   setBusy(true);
   setFeedback(restored ? "正在恢复上次的邀请码..." : "正在验证邀请码...", "info");
 

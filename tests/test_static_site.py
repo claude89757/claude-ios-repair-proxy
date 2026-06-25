@@ -10,15 +10,40 @@ def test_site_contains_required_user_guidance():
     html = (WEB / "index.html").read_text()
 
     assert "Claude iOS 登录卡死修复指南" in html
+    assert "Something went wrong, try again" in html
+    assert "账号被 ban" in html
+    assert "删除并重装" in html
+    assert "旧 session、cookie、routing hint" in html
     assert "邀请码" in html
     assert "proxy-config" in html
     assert "/certs/mitmproxy-ca-cert.cer" in html
+    assert "设置 → 通用 → VPN 与设备管理" in html
+    assert "设置 → 通用 → 关于本机 → 证书信任设置" in html
+    assert "完全信任" in html
+    assert "打开飞行模式" in html
+    assert "只打开 Wi-Fi" in html
+    assert "HTTP 代理" in html
+    assert "认证保持关闭" in html
     assert "实时状态" in html
     assert "正常已登录" in html
     assert "不一定触发修复事件" in html
+    assert "公开页面不内置代理账号密码" in html
+    assert "默认 24 小时失效" in html
+    assert "脱敏状态和事件元数据" in html
+    assert "不记录 Cookie、请求体或完整设备标识" in html
     assert "Repair session ID" not in html
     assert "repair session ID" not in html
     assert "default" not in html
+
+
+def test_public_site_does_not_show_duplicate_certificate_download_buttons():
+    html = (WEB / "index.html").read_text()
+
+    assert 'id="proxy-certificate"' not in html
+    assert "下载 CA 证书" not in html
+    assert ">下载证书<" not in html
+    assert 'id="proxy-certificate-url"' in html
+    assert "/certs/mitmproxy-ca-cert.cer" in html
 
 
 def test_public_site_does_not_embed_proxy_credentials_or_sensitive_values():
@@ -50,6 +75,16 @@ def test_dashboard_client_uses_invite_api_and_header_stream():
     assert "EventSource" not in js
     assert "/api/status/" not in js
     assert "sessionStorage" not in js
+
+
+def test_dashboard_latches_completed_repair_checks_for_active_invite():
+    js = (WEB / "app.js").read_text()
+
+    assert "let repairProgress = initialRepairProgress();" in js
+    assert "function mergeRepairProgress" in js
+    assert "function resetRepairProgress" in js
+    assert "const state = mergeRepairProgress(data);" in js
+    assert "resetRepairProgress();" in js
 
 
 def test_dashboard_caches_only_invite_code_for_browser_restore():

@@ -22,18 +22,17 @@
       <div class="hero-copy">
         <p class="eyebrow">iPhone / Claude App / 临时修复代理</p>
         <h1 id="page-title">Claude iOS 登录卡死修复指南</h1>
-        <p class="lede">用于处理 Claude iOS 一直卡在错误页、重装后仍不能重新登录的情况。按步骤临时连接修复代理，清理旧会话后立即关闭代理并撤销证书信任。</p>
+        <p class="lede">主要用于账号被 ban、禁用或异常后，Claude iOS 反复出现 “Something went wrong, try again”，删除并重装后仍回不到登录页的场景。按步骤临时连接修复代理，清理旧 session、cookie、routing hint 后立即关闭代理并撤销证书信任。</p>
 
         <div class="quick-actions" aria-label="关键操作">
           <a class="button primary" href="#guide">开始修复</a>
-          <a class="button secondary" href="/certs/mitmproxy-ca-cert.cer">下载 CA 证书</a>
         </div>
       </div>
 
       <aside class="entry-panel" aria-labelledby="entry-title">
         <p class="panel-kicker">状态入口</p>
         <h2 id="entry-title">验证邀请码并查看临时代理</h2>
-        <p>输入管理员提供的邀请码，验证后页面会显示你的专属代理端口和实时状态。</p>
+        <p>输入管理员提供的邀请码，验证后页面会显示默认 24 小时失效的专属代理端口和脱敏实时状态。</p>
         <form id="invite-form" class="inline-form">
           <label for="invite-code">邀请码</label>
           <div>
@@ -90,27 +89,35 @@
         <article>
           <span class="step-number">1</span>
           <h3>获取邀请码</h3>
-          <p>联系管理员获取本次修复的邀请码。验证成功后，页面会显示临时代理配置和证书下载入口。</p>
+          <p>联系管理员获取本次修复的邀请码。公开页面不内置代理账号密码；验证成功后，页面会显示临时代理配置和证书链接。</p>
         </article>
         <article>
           <span class="step-number">2</span>
-          <h3>安装证书</h3>
-          <p>使用 Safari 打开 <a href="/certs/mitmproxy-ca-cert.cer">/certs/mitmproxy-ca-cert.cer</a>，安装描述文件，并在 iOS 证书信任设置中启用完全信任。</p>
+          <h3>安装并信任证书</h3>
+          <ol class="step-list">
+            <li>使用 Safari 打开 <a href="/certs/mitmproxy-ca-cert.cer">证书链接</a>，允许下载描述文件。</li>
+            <li>进入 <strong>设置 → 通用 → VPN 与设备管理</strong>，确认证书描述文件已经安装。</li>
+            <li>进入 <strong>设置 → 通用 → 关于本机 → 证书信任设置</strong>，确认 mitmproxy 证书已经打开“完全信任”。</li>
+          </ol>
         </article>
         <article>
           <span class="step-number">3</span>
-          <h3>设置 Wi-Fi 代理</h3>
-          <p>在当前 Wi-Fi 的 HTTP 代理里选择手动，只填写页面显示的服务器和端口，认证保持关闭。</p>
+          <h3>只让 Wi-Fi 走代理</h3>
+          <ol class="step-list">
+            <li>打开飞行模式，然后只打开 Wi-Fi，保持蜂窝网络关闭。</li>
+            <li>进入当前 Wi-Fi 的信息页，找到 HTTP 代理，选择手动。</li>
+            <li>填写页面显示的服务器和端口，认证保持关闭，其余认证字段不用填写。</li>
+          </ol>
         </article>
         <article>
           <span class="step-number">4</span>
           <h3>打开 Claude</h3>
-          <p>强退 Claude 后重新打开一次。看到登录页或状态显示已完成后，不要继续长时间保持代理连接。</p>
+          <p>强退 Claude 后重新打开一次。代理会尝试把旧登录态改写为登录过期响应，帮助 App 清理残留并回到登录页。看到登录页或检查项完成后及时停止。</p>
         </article>
         <article>
           <span class="step-number">5</span>
           <h3>恢复网络</h3>
-          <p>关闭 iPhone HTTP 代理，回到证书信任设置中关闭修复 CA 的完全信任。</p>
+          <p>关闭 iPhone HTTP 代理，回到证书信任设置中关闭修复 CA 的完全信任。专属端口默认 24 小时失效，不需要长期保留。</p>
         </article>
       </div>
     </section>
@@ -122,16 +129,15 @@
           <h2 id="status-title">实时状态</h2>
           <button id="status-refresh" class="button secondary" type="button">刷新状态</button>
         </div>
-        <p>邀请码验证后，这里会显示你的专属代理端口、设备状态和 Claude 请求事件。正常已登录的 Claude App 可能只显示代理已连接，不一定触发修复事件。</p>
+        <p>邀请码验证后，这里会显示你的专属代理端口、脱敏状态和事件元数据。正常已登录的 Claude App 可能只显示代理已连接，不一定触发修复事件。</p>
       </div>
 
       <section id="proxy-config" class="panel proxy-panel" aria-labelledby="proxy-title" hidden>
         <div class="proxy-panel-head">
           <div>
             <p class="panel-kicker">临时代理配置</p>
-            <h3 id="proxy-title">请按以下信息配置当前 Wi-Fi 代理，认证保持关闭</h3>
+            <h3 id="proxy-title">请按以下信息配置当前 Wi-Fi 的 HTTP 代理，认证保持关闭；专属端口默认 24 小时失效</h3>
           </div>
-          <a id="proxy-certificate" class="button secondary" href="#" target="_blank" rel="noreferrer noopener">下载证书</a>
         </div>
         <dl class="proxy-grid">
           <dt>服务器</dt>
@@ -180,9 +186,10 @@
         <h2>安全说明</h2>
       </div>
       <ul>
-        <li>修复代理只用于清理卡住的本地旧会话，不用于绕过账号限制。</li>
-        <li>修复期间不要泄露 Cookie、sessionKey、routingHint、Authorization 或设备标识。</li>
-        <li>完成后关闭 Wi-Fi 代理，并取消修复 CA 的完全信任。</li>
+        <li>请只在自己的设备和账号上使用，修复代理只用于清理卡住的本地旧会话，不用于绕过账号限制。</li>
+        <li>修复期间不要提交、记录或共享真实 Cookie、sessionKey、routingHint、Authorization、mitmproxy 证书或设备标识。</li>
+        <li>服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。</li>
+        <li>完成后关闭 Wi-Fi 代理，并取消修复 CA 的完全信任；专属端口默认 24 小时失效。</li>
         <li>如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。</li>
       </ul>
     </section>
