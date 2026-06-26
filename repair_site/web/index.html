@@ -9,16 +9,26 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#top" aria-label="返回指南顶部">Claude iOS Repair</a>
-    <div class="topbar-actions">
-      <nav aria-label="页面导航">
-        <a href="#guide" data-i18n="nav.guide">修复步骤</a>
-        <a href="#status" data-i18n="nav.status">实时状态</a>
-        <a href="#safety" data-i18n="nav.safety">安全</a>
-      </nav>
-      <a class="github-link" href="https://github.com/claude89757/claude-ios-repair-proxy" target="_blank" rel="noreferrer noopener" aria-label="GitHub 开源地址">GitHub</a>
-      <button id="language-toggle" class="language-toggle" type="button" aria-label="Switch language" aria-pressed="false">EN</button>
+    <div class="topbar-main">
+      <a class="brand" href="#top" aria-label="返回指南顶部">Claude iOS Repair</a>
+      <div class="topbar-actions">
+        <nav aria-label="页面导航">
+          <a href="#guide" data-i18n="nav.guide">修复步骤</a>
+          <a href="#status" data-i18n="nav.status">实时状态</a>
+          <a href="#safety" data-i18n="nav.safety">安全</a>
+        </nav>
+        <a class="github-link" href="https://github.com/claude89757/claude-ios-repair-proxy" target="_blank" rel="noreferrer noopener" aria-label="GitHub 开源地址">GitHub</a>
+        <button id="language-toggle" class="language-toggle" type="button" aria-label="Switch language" aria-pressed="false">EN</button>
+      </div>
     </div>
+    <form id="invite-form" class="header-invite-form" aria-label="邀请码验证">
+      <label for="invite-code" data-i18n="entry.label">邀请码</label>
+      <div class="header-invite-controls">
+        <input id="invite-code" name="invite-code" autocomplete="off" inputmode="latin" placeholder="输入邀请码" data-i18n-placeholder="entry.placeholder">
+        <button type="submit" data-i18n="entry.submit">验证</button>
+      </div>
+      <p class="claim-feedback" data-claim-feedback></p>
+    </form>
   </header>
 
   <main id="top">
@@ -36,15 +46,7 @@
       <aside class="entry-panel" aria-labelledby="entry-title">
         <p class="panel-kicker" data-i18n="entry.kicker">状态入口</p>
         <h2 id="entry-title" data-i18n="entry.title">验证邀请码并查看临时代理</h2>
-        <p data-i18n="entry.copy">输入管理员提供的邀请码，验证后页面会显示默认 24 小时失效的专属代理端口和脱敏实时状态。</p>
-        <form id="invite-form" class="inline-form">
-          <label for="invite-code" data-i18n="entry.label">邀请码</label>
-          <div>
-            <input id="invite-code" name="invite-code" autocomplete="off" inputmode="latin" placeholder="输入邀请码" data-i18n-placeholder="entry.placeholder">
-            <button type="submit" data-i18n="entry.submit">验证</button>
-          </div>
-          <p class="claim-feedback" data-claim-feedback></p>
-        </form>
+        <p data-i18n="entry.copy">使用顶部固定的邀请码栏输入管理员提供的邀请码。验证后页面会显示默认 24 小时失效的专属代理端口和脱敏实时状态。</p>
       </aside>
     </section>
 

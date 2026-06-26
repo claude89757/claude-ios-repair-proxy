@@ -67,6 +67,26 @@ def test_public_site_links_to_github_repository_from_topbar():
     assert ">GitHub<" in html
 
 
+def test_public_site_keeps_invite_form_in_sticky_header():
+    html = (WEB / "index.html").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    header = re.search(r"<header class=\"topbar\">.*?</header>", html, re.S)
+    entry_panel = re.search(r"<aside class=\"entry-panel\".*?</aside>", html, re.S)
+
+    assert header is not None
+    assert entry_panel is not None
+    assert 'id="invite-form"' in header.group(0)
+    assert 'class="header-invite-form"' in header.group(0)
+    assert 'id="invite-code"' in header.group(0)
+    assert 'data-claim-feedback' in header.group(0)
+    assert 'id="invite-form"' not in entry_panel.group(0)
+    assert html.count('id="invite-form"') == 1
+    assert ".topbar {" in css
+    assert "position: sticky;" in css
+    assert ".header-invite-form" in css
+
+
 def test_public_site_supports_language_specific_paths():
     deploy = (DEPLOY / "nginx.conf").read_text()
     js = (WEB / "app.js").read_text()
