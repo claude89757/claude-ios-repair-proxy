@@ -140,6 +140,22 @@ def test_public_site_keeps_live_status_visible_on_desktop_and_mobile():
     assert "statusDrawerToggle?.addEventListener" in js
 
 
+def test_mobile_status_dock_has_distinct_collapsed_state():
+    html = (WEB / "index.html").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'class="status-dock-main"' in html
+    assert 'class="status-dock-meta"' in html
+    assert 'class="status-drawer-cue"' in html
+    assert 'aria-hidden="true"' in html
+    assert ".status-drawer-cue" in css
+    assert ".status-sidebar:not(.is-expanded)::before" in css
+    assert ".status-sidebar:not(.is-expanded) .status-drawer-toggle" in css
+    assert ".status-sidebar.is-expanded .status-drawer-cue" in css
+    assert "backdrop-filter: blur(16px);" in css
+    assert "box-shadow: 0 18px 50px" in css
+
+
 def test_public_site_final_step_tells_users_to_restore_vpn_after_proxy_cleanup():
     html = (WEB / "index.html").read_text()
     js = (WEB / "app.js").read_text()

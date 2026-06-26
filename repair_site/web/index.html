@@ -180,11 +180,14 @@
 
       <aside id="status-sidebar" class="status-sidebar" aria-labelledby="status-title">
         <button id="status-drawer-toggle" class="status-drawer-toggle" type="button" aria-expanded="false" aria-controls="status-drawer-body">
-          <span>
+          <span class="status-dock-main">
             <i class="status-dot" aria-hidden="true"></i>
             <span id="status-dock-label" data-i18n="status.title">实时状态</span>
           </span>
-          <strong id="status-dock-detail" data-i18n="status.waitingInvite">等待邀请码验证</strong>
+          <span class="status-dock-meta">
+            <strong id="status-dock-detail" data-i18n="status.waitingInvite">等待邀请码验证</strong>
+            <i class="status-drawer-cue" aria-hidden="true"></i>
+          </span>
         </button>
 
         <div id="status-drawer-body" class="status-drawer-body">
