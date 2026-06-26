@@ -87,6 +87,45 @@ def test_public_site_keeps_invite_form_in_sticky_header():
     assert ".header-invite-form" in css
 
 
+def test_public_site_uses_step_by_step_wizard_cards():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'class="guide-layout"' in html
+    assert 'class="wizard-card is-active"' in html
+    assert html.count("data-step-panel") == 5
+    assert html.count("data-step-button") == 5
+    assert html.count("data-step-complete") >= 5
+    assert 'aria-current="step"' in html
+    assert "function setActiveStep" in js
+    assert "function markStepComplete" in js
+    assert "document.querySelectorAll(\"[data-step-button]\")" in js
+    assert "document.querySelectorAll(\"[data-step-complete]\")" in js
+    assert ".wizard-card" in css
+    assert ".step-rail" in css
+    assert ".step-complete-button" in css
+
+
+def test_public_site_keeps_live_status_visible_on_desktop_and_mobile():
+    html = (WEB / "index.html").read_text()
+    css = (WEB / "styles.css").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert 'id="status-sidebar"' in html
+    assert 'class="status-sidebar"' in html
+    assert 'id="status-drawer-toggle"' in html
+    assert 'class="status-drawer-body"' in html
+    assert 'id="status-dock-label"' in html
+    assert 'id="status-dock-detail"' in html
+    assert ".status-sidebar" in css
+    assert "position: sticky;" in css
+    assert "position: fixed;" in css
+    assert "bottom: 12px;" in css
+    assert "function updateStatusDock" in js
+    assert "statusDrawerToggle?.addEventListener" in js
+
+
 def test_public_site_supports_language_specific_paths():
     deploy = (DEPLOY / "nginx.conf").read_text()
     js = (WEB / "app.js").read_text()

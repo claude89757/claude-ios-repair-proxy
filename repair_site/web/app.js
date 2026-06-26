@@ -10,6 +10,13 @@ const proxyPort = document.querySelector("#proxy-port");
 const proxyCertificateUrl = document.querySelector("#proxy-certificate-url");
 const statusRefreshButton = document.querySelector("#status-refresh");
 const languageToggle = document.querySelector("#language-toggle");
+const stepButtons = Array.from(document.querySelectorAll("[data-step-button]"));
+const stepPanels = Array.from(document.querySelectorAll("[data-step-panel]"));
+const stepCompleteButtons = Array.from(document.querySelectorAll("[data-step-complete]"));
+const statusSidebar = document.querySelector("#status-sidebar");
+const statusDrawerToggle = document.querySelector("#status-drawer-toggle");
+const statusDockLabel = document.querySelector("#status-dock-label");
+const statusDockDetail = document.querySelector("#status-dock-detail");
 const INVITE_CACHE_KEY = "claudeRepairInviteCode";
 const LANGUAGE_CACHE_KEY = "claudeRepairLanguage";
 const PATH_LANGUAGE_PREFIXES = new Set(["en", "zh"]);
@@ -18,7 +25,7 @@ const LANGUAGE_PATHS = { en: "/en", zh: "/zh" };
 const I18N = {
   zh: {
     "page.title": "Claude iOS 登录卡死修复指南",
-    "nav.guide": "修复步骤",
+    "nav.guide": "修复向导",
     "nav.status": "实时状态",
     "nav.safety": "安全",
     "hero.eyebrow": "iPhone / Claude App / 临时修复代理",
@@ -38,9 +45,22 @@ const I18N = {
     "flow.certLink": "证书信任",
     "flow.cert": "CA 证书",
     "guide.kicker": "操作顺序",
-    "guide.title": "修复步骤",
+    "guide.title": "修复向导",
+    "guide.copy": "按卡片逐步操作。每完成一步点击“我已完成，下一步”，右侧实时状态会同步显示代理连接、证书信任和 Claude 请求事件。",
+    "step.next": "我已完成，下一步",
+    "step.finish": "完成修复",
+    "step.statusCurrent": "当前步骤",
+    "step.statusDone": "已完成",
+    "step.statusWaiting": "等待",
+    "step.kickerPrepare": "准备",
+    "step.kickerCertificate": "证书",
+    "step.kickerNetwork": "网络",
+    "step.kickerRepair": "修复",
+    "step.kickerFinish": "收尾",
     "step1.title": "获取邀请码",
     "step1.copy": "联系管理员获取本次修复的邀请码。公开页面不内置代理账号密码；验证成功后，页面会显示临时代理配置和证书链接。",
+    "step1.taskTitle": "在顶部输入邀请码",
+    "step1.taskCopy": "输入后点击“验证”。验证成功会自动显示专属端口，并进入下一步。",
     "step2.title": "安装并信任证书",
     "step2.item1": '使用 Safari 打开 <a href="/certs/mitmproxy-ca-cert.cer">证书链接</a>，允许下载描述文件。',
     "step2.item2": "进入 <strong>设置 → 通用 → VPN 与设备管理</strong>，确认证书描述文件已经安装。",
@@ -52,6 +72,8 @@ const I18N = {
     "step3.item4": "填写页面显示的服务器和端口，认证保持关闭，其余认证字段不用填写。",
     "step4.title": "打开 Claude",
     "step4.copy": "强退 Claude 后重新打开一次。代理会尝试把旧登录态改写为登录过期响应，帮助 App 清理残留并回到登录页。看到登录页或检查项完成后及时停止。",
+    "step4.taskTitle": "观察右侧实时状态",
+    "step4.taskCopy": "正常已登录的 Claude App 可能只显示代理已连接，不一定触发修复事件；卡住的设备通常会出现 /api/account 或 rewrite 记录。",
     "step5.title": "恢复网络",
     "step5.copy": "关闭 iPhone HTTP 代理，回到证书信任设置中关闭修复 CA 的完全信任。专属端口默认 24 小时失效，不需要长期保留。",
     "status.title": "实时状态",
@@ -119,7 +141,7 @@ const I18N = {
   },
   en: {
     "page.title": "Claude iOS sign-in loop repair guide",
-    "nav.guide": "Steps",
+    "nav.guide": "Guide",
     "nav.status": "Live status",
     "nav.safety": "Safety",
     "hero.eyebrow": "iPhone / Claude App / Temporary repair proxy",
@@ -139,9 +161,22 @@ const I18N = {
     "flow.certLink": "Certificate trust",
     "flow.cert": "CA certificate",
     "guide.kicker": "Order",
-    "guide.title": "Repair steps",
+    "guide.title": "Repair guide",
+    "guide.copy": "Follow the cards one by one. After each task, tap Done and next. The live status panel stays visible with proxy, certificate, and Claude request signals.",
+    "step.next": "Done, next",
+    "step.finish": "Finish repair",
+    "step.statusCurrent": "Current",
+    "step.statusDone": "Done",
+    "step.statusWaiting": "Waiting",
+    "step.kickerPrepare": "Prepare",
+    "step.kickerCertificate": "Certificate",
+    "step.kickerNetwork": "Network",
+    "step.kickerRepair": "Repair",
+    "step.kickerFinish": "Finish",
     "step1.title": "Get an invite",
     "step1.copy": "Contact the administrator for an invite code. The public page does not include proxy credentials. After verification, it shows the temporary proxy configuration and certificate link.",
+    "step1.taskTitle": "Enter the invite in the header",
+    "step1.taskCopy": "Enter the code and tap Verify. A successful claim shows the dedicated port and moves you to the next step.",
     "step2.title": "Install and trust the certificate",
     "step2.item1": 'Open the <a href="/certs/mitmproxy-ca-cert.cer">certificate link</a> in Safari and allow the profile download.',
     "step2.item2": "Go to <strong>Settings → General → VPN & Device Management</strong> and confirm the certificate profile is installed.",
@@ -153,6 +188,8 @@ const I18N = {
     "step3.item4": "Enter the server and port shown on this page. Keep authentication off and leave the other auth fields empty.",
     "step4.title": "Open Claude",
     "step4.copy": "Force quit Claude and open it again. The proxy attempts to rewrite the stale sign-in state into a session-expired response so the app can clear local residue and return to sign-in. Stop once the sign-in screen or completed checks appear.",
+    "step4.taskTitle": "Watch the live status panel",
+    "step4.taskCopy": "A normally signed-in Claude App may only show proxy connected. Stuck devices usually produce /api/account or rewrite records.",
     "step5.title": "Restore network",
     "step5.copy": "Turn off the iPhone HTTP proxy, then disable full trust for the repair CA certificate. The dedicated port expires after 24 hours by default and should not be kept long term.",
     "status.title": "Live status",
@@ -223,9 +260,12 @@ const I18N = {
 let streamController = null;
 let statusToken = "";
 let activeInviteCode = "";
+let activeProxyPort = "";
 let currentLanguage = loadInitialLanguage();
 let currentSnapshot = null;
 let currentFeedback = { key: "", message: "", tone: "" };
+let activeStep = 1;
+const completedSteps = new Set();
 
 const checks = [
   ["proxy", "checks.proxy"],
@@ -358,6 +398,8 @@ function refreshDynamicLanguage() {
   if (currentFeedback.key) {
     setFeedback(t(currentFeedback.key), currentFeedback.tone, currentFeedback.key);
   }
+  updateStepControls();
+  updateStatusDock(currentSnapshot);
 }
 
 function applyLanguage(language = currentLanguage) {
@@ -475,11 +517,88 @@ function setRefreshBusy(isBusy) {
   statusRefreshButton.classList.toggle("is-busy", isBusy);
 }
 
+function stepNumber(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) {
+    return 1;
+  }
+  return Math.min(Math.max(parsed, 1), Math.max(stepPanels.length, 1));
+}
+
+function updateStepControls() {
+  stepButtons.forEach((button) => {
+    const step = stepNumber(button.dataset.stepButton);
+    const isActive = step === activeStep;
+    const isComplete = completedSteps.has(step);
+    button.classList.toggle("is-active", isActive);
+    button.classList.toggle("is-complete", isComplete);
+    if (isActive) {
+      button.setAttribute("aria-current", "step");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+
+    const status = button.querySelector("small");
+    if (status) {
+      status.textContent = isActive
+        ? t("step.statusCurrent")
+        : isComplete
+          ? t("step.statusDone")
+          : t("step.statusWaiting");
+    }
+  });
+
+  stepPanels.forEach((panel) => {
+    const step = stepNumber(panel.dataset.stepPanel);
+    const isActive = step === activeStep;
+    panel.hidden = !isActive;
+    panel.classList.toggle("is-active", isActive);
+    panel.classList.toggle("is-complete", completedSteps.has(step));
+  });
+}
+
+function setActiveStep(step) {
+  activeStep = stepNumber(step);
+  updateStepControls();
+}
+
+function markStepComplete(step, { advance = true } = {}) {
+  const nextStep = stepNumber(step);
+  completedSteps.add(nextStep);
+  if (advance && nextStep < stepPanels.length) {
+    setActiveStep(nextStep + 1);
+  } else {
+    updateStepControls();
+  }
+}
+
+function connectionValue(data) {
+  if (data?.connection_status_key) {
+    return t(data.connection_status_key);
+  }
+  return translateStatus(data?.connection_status || "not connected");
+}
+
+function updateStatusDock(data = currentSnapshot) {
+  if (statusDockLabel) {
+    statusDockLabel.textContent = t("status.title");
+  }
+  if (!statusDockDetail) {
+    return;
+  }
+
+  const connection = connectionValue(data || {});
+  const detail = activeProxyPort
+    ? `${t("proxy.port")} ${activeProxyPort} · ${connection}`
+    : connection;
+  statusDockDetail.textContent = detail;
+  statusSidebar?.classList.toggle("has-token", Boolean(statusToken));
+  statusSidebar?.classList.toggle("is-connected", data?.connection_status === "connected");
+}
+
 function renderSummary(data) {
   const latest = latestEvent(data);
-  const connectionStatus = data?.connection_status_key
-    ? t(data.connection_status_key)
-    : translateStatus(data?.connection_status || "not connected");
+  const connectionStatus = connectionValue(data);
   const fields = [
     [t("summary.connection"), connectionStatus],
     [t("summary.certificate"), translateStatus(data?.certificate_status || "unknown")],
@@ -602,6 +721,7 @@ function render(data) {
   renderSummary(data || {});
   renderChecklist(data || {});
   renderEvents(data || {});
+  updateStatusDock(data || {});
 }
 
 function setCertificateLink(url) {
@@ -628,6 +748,7 @@ function renderProxyConfig(claim) {
   }
 
   proxyConfig.hidden = false;
+  activeProxyPort = text(claim?.proxy_port, "");
   if (proxyHost) {
     proxyHost.textContent = text(claim?.proxy_host);
   }
@@ -635,9 +756,11 @@ function renderProxyConfig(claim) {
     proxyPort.textContent = text(claim?.proxy_port);
   }
   setCertificateLink(claim?.certificate_url);
+  updateStatusDock(currentSnapshot);
 }
 
 function resetProxyConfig() {
+  activeProxyPort = "";
   if (proxyConfig) {
     proxyConfig.hidden = true;
   }
@@ -648,6 +771,7 @@ function resetProxyConfig() {
     proxyPort.textContent = "-";
   }
   setCertificateLink("");
+  updateStatusDock(currentSnapshot);
 }
 
 function closeStream() {
@@ -868,6 +992,7 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
     statusToken = claim.status_token;
     activeInviteCode = inviteCode;
     renderProxyConfig(claim);
+    markStepComplete(1);
 
     const snapshotLoaded = await refreshSnapshot({ silent: true });
     if (snapshotLoaded) {
@@ -904,11 +1029,29 @@ inviteForm?.addEventListener("submit", (event) => {
   }
 
   void activateInvite(inviteCode);
-  document.querySelector("#status")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelector("#guide")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 statusRefreshButton?.addEventListener("click", () => {
   void refreshStatusManually();
+});
+
+stepButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setActiveStep(button.dataset.stepButton);
+  });
+});
+
+stepCompleteButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    markStepComplete(button.dataset.stepComplete);
+    document.querySelector("#guide")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+
+statusDrawerToggle?.addEventListener("click", () => {
+  const isExpanded = statusSidebar?.classList.toggle("is-expanded") || false;
+  statusDrawerToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
 });
 
 languageToggle?.addEventListener("click", () => {
@@ -921,6 +1064,7 @@ window.addEventListener("popstate", () => {
 });
 
 applyLanguage(currentLanguage);
+setActiveStep(1);
 resetProxyConfig();
 setFeedback("");
 renderWaitingState("status.waitingInvite");
