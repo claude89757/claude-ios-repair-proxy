@@ -262,6 +262,28 @@ def test_requestheaders_allows_arbitrary_host_without_auth_challenge():
     assert flow.metadata["session_id"] == "sess-port-10001"
 
 
+def test_requestheaders_rejects_proxy_self_targets():
+    addon = ClaudeRepairAddon(session_id="sess-port-10001")
+
+    for host in [
+        "43.160.213.247",
+        "sg2.claude89757.cc",
+        "127.0.0.1",
+        "localhost",
+        "10.0.0.1",
+        "172.16.0.1",
+        "192.168.1.10",
+    ]:
+        flow = Flow(host=host, path="/")
+        flow.response = None
+
+        addon.requestheaders(flow)
+
+        assert flow.response is not None, host
+        assert flow.response.status_code == 403, host
+        assert flow.metadata == {}, host
+
+
 def test_requestheaders_allows_connectivity_test_host_without_proxy_auth():
     addon = ClaudeRepairAddon(session_id="sess-port-10001")
     flow = Flow(host="neverssl.com", path="/online")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import ipaddress
 import os
 import weakref
 from collections.abc import MutableMapping
@@ -24,6 +25,14 @@ COOKIE_DELETIONS = [
 ]
 
 DEFAULT_REPAIR_SESSION_ID = "public"
+DEFAULT_BLOCKED_PROXY_HOSTS = frozenset({"localhost", "sg2.claude89757.cc"})
+DEFAULT_BLOCKED_PROXY_IPS = frozenset({"43.160.213.247"})
+
+
+def _configured_set(name: str, defaults: frozenset[str]) -> set[str]:
+    configured = os.getenv(name, "")
+    values = {item.strip().lower().rstrip(".") for item in configured.split(",") if item.strip()}
+    return set(defaults) | values
 
 
 class ClaudeRepairAddon:
@@ -40,6 +49,14 @@ class ClaudeRepairAddon:
         )
         self.internal_secret = internal_secret or os.getenv("INTERNAL_API_SECRET")
         self.session_id = session_id or os.getenv("REPAIR_SESSION_ID") or DEFAULT_REPAIR_SESSION_ID
+        self.blocked_proxy_hosts = _configured_set(
+            "REPAIR_BLOCKED_PROXY_HOSTS",
+            DEFAULT_BLOCKED_PROXY_HOSTS,
+        )
+        self.blocked_proxy_ips = _configured_set(
+            "REPAIR_BLOCKED_PROXY_IPS",
+            DEFAULT_BLOCKED_PROXY_IPS,
+        )
         self._authenticated_sessions: MutableMapping[Any, str] = weakref.WeakKeyDictionary()
 
     def _client_ip(self, flow: Any) -> str | None:
@@ -83,10 +100,30 @@ class ClaudeRepairAddon:
         host = getattr(request, "host", None)
         if host is None:
             host = getattr(request, "pretty_host", None)
-        return str(host or "").strip().lower().rstrip(".")
+        normalized = str(host or "").strip().lower().rstrip(".")
+        if normalized.startswith("[") and "]" in normalized:
+            return normalized[1 : normalized.index("]")]
+        if normalized.count(":") == 1:
+            candidate, _, port = normalized.rpartition(":")
+            if candidate and port.isdigit():
+                return candidate
+        return normalized
+
+    def _is_blocked_proxy_target(self, host: str) -> bool:
+        if not host:
+            return True
+        if host in self.blocked_proxy_hosts:
+            return True
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            return False
+        if str(address) in self.blocked_proxy_ips:
+            return True
+        return not address.is_global
 
     def _is_public_proxy_allowed(self, flow: Any) -> bool:
-        return bool(self._normalized_request_host(flow))
+        return not self._is_blocked_proxy_target(self._normalized_request_host(flow))
 
     def _internal_headers(self) -> dict[str, str] | None:
         if not self.internal_secret:
