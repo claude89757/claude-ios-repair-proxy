@@ -7,7 +7,7 @@
   <link rel="icon" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="14" fill="%23255fdb"/%3E%3Cpath d="M20 34h24M32 22v24" stroke="white" stroke-width="7" stroke-linecap="round"/%3E%3C/svg%3E'>
   <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
+<body class="public-page">
   <header class="topbar">
     <div class="topbar-shell">
       <div class="topbar-main">
@@ -30,28 +30,20 @@
         </div>
         <p class="claim-feedback" data-claim-feedback></p>
       </form>
+      <p class="invite-floating-note" data-i18n="entry.copy">使用顶部固定的邀请码栏输入管理员提供的邀请码。验证后页面会显示默认 24 小时失效的专属代理端口和脱敏实时状态。</p>
     </div>
   </header>
 
   <main id="top" class="app-shell">
-    <section class="hero" aria-labelledby="page-title">
-      <div class="hero-copy">
-        <p class="eyebrow" data-i18n="hero.eyebrow">iPhone / Claude App / 临时修复代理</p>
-        <h1 id="page-title" data-i18n="hero.title">Claude iOS 登录卡死修复指南</h1>
-        <p class="lede" data-i18n="hero.lede">主要用于账号被 ban、禁用或异常后，Claude iOS 反复出现 “Something went wrong, try again”，删除并重装后仍回不到登录页的场景。按步骤临时连接修复代理，清理旧 session、cookie、routing hint 后立即关闭代理并撤销证书信任。</p>
-      </div>
-
-      <aside class="entry-panel" aria-labelledby="entry-title">
-        <p class="panel-kicker" data-i18n="entry.kicker">状态入口</p>
-        <h2 id="entry-title" data-i18n="entry.title">验证邀请码并查看临时代理</h2>
-        <p data-i18n="entry.copy">使用顶部固定的邀请码栏输入管理员提供的邀请码。验证后页面会显示默认 24 小时失效的专属代理端口和脱敏实时状态。</p>
-        <a class="button primary" href="#guide" data-i18n="hero.cta">开始修复</a>
-      </aside>
-    </section>
-
     <div class="guide-layout">
       <div class="guide-main">
         <section id="guide" class="section wizard-section" aria-labelledby="guide-title">
+          <div class="workspace-intro">
+            <p class="eyebrow" data-i18n="hero.eyebrow">iPhone / Claude App / 临时修复代理</p>
+            <h1 id="page-title" data-i18n="hero.title">Claude iOS 登录卡死修复指南</h1>
+            <p class="lede" data-i18n="hero.lede">主要用于账号被 ban、禁用或异常后，Claude iOS 反复出现 “Something went wrong, try again”，删除并重装后仍回不到登录页的场景。按步骤临时连接修复代理，清理旧 session、cookie、routing hint 后立即关闭代理并撤销证书信任。</p>
+          </div>
+
           <div class="section-head">
             <p class="eyebrow" data-i18n="guide.kicker">操作顺序</p>
             <h2 id="guide-title" data-i18n="guide.title">修复向导</h2>
@@ -165,25 +157,24 @@
                   <h3 id="step5-title" data-i18n="step5.title">恢复网络</h3>
                 </div>
               </div>
-              <p data-i18n="step5.copy">关闭 iPhone HTTP 代理，回到证书信任设置中关闭修复 CA 的完全信任。专属端口默认 24 小时失效，不需要长期保留。</p>
+              <p data-i18n="step5.copy">关闭 iPhone HTTP 代理，恢复你日常使用的 VPN、代理或梯子，再重新打开或继续使用 Claude App。回到证书信任设置中关闭修复 CA 的完全信任；专属端口默认 24 小时失效，不需要长期保留。</p>
+              <section id="safety" class="safety safety-compact">
+                <div class="section-head">
+                  <p class="eyebrow" data-i18n="safety.kicker">使用后处理</p>
+                  <h2 data-i18n="safety.title">安全说明</h2>
+                </div>
+                <ul>
+                  <li data-i18n="safety.item1">请只在自己的设备和账号上使用，修复代理只用于清理卡住的本地旧会话，不用于绕过账号限制。</li>
+                  <li data-i18n="safety.item2">修复期间不要提交、记录或共享真实 Cookie、sessionKey、routingHint、Authorization、mitmproxy 证书或设备标识。</li>
+                  <li data-i18n="safety.item3">服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。</li>
+                  <li data-i18n="safety.item4">完成后关闭 Wi-Fi 代理，并取消修复 CA 的完全信任；专属端口默认 24 小时失效。</li>
+                  <li data-i18n="safety.item5">如果状态只显示已连接但没有 Claude 请求，优先检查是否还有其它 VPN、代理或梯子工具未关闭。</li>
+                  <li data-i18n="safety.item6">如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。</li>
+                </ul>
+              </section>
               <button class="button primary step-complete-button" type="button" data-step-complete="5" data-i18n="step.finish">完成修复</button>
             </article>
           </div>
-        </section>
-
-        <section id="safety" class="section safety">
-          <div class="section-head">
-            <p class="eyebrow" data-i18n="safety.kicker">使用后处理</p>
-            <h2 data-i18n="safety.title">安全说明</h2>
-          </div>
-          <ul>
-            <li data-i18n="safety.item1">请只在自己的设备和账号上使用，修复代理只用于清理卡住的本地旧会话，不用于绕过账号限制。</li>
-            <li data-i18n="safety.item2">修复期间不要提交、记录或共享真实 Cookie、sessionKey、routingHint、Authorization、mitmproxy 证书或设备标识。</li>
-            <li data-i18n="safety.item3">服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。</li>
-            <li data-i18n="safety.item4">完成后关闭 Wi-Fi 代理，并取消修复 CA 的完全信任；专属端口默认 24 小时失效。</li>
-            <li data-i18n="safety.item5">如果状态只显示已连接但没有 Claude 请求，优先检查是否还有其它 VPN、代理或梯子工具未关闭。</li>
-            <li data-i18n="safety.item6">如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。</li>
-          </ul>
         </section>
       </div>
 

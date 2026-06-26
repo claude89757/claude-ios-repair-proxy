@@ -1701,3 +1701,286 @@ nav {
     scroll-margin-top: 228px;
   }
 }
+
+/* Full-screen guided flow refinement */
+.public-page {
+  --topbar-offset: 166px;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.public-page .topbar-shell {
+  width: min(1280px, calc(100% - 28px));
+}
+
+.invite-floating-note {
+  margin: -2px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.public-page .app-shell {
+  width: min(1280px, calc(100% - 28px));
+  height: calc(100svh - var(--topbar-offset));
+  padding: 12px 0;
+  overflow: hidden;
+}
+
+.public-page .guide-layout {
+  height: 100%;
+  min-height: 0;
+  margin-top: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 380px);
+}
+
+.public-page .guide-main,
+.public-page .wizard-section {
+  min-height: 0;
+  height: 100%;
+}
+
+.public-page .wizard-section {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 0;
+}
+
+.workspace-intro {
+  min-height: 0;
+  padding: 18px 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(238, 247, 255, 0.95)),
+    linear-gradient(90deg, rgba(37, 95, 219, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(8, 163, 143, 0.08) 1px, transparent 1px);
+  background-size: auto, 28px 28px, 28px 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.workspace-intro h1 {
+  max-width: 920px;
+  font-size: clamp(30px, 4vw, 46px);
+}
+
+.workspace-intro .lede {
+  max-width: 980px;
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.public-page .wizard-section .section-head {
+  padding: 14px 18px;
+  box-shadow: none;
+}
+
+.public-page .wizard-section .section-head h2 {
+  font-size: 26px;
+}
+
+.public-page .wizard-section .section-head > p:not(.eyebrow) {
+  max-width: none;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.public-page .step-rail {
+  grid-template-columns: repeat(5, minmax(124px, 1fr));
+  margin: 0;
+}
+
+.public-page .step-tab {
+  min-height: 58px;
+  padding: 8px;
+}
+
+.public-page .step-tab strong {
+  font-size: 13px;
+}
+
+.public-page .step-tab small {
+  margin-top: 2px;
+}
+
+.public-page .wizard-card-deck {
+  min-height: 0;
+  height: 100%;
+}
+
+.public-page .wizard-card {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  align-content: start;
+}
+
+.public-page .safety-compact {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.public-page .safety-compact .section-head {
+  margin-bottom: 8px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.public-page .safety-compact h2 {
+  font-size: 18px;
+}
+
+.public-page .safety-compact ul {
+  max-height: 130px;
+  overflow: auto;
+}
+
+.public-page .safety-compact li {
+  margin: 6px 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.public-page .status-sidebar {
+  top: calc(var(--topbar-offset) + 12px);
+  max-height: calc(100svh - var(--topbar-offset) - 24px);
+}
+
+@media (max-width: 980px) {
+  .public-page {
+    --topbar-offset: 132px;
+  }
+
+  .public-page .guide-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .public-page .status-sidebar {
+    top: auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .public-page {
+    --topbar-offset: 124px;
+  }
+
+  .public-page .topbar-shell {
+    width: min(100% - 20px, 1280px);
+    gap: 7px;
+    padding: 8px 0;
+  }
+
+  .public-page .topbar-main {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .public-page .topbar-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .public-page .topbar-actions nav {
+    display: none;
+  }
+
+  .public-page .github-link,
+  .public-page .language-toggle {
+    min-height: 32px;
+    min-width: 54px;
+  }
+
+  .public-page .header-invite-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: 7px;
+  }
+
+  .public-page .header-invite-form label,
+  .public-page .invite-floating-note {
+    display: none;
+  }
+
+  .public-page .header-invite-form input,
+  .public-page .header-invite-form button {
+    min-height: 40px;
+  }
+
+  .public-page .header-invite-controls {
+    display: contents;
+  }
+
+  .public-page .app-shell {
+    width: min(100% - 20px, 1280px);
+    padding: 10px 0 74px;
+  }
+
+  .public-page .wizard-section {
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .workspace-intro {
+    padding: 14px 16px;
+  }
+
+  .workspace-intro h1 {
+    font-size: 30px;
+    line-height: 1.08;
+  }
+
+  .workspace-intro .lede {
+    display: -webkit-box;
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .public-page .wizard-section .section-head {
+    display: none;
+  }
+
+  .public-page .step-rail {
+    grid-template-columns: repeat(5, minmax(48px, 1fr));
+    gap: 6px;
+  }
+
+  .public-page .step-tab {
+    min-height: 42px;
+    justify-content: center;
+    padding: 5px;
+  }
+
+  .public-page .step-tab > span:last-child {
+    display: none;
+  }
+
+  .public-page .step-index {
+    width: 30px;
+    height: 30px;
+  }
+
+  .public-page .wizard-card {
+    padding: 18px;
+  }
+
+  .public-page .wizard-card-head .step-number {
+    width: 38px;
+    height: 38px;
+  }
+
+  .public-page .safety-compact ul {
+    max-height: 116px;
+  }
+}

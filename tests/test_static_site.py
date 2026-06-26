@@ -72,15 +72,14 @@ def test_public_site_keeps_invite_form_in_sticky_header():
     css = (WEB / "styles.css").read_text()
 
     header = re.search(r"<header class=\"topbar\">.*?</header>", html, re.S)
-    entry_panel = re.search(r"<aside class=\"entry-panel\".*?</aside>", html, re.S)
 
     assert header is not None
-    assert entry_panel is not None
     assert 'id="invite-form"' in header.group(0)
     assert 'class="header-invite-form"' in header.group(0)
     assert 'id="invite-code"' in header.group(0)
     assert 'data-claim-feedback' in header.group(0)
-    assert 'id="invite-form"' not in entry_panel.group(0)
+    assert 'class="invite-floating-note"' in header.group(0)
+    assert "entry-panel" not in html
     assert html.count('id="invite-form"') == 1
     assert ".topbar {" in css
     assert "position: sticky;" in css
@@ -107,6 +106,21 @@ def test_public_site_uses_step_by_step_wizard_cards():
     assert ".step-complete-button" in css
 
 
+def test_public_site_uses_full_screen_card_workspace():
+    html = (WEB / "index.html").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert '<body class="public-page">' in html
+    assert 'class="workspace-intro"' in html
+    assert "flow-node" not in html
+    assert ".public-page {" in css
+    assert "overflow: hidden;" in css
+    assert "height: calc(100svh - var(--topbar-offset));" in css
+    assert ".wizard-card-deck" in css
+    assert ".wizard-card {" in css
+    assert "overflow: auto;" in css
+
+
 def test_public_site_keeps_live_status_visible_on_desktop_and_mobile():
     html = (WEB / "index.html").read_text()
     css = (WEB / "styles.css").read_text()
@@ -124,6 +138,15 @@ def test_public_site_keeps_live_status_visible_on_desktop_and_mobile():
     assert "bottom: 12px;" in css
     assert "function updateStatusDock" in js
     assert "statusDrawerToggle?.addEventListener" in js
+
+
+def test_public_site_final_step_tells_users_to_restore_vpn_after_proxy_cleanup():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert "恢复你日常使用的 VPN、代理或梯子" in html
+    assert "恢复你日常使用的 VPN、代理或梯子" in js
+    assert "restore your usual VPN, proxy, or tunneling app" in js
 
 
 def test_public_site_supports_language_specific_paths():
