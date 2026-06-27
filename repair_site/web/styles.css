@@ -2065,7 +2065,14 @@ nav {
   }
 
   .public-page .wizard-card {
-    padding: 18px;
+    padding: 18px 18px 74px;
+  }
+
+  .public-page .step-complete-button {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    box-shadow: 0 -12px 24px rgba(255, 255, 255, 0.92);
   }
 
   .public-page .wizard-card-head .step-number {

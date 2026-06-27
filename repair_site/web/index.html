@@ -121,16 +121,14 @@
                 <span class="step-number">3</span>
                 <div>
                   <p class="panel-kicker" data-i18n="step.kickerNetwork">网络</p>
-                  <h3 id="step3-title" data-i18n="step3.title">配置 iPhone Wi-Fi 代理</h3>
+                  <h3 id="step3-title" data-i18n="step3.title">只让 Wi-Fi 走代理</h3>
                 </div>
               </div>
               <ol class="step-list">
                 <li data-i18n="step3.item1">打开飞行模式，然后只打开 Wi-Fi，保持蜂窝网络关闭。</li>
                 <li data-i18n="step3.item2">关闭手机上的其它 VPN、代理或梯子工具，否则 Claude 流量可能不会走到修复代理。</li>
-                <li data-i18n="step3.item3">进入 <strong>设置 → Wi-Fi</strong>，点当前 Wi-Fi 右侧的 i。</li>
-                <li data-i18n="step3.item4">滑到最底部，点 <strong>配置代理</strong>，把 HTTP 代理选择手动。</li>
-                <li data-i18n="step3.item5">把右侧显示的服务器和端口填进去；只填写服务器和端口。</li>
-                <li data-i18n="step3.item6">认证保持关闭，下面的认证字段不要填写，然后点存储。</li>
+                <li data-i18n="step3.item3">进入当前 Wi-Fi 的信息页，找到 HTTP 代理，选择手动。</li>
+                <li data-i18n="step3.item4">填写页面显示的服务器和端口，认证保持关闭，其余认证字段不用填写。</li>
               </ol>
               <button class="button primary step-complete-button" type="button" data-step-complete="3" data-i18n="step.next">我已完成，下一步</button>
             </article>
@@ -143,11 +141,11 @@
                   <h3 id="step4-title" data-i18n="step4.title">打开 Claude</h3>
                 </div>
               </div>
-              <p data-i18n="step4.copy">强退 Claude 后重新打开一次。代理会尝试把旧登录态改写为登录过期响应，帮助 App 清理残留并回到登录页。看到登录页或检查项完成后及时停止。</p>
-              <div class="task-note accent">
-                <strong data-i18n="step4.taskTitle">观察右侧实时状态</strong>
-                <span data-i18n="step4.taskCopy">正常已登录的 Claude App 可能只显示代理已连接，不一定触发修复事件；卡住的设备通常会出现 /api/account 或 rewrite 记录。</span>
-              </div>
+              <ol class="step-list">
+                <li data-i18n="step4.item1">强退 Claude App，再重新打开。</li>
+                <li data-i18n="step4.item2">等待 10-20 秒，保持当前 Wi-Fi 和代理不变。</li>
+                <li data-i18n="step4.item3">看到登录入口，或状态出现 /api/account、rewrite、Cookie 删除，即可下一步；不需要长时间保持代理。</li>
+              </ol>
               <button class="button primary step-complete-button" type="button" data-step-complete="4" data-i18n="step.next">我已完成，下一步</button>
             </article>
 
@@ -159,7 +157,12 @@
                   <h3 id="step5-title" data-i18n="step5.title">恢复网络</h3>
                 </div>
               </div>
-              <p data-i18n="step5.copy">关闭 iPhone HTTP 代理，恢复你日常使用的 VPN、代理或梯子，再重新打开或继续使用 Claude App。回到证书信任设置中关闭修复 CA 的完全信任；专属端口默认 24 小时失效，不需要长期保留。</p>
+              <ol class="step-list">
+                <li data-i18n="step5.item1">把当前 Wi-Fi 的 HTTP 代理改回“关闭”。</li>
+                <li data-i18n="step5.item2">关闭飞行模式，恢复蜂窝网络；恢复你日常使用的 VPN、代理或梯子。</li>
+                <li data-i18n="step5.item3">关闭 mitmproxy 证书“完全信任”。这一步做完后再继续正常使用 Claude。</li>
+              </ol>
+              <button class="button primary step-complete-button" type="button" data-step-complete="5" data-i18n="step.finish">完成修复</button>
               <section id="safety" class="safety safety-compact">
                 <div class="section-head">
                   <p class="eyebrow" data-i18n="safety.kicker">使用后处理</p>
@@ -174,7 +177,6 @@
                   <li data-i18n="safety.item6">如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。</li>
                 </ul>
               </section>
-              <button class="button primary step-complete-button" type="button" data-step-complete="5" data-i18n="step.finish">完成修复</button>
             </article>
           </div>
         </section>
@@ -208,7 +210,6 @@
                 <div>
                   <p class="panel-kicker" data-i18n="proxy.kicker">临时代理配置</p>
                   <h3 id="proxy-title" data-i18n="proxy.title">请按以下信息配置当前 Wi-Fi 的 HTTP 代理，认证保持关闭；专属端口默认 24 小时失效</h3>
-                  <p class="panel-note" data-i18n="proxy.setupPath">复制服务器和端口，填到 <strong>设置 → Wi-Fi → 当前网络 → 配置代理 → 手动</strong>。</p>
                 </div>
               </div>
               <dl class="proxy-grid">

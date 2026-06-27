@@ -22,11 +22,7 @@ def test_site_contains_required_user_guidance():
     assert "完全信任" in html
     assert "打开飞行模式" in html
     assert "只打开 Wi-Fi" in html
-    assert "配置 iPhone Wi-Fi 代理" in html
-    assert "设置 → Wi-Fi → 当前网络 → 配置代理 → 手动" in html
-    assert "点当前 Wi-Fi 右侧的 i" in html
-    assert "HTTP 代理选择手动" in html
-    assert "只填写服务器和端口" in html
+    assert "HTTP 代理" in html
     assert "认证保持关闭" in html
     assert "关闭手机上的其它 VPN、代理或梯子工具" in html
     assert "否则 Claude 流量可能不会走到修复代理" in html
@@ -160,6 +156,15 @@ def test_mobile_status_dock_has_distinct_collapsed_state():
     assert "box-shadow: 0 18px 50px" in css
 
 
+def test_mobile_wizard_keeps_step_action_reachable_above_status_dock():
+    css = (WEB / "styles.css").read_text()
+
+    assert ".public-page .step-complete-button" in css
+    assert "position: sticky;" in css
+    assert "bottom: 0;" in css
+    assert "z-index: 3;" in css
+
+
 def test_public_site_final_step_tells_users_to_restore_vpn_after_proxy_cleanup():
     html = (WEB / "index.html").read_text()
     js = (WEB / "app.js").read_text()
@@ -167,6 +172,31 @@ def test_public_site_final_step_tells_users_to_restore_vpn_after_proxy_cleanup()
     assert "恢复你日常使用的 VPN、代理或梯子" in html
     assert "恢复你日常使用的 VPN、代理或梯子" in js
     assert "restore your usual VPN, proxy, or tunneling app" in js
+
+
+def test_public_site_uses_clear_step_four_and_five_checklists():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert "step4.item1" in html
+    assert "step4.item2" in html
+    assert "step4.item3" in html
+    assert "step4.item4" not in html
+    assert "强退 Claude App，再重新打开" in html
+    assert "保持当前 Wi-Fi 和代理不变" in html
+    assert "看到登录入口，或状态出现 /api/account、rewrite、Cookie 删除" in html
+    assert "不需要长时间保持代理" in html
+    assert "step5.item1" in html
+    assert "step5.item2" in html
+    assert "step5.item3" in html
+    assert "step5.item4" not in html
+    assert "Wi-Fi 的 HTTP 代理改回“关闭”" in html
+    assert "关闭飞行模式，恢复蜂窝网络；恢复你日常使用的 VPN、代理或梯子" in html
+    assert "关闭 mitmproxy 证书“完全信任”" in html
+    assert "这一步做完后再继续正常使用 Claude" in html
+    assert "Force quit the Claude App, then open it again" in js
+    assert "turn the HTTP proxy back to Off" in js
+    assert "turn off full trust for the mitmproxy certificate" in js
 
 
 def test_public_site_supports_language_specific_paths():
