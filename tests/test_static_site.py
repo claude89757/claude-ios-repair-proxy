@@ -22,7 +22,11 @@ def test_site_contains_required_user_guidance():
     assert "完全信任" in html
     assert "打开飞行模式" in html
     assert "只打开 Wi-Fi" in html
-    assert "HTTP 代理" in html
+    assert "配置 iPhone Wi-Fi 代理" in html
+    assert "设置 → Wi-Fi → 当前网络 → 配置代理 → 手动" in html
+    assert "点当前 Wi-Fi 右侧的 i" in html
+    assert "HTTP 代理选择手动" in html
+    assert "只填写服务器和端口" in html
     assert "认证保持关闭" in html
     assert "关闭手机上的其它 VPN、代理或梯子工具" in html
     assert "否则 Claude 流量可能不会走到修复代理" in html

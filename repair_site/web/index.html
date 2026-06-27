@@ -121,14 +121,16 @@
                 <span class="step-number">3</span>
                 <div>
                   <p class="panel-kicker" data-i18n="step.kickerNetwork">网络</p>
-                  <h3 id="step3-title" data-i18n="step3.title">只让 Wi-Fi 走代理</h3>
+                  <h3 id="step3-title" data-i18n="step3.title">配置 iPhone Wi-Fi 代理</h3>
                 </div>
               </div>
               <ol class="step-list">
                 <li data-i18n="step3.item1">打开飞行模式，然后只打开 Wi-Fi，保持蜂窝网络关闭。</li>
                 <li data-i18n="step3.item2">关闭手机上的其它 VPN、代理或梯子工具，否则 Claude 流量可能不会走到修复代理。</li>
-                <li data-i18n="step3.item3">进入当前 Wi-Fi 的信息页，找到 HTTP 代理，选择手动。</li>
-                <li data-i18n="step3.item4">填写页面显示的服务器和端口，认证保持关闭，其余认证字段不用填写。</li>
+                <li data-i18n="step3.item3">进入 <strong>设置 → Wi-Fi</strong>，点当前 Wi-Fi 右侧的 i。</li>
+                <li data-i18n="step3.item4">滑到最底部，点 <strong>配置代理</strong>，把 HTTP 代理选择手动。</li>
+                <li data-i18n="step3.item5">把右侧显示的服务器和端口填进去；只填写服务器和端口。</li>
+                <li data-i18n="step3.item6">认证保持关闭，下面的认证字段不要填写，然后点存储。</li>
               </ol>
               <button class="button primary step-complete-button" type="button" data-step-complete="3" data-i18n="step.next">我已完成，下一步</button>
             </article>
@@ -206,6 +208,7 @@
                 <div>
                   <p class="panel-kicker" data-i18n="proxy.kicker">临时代理配置</p>
                   <h3 id="proxy-title" data-i18n="proxy.title">请按以下信息配置当前 Wi-Fi 的 HTTP 代理，认证保持关闭；专属端口默认 24 小时失效</h3>
+                  <p class="panel-note" data-i18n="proxy.setupPath">复制服务器和端口，填到 <strong>设置 → Wi-Fi → 当前网络 → 配置代理 → 手动</strong>。</p>
                 </div>
               </div>
               <dl class="proxy-grid">
