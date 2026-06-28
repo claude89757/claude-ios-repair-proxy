@@ -35,7 +35,171 @@
   </header>
 
   <main id="top" class="app-shell">
-    <div class="guide-layout">
+    <section id="invite-gate" class="invite-gate-screen" data-active-view="choice" aria-labelledby="invite-gate-title">
+      <div class="invite-gate-shell">
+        <section class="invite-view invite-choice-view" data-invite-view="choice" aria-labelledby="invite-gate-title">
+          <div class="invite-gate-hero">
+            <p class="eyebrow" data-i18n="inviteGate.eyebrow">Invite Access / Claude iOS Repair</p>
+            <h1 id="invite-gate-title" data-i18n="inviteGate.title">获取修复邀请码</h1>
+            <p class="invite-gate-lede" data-i18n="inviteGate.copy">选择一个获取方式，按提示拿到邀请码后继续修复。</p>
+          </div>
+
+          <p class="invite-choice-hint" data-i18n="inviteGate.choiceHint">闲鱼最推荐；免费方式为自助使用。</p>
+
+          <div class="invite-methods" aria-label="邀请码获取方式">
+            <button class="invite-method-option is-recommended" type="button" data-invite-method-select="xianyu" aria-controls="invite-method-xianyu">
+              <span class="method-recommend" data-i18n="inviteGate.recommended">推荐</span>
+              <span class="invite-method-head">
+                <span class="method-index">01</span>
+                <span>
+                  <span class="method-label" data-i18n="inviteGate.xianyuLabel">售后支持</span>
+                  <strong data-i18n="inviteGate.xianyuTitle">闲鱼下单购买</strong>
+                </span>
+              </span>
+              <span data-i18n="inviteGate.xianyuBrief">适合需要远程指导和售后支持的用户。</span>
+            </button>
+
+            <button class="invite-method-option" type="button" data-invite-method-select="alipay" aria-controls="invite-method-alipay">
+              <span class="invite-method-head">
+                <span class="method-index">02</span>
+                <span>
+                  <span class="method-label" data-i18n="inviteGate.alipayLabel">支持开发</span>
+                  <strong data-i18n="inviteGate.alipayTitle">支付宝随缘付费</strong>
+                </span>
+              </span>
+              <span data-i18n="inviteGate.alipayBrief">随缘打赏后自动填入固定邀请码。</span>
+            </button>
+
+            <button class="invite-method-option" type="button" data-invite-method-select="free" aria-controls="invite-method-free">
+              <span class="invite-method-head">
+                <span class="method-index">03</span>
+                <span>
+                  <span class="method-label" data-i18n="inviteGate.freeLabel">免费自助</span>
+                  <strong data-i18n="inviteGate.freeTitle">免费使用</strong>
+                </span>
+              </span>
+              <span data-i18n="inviteGate.freeBrief">适合完全自助操作，无售后支持。</span>
+            </button>
+          </div>
+
+          <p class="invite-scope-note" data-i18n="inviteGate.scopeNote">仅修复 Claude iOS App 卡 “Something went wrong” 回到登录页；无法帮助解决被封号；不解决梯子或网络问题；公开页面不内置代理账号密码。</p>
+        </section>
+
+        <section id="invite-method-xianyu" class="invite-view invite-method-page" data-invite-view="xianyu" data-invite-method-panel="xianyu" hidden>
+          <div class="method-page-header">
+            <button class="button secondary method-back-button" type="button" data-invite-back data-i18n="inviteGate.back">返回选择</button>
+            <span class="method-recommend" data-i18n="inviteGate.recommended">推荐</span>
+          </div>
+          <div class="invite-method-page-body">
+            <div class="method-page-copy">
+              <p class="method-label" data-i18n="inviteGate.xianyuLabel">售后支持</p>
+              <h2 data-i18n="inviteGate.xianyuDetailTitle">闲鱼购买后获取售后邀请码</h2>
+              <p data-i18n="inviteGate.xianyuPageCopy">购买后按售后指引获取邀请码，再在顶部输入并验证。</p>
+            </div>
+            <div class="method-page-card">
+              <div class="xianyu-link-box">
+                <span data-i18n="inviteGate.xianyuCodeLabel">闲鱼购买链接</span>
+                <a href="https://www.goofish.com/item?spm=a21ybx.personal.feeds.1.3e076ac2wWp67j&amp;id=1061136454887&amp;categoryId=50023914" target="_blank" rel="noreferrer noopener">https://www.goofish.com/item?id=1061136454887</a>
+              </div>
+              <div class="support-badges is-supported" aria-label="支持说明">
+                <span data-i18n="inviteGate.remoteSupport">含远程指导</span>
+                <span data-i18n="inviteGate.afterSupport">含后续售后技术支持</span>
+              </div>
+              <div class="method-page-actions">
+                <a class="button primary" href="https://www.goofish.com/item?spm=a21ybx.personal.feeds.1.3e076ac2wWp67j&amp;id=1061136454887&amp;categoryId=50023914" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openXianyu">打开闲鱼下单链接</a>
+                <button class="button secondary" type="button" data-copy-invite-link data-copy-value="https://www.goofish.com/item?spm=a21ybx.personal.feeds.1.3e076ac2wWp67j&amp;id=1061136454887&amp;categoryId=50023914" data-i18n="inviteGate.copyXianyu">复制链接</button>
+                <button class="button secondary" type="button" data-focus-invite data-i18n="inviteGate.focusInvite">去顶部输入邀请码</button>
+              </div>
+              <p class="method-footnote" data-i18n="inviteGate.xianyuFootnote">此方式不使用固定邀请码；请以下单后的售后邀请码为准。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="invite-method-alipay" class="invite-view invite-method-page simple-method-page" data-invite-view="alipay" data-invite-method-panel="alipay" hidden>
+          <div class="method-page-header">
+            <button class="button secondary method-back-button" type="button" data-invite-back data-i18n="inviteGate.back">返回选择</button>
+            <div class="support-badges is-supported" aria-label="支持说明">
+              <span data-i18n="inviteGate.remoteSupport">含远程指导</span>
+              <span data-i18n="inviteGate.afterSupport">含后续售后技术支持</span>
+            </div>
+          </div>
+          <div class="invite-method-page-body">
+            <div class="method-page-copy">
+              <p class="method-label" data-i18n="inviteGate.alipayLabel">支持开发</p>
+              <h2 data-i18n="inviteGate.alipayDetailTitle">打赏后自动验证</h2>
+              <p data-i18n="inviteGate.alipayPageCopy">扫码随缘打赏，点击“已打赏”后自动填入邀请码并验证。包含远程指导和后续售后技术支持。</p>
+            </div>
+            <div class="method-page-actions">
+              <button class="button primary" type="button" data-invite-auto-claim="alipay" data-i18n="inviteGate.startAlipay">已打赏，自动验证</button>
+            </div>
+            <div class="qr-scan-panel">
+              <button class="qr-image-button" type="button" data-qr-preview="/assets/alipay-reward-qr.jpg" data-qr-title="支付宝收款二维码" aria-label="放大查看支付宝收款二维码">
+                <img class="qr-scan-image" src="/assets/alipay-reward-qr.jpg" alt="支付宝收款二维码">
+              </button>
+              <div class="qr-panel-copy">
+                <h2 data-i18n="inviteGate.scanAlipayTitle">支付宝收款二维码</h2>
+                <p data-i18n="inviteGate.scanAlipayCopy">请用支付宝扫码，或放大后保存再打开。</p>
+              </div>
+              <div class="qr-actions">
+                <button class="button secondary" type="button" data-qr-preview="/assets/alipay-reward-qr.jpg" data-qr-title="支付宝收款二维码" data-i18n="inviteGate.previewQr">放大查看</button>
+                <a class="button secondary" href="/assets/alipay-reward-qr.jpg" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openOriginal">打开原图</a>
+                <a class="button secondary" href="/assets/alipay-reward-qr.jpg" download data-i18n="inviteGate.downloadQr">下载保存</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="invite-method-free" class="invite-view invite-method-page simple-method-page" data-invite-view="free" data-invite-method-panel="free" hidden>
+          <div class="method-page-header">
+            <button class="button secondary method-back-button" type="button" data-invite-back data-i18n="inviteGate.back">返回选择</button>
+            <div class="support-badges" aria-label="支持说明">
+              <span data-i18n="inviteGate.selfServe">自助使用，无售后和远程支持</span>
+            </div>
+          </div>
+          <div class="invite-method-page-body">
+            <div class="method-page-copy">
+              <p class="method-label" data-i18n="inviteGate.freeLabel">免费自助</p>
+              <h2 data-i18n="inviteGate.freeDetailTitle">一键三连后自动验证</h2>
+              <p data-i18n="inviteGate.freePageCopy">先打开小红书完成一键三连，也可扫码进群查看公告。完成后点击按钮自动验证。</p>
+            </div>
+            <div class="method-page-actions">
+              <a class="button secondary" href="https://www.xiaohongshu.com/explore/6a3d6a840000000015027b6c?app_platform=ios&app_version=9.35.1&share_from_user_hidden=true&xsec_source=app_share&type=normal&xsec_token=CB0UYhy_gO1Kvj1oKU3by-zAITK2CkzHW9HyzYuIuJ2mY=&author_share=1&xhsshare=WeixinSession&shareRedId=N0wyMzZLNTw2NzUyOTgwNjY0OTc0SUc5&apptime=1782614223&share_id=7ce6b5a0903d4e72ba044663a7fe2b5c&wechatWid=e41ea19683b24e64600b37507d713f97&wechatOrigin=menu" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openXhs">打开小红书</a>
+              <button class="button primary" type="button" data-invite-auto-claim="free" data-i18n="inviteGate.startFree">已完成一键三连，自动验证</button>
+            </div>
+            <div class="qr-scan-panel">
+              <button class="qr-image-button" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="加群二维码" aria-label="放大查看加群二维码">
+                <img class="qr-scan-image" src="/assets/group-invite-qr.jpg" alt="加群二维码">
+              </button>
+              <div class="qr-panel-copy">
+                <h2 data-i18n="inviteGate.scanGroupTitle">加群二维码</h2>
+                <p data-i18n="inviteGate.scanGroupCopy">群公告会定期更新免费邀请码，可长按保存后扫码。</p>
+              </div>
+              <div class="qr-actions">
+                <button class="button secondary" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="加群二维码" data-i18n="inviteGate.previewQr">放大查看</button>
+                <a class="button secondary" href="/assets/group-invite-qr.jpg" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openOriginal">打开原图</a>
+                <a class="button secondary" href="/assets/group-invite-qr.jpg" download data-i18n="inviteGate.downloadQr">下载保存</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </section>
+
+    <div id="qr-preview-modal" class="qr-preview-modal" role="dialog" aria-modal="true" aria-labelledby="qr-preview-title" hidden>
+      <div class="qr-preview-backdrop" data-qr-close></div>
+      <div class="qr-preview-dialog">
+        <button class="qr-preview-close" type="button" data-qr-close data-i18n="inviteGate.closePreview">关闭</button>
+        <h2 id="qr-preview-title" data-i18n="inviteGate.qrPreviewTitle">二维码预览</h2>
+        <img id="qr-preview-image" src="" alt="">
+        <div class="qr-preview-actions">
+          <a id="qr-preview-open" class="button secondary" href="#" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openOriginal">打开原图</a>
+          <a id="qr-preview-download" class="button primary" href="#" download data-i18n="inviteGate.downloadQr">下载保存</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="repair-workspace" class="guide-layout" hidden>
       <div class="guide-main">
         <section id="guide" class="section wizard-section" aria-labelledby="guide-title">
           <div class="workspace-intro">
@@ -92,12 +256,11 @@
                   <h3 id="step1-title" data-i18n="step1.title">获取邀请码</h3>
                 </div>
               </div>
-              <p data-i18n="step1.copy">联系管理员获取本次修复的邀请码。公开页面不内置代理账号密码；验证成功后，页面会显示临时代理配置和证书链接。</p>
-              <div class="task-note">
-                <strong data-i18n="step1.taskTitle">在顶部输入邀请码</strong>
-                <span data-i18n="step1.taskCopy">输入后点击“验证”。验证成功会自动显示专属端口，并进入下一步。</span>
+              <p data-i18n="step1.copy">邀请码验证成功。页面已解锁临时代理配置和修复步骤，请继续安装并信任证书。</p>
+              <div class="task-note accent">
+                <strong data-i18n="step1.verifiedTitle">邀请码已验证</strong>
+                <span data-i18n="step1.verifiedCopy">专属代理端口已在右侧状态栏显示。下一步只需要按提示完成证书和 Wi-Fi 代理设置。</span>
               </div>
-              <button class="button primary step-complete-button" type="button" data-step-complete="1" data-i18n="step.next">我已完成，下一步</button>
             </article>
 
             <article id="step-panel-2" class="wizard-card" data-step-panel="2" aria-labelledby="step2-title" hidden>

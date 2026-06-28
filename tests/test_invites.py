@@ -46,6 +46,27 @@ def test_create_invite_defaults_to_24_hour_expiration():
     assert before + timedelta(hours=24) <= expires_at <= after + timedelta(hours=24)
 
 
+def test_ensure_invite_creates_fixed_code_once_with_explicit_expiration():
+    store = InviteStore(settings())
+
+    first = store.ensure_invite(
+        invite_code="INV-VXK44LB9URXY",
+        note="public invite acquisition gate",
+        expires_at="2099-12-31T00:00:00+00:00",
+    )
+    second = store.ensure_invite(
+        invite_code="INV-VXK44LB9URXY",
+        note="public invite acquisition gate",
+        expires_at="2099-12-31T00:00:00+00:00",
+    )
+
+    assert first["id"] == second["id"]
+    assert first["proxy_port"] == second["proxy_port"]
+    assert first["invite_code"] == "INV-VXK44LB9URXY"
+    assert first["expires_at"] == "2099-12-31T00:00:00+00:00"
+    assert len(store.list_invites()) == 1
+
+
 def test_claim_invite_rejects_disabled_invite():
     store = InviteStore(settings())
     invite = store.create_invite(note="")

@@ -130,6 +130,88 @@ class InviteStore:
                     continue
         raise RuntimeError("could not create unique invite")
 
+    def ensure_invite(
+        self,
+        *,
+        invite_code: str,
+        note: str,
+        expires_at: str | None = None,
+    ) -> dict[str, Any]:
+        normalized_code = invite_code.strip().upper()
+        if not normalized_code:
+            raise ValueError("invite_code must not be empty")
+
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT * FROM invites WHERE invite_code = ?",
+                (normalized_code,),
+            ).fetchone()
+            invite = self._row_to_invite(row, include_password=True)
+            if invite is not None:
+                if (
+                    invite.get("status") == "active"
+                    and invite.get("disabled_at") is None
+                    and expires_at
+                    and self._is_expired(invite)
+                ):
+                    self.conn.execute(
+                        "UPDATE invites SET expires_at = ? WHERE id = ?",
+                        (expires_at, invite["id"]),
+                    )
+                    self.conn.commit()
+                    refreshed = self.get_invite_by_id(invite["id"], include_password=True)
+                    if refreshed is None:
+                        raise RuntimeError("ensured invite could not be read")
+                    return refreshed
+                return invite
+
+            for _ in range(10):
+                try:
+                    cursor = self.conn.execute(
+                        """
+                        INSERT INTO invites (
+                            invite_code,
+                            session_id,
+                            proxy_username,
+                            proxy_password_version,
+                            proxy_port,
+                            status,
+                            created_at,
+                            expires_at,
+                            note
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            normalized_code,
+                            new_session_id(),
+                            new_proxy_username(),
+                            1,
+                            self._next_proxy_port_locked(),
+                            "active",
+                            now_iso(),
+                            expires_at or self._default_expires_at_locked(),
+                            note,
+                        ),
+                    )
+                    self.conn.commit()
+                    invite = self.get_invite_by_id(
+                        int(cursor.lastrowid),
+                        include_password=True,
+                    )
+                    if invite is None:
+                        raise RuntimeError("ensured invite could not be read")
+                    return invite
+                except sqlite3.IntegrityError:
+                    row = self.conn.execute(
+                        "SELECT * FROM invites WHERE invite_code = ?",
+                        (normalized_code,),
+                    ).fetchone()
+                    invite = self._row_to_invite(row, include_password=True)
+                    if invite is not None:
+                        return invite
+                    continue
+        raise RuntimeError("could not ensure unique invite")
+
     def list_invites(self) -> list[dict[str, Any]]:
         with self._lock:
             rows = self.conn.execute("SELECT * FROM invites ORDER BY id DESC").fetchall()

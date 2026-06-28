@@ -4,6 +4,7 @@ import re
 
 WEB = Path("repair_site/web")
 DEPLOY = Path("repair_site/deploy")
+DCOS = Path("dcos")
 
 
 def test_site_contains_required_user_guidance():
@@ -92,10 +93,10 @@ def test_public_site_uses_step_by_step_wizard_cards():
     css = (WEB / "styles.css").read_text()
 
     assert 'class="guide-layout"' in html
-    assert 'class="wizard-card is-active"' in html
+    assert 'class="wizard-card is-active' in html
     assert html.count("data-step-panel") == 5
     assert html.count("data-step-button") == 5
-    assert html.count("data-step-complete") >= 5
+    assert html.count("data-step-complete") >= 4
     assert 'aria-current="step"' in html
     assert "function setActiveStep" in js
     assert "function markStepComplete" in js
@@ -104,6 +105,179 @@ def test_public_site_uses_step_by_step_wizard_cards():
     assert ".wizard-card" in css
     assert ".step-rail" in css
     assert ".step-complete-button" in css
+
+
+def test_public_site_has_invite_acquisition_gate_with_three_options():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'class="invite-gate-screen' in html
+    assert "获取修复邀请码" in html
+    assert "选择一个获取方式，按提示拿到邀请码后继续修复。" in html
+    assert "免费使用" in html
+    assert "先打开小红书" in html
+    assert "一键三连" in html
+    assert "自助使用，无售后和远程支持" in html
+    assert "支付宝随缘付费" in html
+    assert "远程指导和后续售后技术支持" in html
+    assert "闲鱼下单购买" in html
+    assert "购买后按售后指引获取邀请码" in html
+    assert "无法帮助解决被封号" in html
+    assert "不解决梯子或网络问题" in html
+    assert "/assets/alipay-reward-qr.jpg" in html
+    assert "/assets/group-invite-qr.jpg" in html
+    assert "xiaohongshu.com/explore/6a3d6a840000000015027b6c" in html
+    assert "https://www.goofish.com/item" in html
+    assert "id=1061136454887" in html
+    assert "categoryId=50023914" in html
+    assert "#小程序://闲鱼/GI2JHZ8RzMQrHWn" not in html
+    assert "推荐" in html
+    assert html.index("闲鱼下单购买") < html.index("支付宝随缘付费") < html.index("免费使用")
+    assert html.count("data-invite-method-select") == 3
+    assert 'data-invite-method-panel="xianyu"' in html
+    assert 'data-invite-method-panel="alipay"' in html
+    assert 'data-invite-method-panel="free"' in html
+    assert html.count("data-invite-auto-claim") == 2
+    assert "PUBLIC_INVITE_CODE" in js
+    assert "INV-VXK44LB9URXY" in js
+    assert "function selectInviteMethod" in js
+    assert "function showInviteGateView" in js
+    assert "function resetInviteGateView" in js
+    assert "function autoClaimPublicInvite" in js
+    assert "function unlockRepairWorkspace" in js
+    assert "function lockRepairWorkspace" in js
+    assert 'data-invite-view="choice"' in html
+    assert 'data-invite-view="xianyu"' in html
+    assert 'data-invite-view="alipay"' in html
+    assert 'data-invite-view="free"' in html
+    assert html.count("data-invite-back") == 3
+    assert ".invite-methods" in css
+    assert ".invite-method-page" in css
+    assert ".invite-choice-view" in css
+    assert ".invite-gate-screen" in css
+
+
+def test_invite_options_open_isolated_method_pages():
+    html = (WEB / "index.html").read_text()
+    css = (WEB / "styles.css").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert "data-active-view=\"choice\"" in html
+    assert "invite-view invite-choice-view" in html
+    assert html.count("invite-view invite-method-page") == 3
+    assert "invite-method-detail-list" not in html
+    assert "invite-manual-note" not in html
+    assert "data-countdown-slot" not in html
+    assert 'inviteMethodPages.forEach((page) =>' in js
+    assert 'inviteGateScreen.dataset.activeView = targetView' in js
+    assert 'moveInviteCountdownTo(channel)' not in js
+    assert ".invite-method-page[hidden]" in css
+    assert ".invite-method-page-body" in css
+    assert ".method-page-actions" in css
+
+
+def test_alipay_and_free_invite_pages_use_simple_single_column_layout():
+    html = (WEB / "index.html").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'class="invite-view invite-method-page simple-method-page"' in html
+    assert html.count('class="invite-view invite-method-page simple-method-page"') == 2
+    assert ".simple-method-page .invite-method-page-body" in css
+    assert "grid-template-columns: minmax(0, 680px);" in css
+    assert ".simple-method-page .method-page-copy" in css
+    assert ".simple-method-page .qr-scan-panel" in css
+    assert "box-shadow: none;" in css
+
+
+def test_public_invite_auto_claim_fills_invite_and_verifies_immediately():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+
+    auto_claim = js.index("function autoClaimPublicInvite")
+    next_function = js.index("function focusInviteInput")
+    auto_claim_block = js[auto_claim:next_function]
+
+    assert "倒计时" not in html
+    assert "开始 60 秒" not in html
+    assert "invite-countdown-panel" not in html
+    assert "INVITE_COUNTDOWN_SECONDS" not in js
+    assert "function startInviteCountdown" not in js
+    assert "function finishInviteCountdown" not in js
+    assert "setInterval" not in auto_claim_block
+    assert "inviteInput.value = PUBLIC_INVITE_CODE" in auto_claim_block
+    assert "activateInvite(PUBLIC_INVITE_CODE)" in auto_claim_block
+
+
+def test_alipay_and_free_primary_actions_appear_before_qr_codes():
+    html = (WEB / "index.html").read_text()
+
+    alipay_start = html.index('<section id="invite-method-alipay"')
+    free_start = html.index('<section id="invite-method-free"')
+    modal_start = html.index('<div id="qr-preview-modal"')
+    alipay_block = html[alipay_start:free_start]
+    free_block = html[free_start:modal_start]
+
+    assert alipay_block.index('data-invite-auto-claim="alipay"') < alipay_block.index(
+        'class="qr-scan-panel"'
+    )
+    assert free_block.index("打开小红书") < free_block.index('class="qr-scan-panel"')
+    assert free_block.index('data-invite-auto-claim="free"') < free_block.index(
+        'class="qr-scan-panel"'
+    )
+
+
+def test_public_site_qr_codes_are_large_and_previewable():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert (WEB / "assets" / "alipay-reward-qr.jpg").read_bytes() == (
+        DCOS / "支付宝二维码.jpg"
+    ).read_bytes()
+    assert (WEB / "assets" / "group-invite-qr.jpg").exists()
+    assert html.count("qr-scan-panel") == 2
+    assert html.count("data-qr-preview") == 4
+    assert "支付宝收款二维码" in html
+    assert "加群二维码" in html
+    assert "放大查看" in html
+    assert "打开原图" in html
+    assert "下载保存" in html
+    assert 'class="qr-image-button"' in html
+    assert 'class="qr-actions"' in html
+    assert 'id="qr-preview-modal"' in html
+    assert 'id="qr-preview-image"' in html
+    assert "function openQrPreview" in js
+    assert "function closeQrPreview" in js
+    assert ".qr-scan-image" in css
+    assert "min-height: min(64svh, 720px);" in css
+    assert ".qr-preview-modal" in css
+
+
+def test_public_site_has_single_invite_entry_point_after_invite_gate():
+    html = (WEB / "index.html").read_text()
+
+    assert html.count("<form ") == 1
+    assert html.count('name="invite-code"') == 1
+    assert 'id="invite-form"' in html
+    assert "data-invite-auto-claim" in html
+    assert "data-focus-invite" in html
+
+
+def test_public_site_invite_gate_is_full_screen_before_repair_workspace():
+    html = (WEB / "index.html").read_text()
+    css = (WEB / "styles.css").read_text()
+    js = (WEB / "app.js").read_text()
+
+    assert 'id="invite-gate"' in html
+    assert 'class="invite-gate-screen"' in html
+    assert 'class="guide-layout" hidden' in html
+    assert "aria-labelledby=\"invite-gate-title\"" in html
+    assert "min-height: calc(100svh - var(--topbar-offset));" in css
+    assert ".public-page.is-invite-unlocked .invite-gate-screen" in css
+    assert ".public-page.is-invite-unlocked .guide-layout" in css
+    assert 'document.body.classList.add("is-invite-unlocked")' in js
+    assert 'repairWorkspace.hidden = false' in js
 
 
 def test_public_site_uses_full_screen_card_workspace():

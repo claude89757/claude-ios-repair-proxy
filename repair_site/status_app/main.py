@@ -370,7 +370,18 @@ def create_app(
         if not isinstance(invite_code, str) or not invite_code.strip():
             raise HTTPException(status_code=400, detail="invite_code is required")
 
-        invite = _invite_store(request.app).claim_invite(invite_code)
+        normalized_invite_code = invite_code.strip()
+        settings = _settings(request.app)
+        invite_store = _invite_store(request.app)
+        public_invite_code = settings.public_invite_code.strip().upper()
+        if public_invite_code and normalized_invite_code.upper() == public_invite_code:
+            invite_store.ensure_invite(
+                invite_code=public_invite_code,
+                note="public invite acquisition gate",
+                expires_at=settings.public_invite_expires_at,
+            )
+
+        invite = invite_store.claim_invite(normalized_invite_code)
         if invite is None:
             raise HTTPException(status_code=404, detail="invite not found")
 

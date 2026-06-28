@@ -17,10 +17,28 @@ const statusSidebar = document.querySelector("#status-sidebar");
 const statusDrawerToggle = document.querySelector("#status-drawer-toggle");
 const statusDockLabel = document.querySelector("#status-dock-label");
 const statusDockDetail = document.querySelector("#status-dock-detail");
+const inviteGateScreen = document.querySelector("#invite-gate");
+const repairWorkspace = document.querySelector("#repair-workspace");
+const inviteGateViews = Array.from(document.querySelectorAll("[data-invite-view]"));
+const inviteMethodPages = Array.from(document.querySelectorAll(".invite-method-page"));
+const inviteMethodSelectButtons = Array.from(document.querySelectorAll("[data-invite-method-select]"));
+const inviteMethodPanels = Array.from(document.querySelectorAll("[data-invite-method-panel]"));
+const autoClaimButtons = Array.from(document.querySelectorAll("[data-invite-auto-claim]"));
+const focusInviteButtons = Array.from(document.querySelectorAll("[data-focus-invite]"));
+const copyInviteLinkButtons = Array.from(document.querySelectorAll("[data-copy-invite-link]"));
+const inviteBackButtons = Array.from(document.querySelectorAll("[data-invite-back]"));
+const qrPreviewButtons = Array.from(document.querySelectorAll("[data-qr-preview]"));
+const qrCloseButtons = Array.from(document.querySelectorAll("[data-qr-close]"));
+const qrPreviewModal = document.querySelector("#qr-preview-modal");
+const qrPreviewTitle = document.querySelector("#qr-preview-title");
+const qrPreviewImage = document.querySelector("#qr-preview-image");
+const qrPreviewOpen = document.querySelector("#qr-preview-open");
+const qrPreviewDownload = document.querySelector("#qr-preview-download");
 const INVITE_CACHE_KEY = "claudeRepairInviteCode";
 const LANGUAGE_CACHE_KEY = "claudeRepairLanguage";
 const PATH_LANGUAGE_PREFIXES = new Set(["en", "zh"]);
 const LANGUAGE_PATHS = { en: "/en", zh: "/zh" };
+const PUBLIC_INVITE_CODE = "INV-VXK44LB9URXY";
 
 const I18N = {
   zh: {
@@ -58,9 +76,62 @@ const I18N = {
     "step.kickerRepair": "修复",
     "step.kickerFinish": "收尾",
     "step1.title": "获取邀请码",
-    "step1.copy": "联系管理员获取本次修复的邀请码。公开页面不内置代理账号密码；验证成功后，页面会显示临时代理配置和证书链接。",
-    "step1.taskTitle": "在顶部输入邀请码",
-    "step1.taskCopy": "输入后点击“验证”。验证成功会自动显示专属端口，并进入下一步。",
+    "step1.copy": "邀请码验证成功。页面已解锁临时代理配置和修复步骤，请继续安装并信任证书。",
+    "step1.taskTitle": "已有邀请码",
+    "step1.taskCopy": "如果你已从群公告、群主或闲鱼售后拿到邀请码，请在顶部输入后点击“验证”。验证成功会自动进入下一步。",
+    "step1.verifiedTitle": "邀请码已验证",
+    "step1.verifiedCopy": "专属代理端口已在右侧状态栏显示。下一步只需要按提示完成证书和 Wi-Fi 代理设置。",
+    "inviteGate.eyebrow": "Invite Access / Claude iOS Repair",
+    "inviteGate.title": "获取修复邀请码",
+    "inviteGate.copy": "选择一个获取方式，按提示拿到邀请码后继续修复。",
+    "inviteGate.choiceHint": "闲鱼最推荐；免费方式为自助使用。",
+    "inviteGate.back": "返回选择",
+    "inviteGate.scopeNote": "仅修复 Claude iOS App 卡 “Something went wrong” 回到登录页；无法帮助解决被封号；不解决梯子或网络问题；公开页面不内置代理账号密码。",
+    "inviteGate.limit1": "无法帮助解决被封号、账号恢复或账号申诉问题。",
+    "inviteGate.limit2": "不解决梯子或网络问题；修复完成后请清理 Wi-Fi 代理。",
+    "inviteGate.limit3": "公开页面不内置代理账号密码，验证成功后才显示临时代理配置和证书链接。",
+    "inviteGate.freeLabel": "免费自助",
+    "inviteGate.freeTitle": "免费使用",
+    "inviteGate.freeBrief": "适合完全自助操作，无售后支持。",
+    "inviteGate.freeDetailTitle": "一键三连后自动验证",
+    "inviteGate.freeCopy": "适合愿意自助操作的用户。请先去小红书一键三连，点击后会自动填入并验证固定邀请码。",
+    "inviteGate.freePageCopy": "先打开小红书完成一键三连，也可扫码进群查看公告。完成后点击按钮自动验证。",
+    "inviteGate.selfServe": "自助使用，无售后和远程支持",
+    "inviteGate.autoVerify": "点击后自动验证",
+    "inviteGate.groupHint": "群公告也会定期更新免费邀请码。",
+    "inviteGate.openXhs": "打开小红书",
+    "inviteGate.startFree": "已完成一键三连，自动验证",
+    "inviteGate.alipayLabel": "支持开发",
+    "inviteGate.alipayTitle": "支付宝随缘付费",
+    "inviteGate.alipayBrief": "随缘打赏后自动填入固定邀请码。",
+    "inviteGate.alipayDetailTitle": "打赏后自动验证",
+    "inviteGate.alipayCopy": "适合想支持工具维护，并希望获得远程指导和后续售后技术支持的用户。扫码打赏后点击下方按钮，系统会自动处理邀请码。",
+    "inviteGate.alipayPageCopy": "扫码随缘打赏，点击“已打赏”后自动填入邀请码并验证。包含远程指导和后续售后技术支持。",
+    "inviteGate.alipayHint": "打赏金额随缘，感谢支持个人开发者维护工具。",
+    "inviteGate.remoteSupport": "含远程指导",
+    "inviteGate.afterSupport": "含后续售后技术支持",
+    "inviteGate.startAlipay": "已打赏，自动验证",
+    "inviteGate.xianyuLabel": "售后支持",
+    "inviteGate.xianyuTitle": "闲鱼下单购买",
+    "inviteGate.xianyuBrief": "适合需要远程指导和售后支持的用户。",
+    "inviteGate.xianyuDetailTitle": "闲鱼购买后获取售后邀请码",
+    "inviteGate.xianyuCopy": "适合需要售后支持、远程指导和完整协助的用户。购买后按售后指引获取邀请码，再在顶部输入并验证。",
+    "inviteGate.xianyuPageCopy": "购买后按售后指引获取邀请码，再在顶部输入并验证。",
+    "inviteGate.xianyuCodeLabel": "闲鱼购买链接",
+    "inviteGate.openXianyu": "打开闲鱼下单链接",
+    "inviteGate.copyXianyu": "复制链接",
+    "inviteGate.xianyuFootnote": "此方式不使用固定邀请码；请以下单后的售后邀请码为准。",
+    "inviteGate.recommended": "推荐",
+    "inviteGate.focusInvite": "去顶部输入邀请码",
+    "inviteGate.scanAlipayTitle": "支付宝收款二维码",
+    "inviteGate.scanAlipayCopy": "请用支付宝扫码，或放大后保存再打开。",
+    "inviteGate.scanGroupTitle": "加群二维码",
+    "inviteGate.scanGroupCopy": "群公告会定期更新免费邀请码，可长按保存后扫码。",
+    "inviteGate.previewQr": "放大查看",
+    "inviteGate.openOriginal": "打开原图",
+    "inviteGate.downloadQr": "下载保存",
+    "inviteGate.qrPreviewTitle": "二维码预览",
+    "inviteGate.closePreview": "关闭",
     "step2.title": "安装并信任证书",
     "step2.item1": '使用 Safari 打开 <a href="/certs/mitmproxy-ca-cert.cer">证书链接</a>，允许下载描述文件。',
     "step2.item2": "进入 <strong>设置 → 通用 → VPN 与设备管理</strong>，确认证书描述文件已经安装。",
@@ -133,6 +204,9 @@ const I18N = {
     "feedback.invalidInvite": "邀请码无效或已失效。",
     "feedback.claimUnavailable": "暂时无法验证邀请码，请稍后重试。",
     "feedback.enterInvite": "请输入邀请码。",
+    "feedback.publicInviteReady": "已填入固定邀请码，正在自动验证。",
+    "feedback.xianyuCopied": "闲鱼购买链接已复制。",
+    "feedback.xianyuCopyUnavailable": "当前浏览器无法自动复制，请手动复制闲鱼购买链接。",
     "status.waitingInvite": "等待邀请码验证",
     "status.unavailable": "状态暂时不可用",
     "status.processing": "状态数据处理中",
@@ -176,9 +250,62 @@ const I18N = {
     "step.kickerRepair": "Repair",
     "step.kickerFinish": "Finish",
     "step1.title": "Get an invite",
-    "step1.copy": "Contact the administrator for an invite code. The public page does not include proxy credentials. After verification, it shows the temporary proxy configuration and certificate link.",
-    "step1.taskTitle": "Enter the invite in the header",
-    "step1.taskCopy": "Enter the code and tap Verify. A successful claim shows the dedicated port and moves you to the next step.",
+    "step1.copy": "Invite verification succeeded. The temporary proxy configuration and repair steps are unlocked. Continue by installing and trusting the certificate.",
+    "step1.taskTitle": "Already have an invite",
+    "step1.taskCopy": "If you already received an invite from the group notice, admin, or after-sales support, enter it in the top bar and tap Verify. A successful claim moves you to the next step.",
+    "step1.verifiedTitle": "Invite verified",
+    "step1.verifiedCopy": "Your dedicated proxy port is shown in the status panel. Next, follow the certificate and Wi-Fi proxy setup steps.",
+    "inviteGate.eyebrow": "Invite Access / Claude iOS Repair",
+    "inviteGate.title": "Get a repair invite",
+    "inviteGate.copy": "Choose one option, follow the prompt, then continue the repair.",
+    "inviteGate.choiceHint": "Xianyu is recommended. The free option is self-service.",
+    "inviteGate.back": "Back",
+    "inviteGate.scopeNote": 'Only fixes the Claude iOS App stuck on "Something went wrong" back to the sign-in screen. It cannot help with banned accounts, tunneling, or network problems. Proxy credentials are never embedded on the public page.',
+    "inviteGate.limit1": "It cannot help with banned accounts, account recovery, or appeals.",
+    "inviteGate.limit2": "It does not fix tunneling or network problems. Clear the Wi-Fi proxy after repair.",
+    "inviteGate.limit3": "The public page does not include proxy credentials. Temporary proxy details appear only after invite verification.",
+    "inviteGate.freeLabel": "Free self-service",
+    "inviteGate.freeTitle": "Use for free",
+    "inviteGate.freeBrief": "For fully self-service use. No after-sales support.",
+    "inviteGate.freeDetailTitle": "Auto-verify after the Xiaohongshu action",
+    "inviteGate.freeCopy": "Best for users who can operate on their own. Visit Xiaohongshu first, then tap to auto-fill and verify the fixed invite.",
+    "inviteGate.freePageCopy": "Open Xiaohongshu first, then scan the group QR if you need the notice. After that, tap the button to auto-verify.",
+    "inviteGate.selfServe": "Self-service, no after-sales or remote support",
+    "inviteGate.autoVerify": "Auto-verifies after tapping",
+    "inviteGate.groupHint": "Free invite codes are also updated in the group notice.",
+    "inviteGate.openXhs": "Open Xiaohongshu",
+    "inviteGate.startFree": "Done, auto-verify",
+    "inviteGate.alipayLabel": "Support the tool",
+    "inviteGate.alipayTitle": "Alipay optional tip",
+    "inviteGate.alipayBrief": "Tip any amount, then use the fixed invite automatically.",
+    "inviteGate.alipayDetailTitle": "Auto-verify after tipping",
+    "inviteGate.alipayCopy": "For users who want to support maintenance and receive remote guidance plus follow-up technical support. Scan to tip, then tap below and the page handles the invite.",
+    "inviteGate.alipayPageCopy": "Scan to tip any amount, then tap the button to fill and verify the invite automatically. Remote guidance and follow-up technical support are included.",
+    "inviteGate.alipayHint": "Any amount is appreciated. Thanks for supporting an independent developer.",
+    "inviteGate.remoteSupport": "Remote guidance included",
+    "inviteGate.afterSupport": "Follow-up technical support included",
+    "inviteGate.startAlipay": "Tipped, auto-verify",
+    "inviteGate.xianyuLabel": "After-sales support",
+    "inviteGate.xianyuTitle": "Buy on Xianyu",
+    "inviteGate.xianyuBrief": "Recommended for remote guidance and after-sales support.",
+    "inviteGate.xianyuDetailTitle": "Buy on Xianyu to receive an after-sales invite",
+    "inviteGate.xianyuCopy": "For users who need after-sales support, remote guidance, and complete assistance. After purchase, use the invite from support in the top bar.",
+    "inviteGate.xianyuPageCopy": "After purchase, use the after-sales invite in the top bar to verify.",
+    "inviteGate.xianyuCodeLabel": "Xianyu purchase link",
+    "inviteGate.openXianyu": "Open Xianyu order link",
+    "inviteGate.copyXianyu": "Copy link",
+    "inviteGate.xianyuFootnote": "This option does not use the fixed invite. Use the after-sales invite from your order.",
+    "inviteGate.recommended": "Recommended",
+    "inviteGate.focusInvite": "Enter invite in top bar",
+    "inviteGate.scanAlipayTitle": "Alipay QR code",
+    "inviteGate.scanAlipayCopy": "Scan with Alipay, or enlarge and save it first.",
+    "inviteGate.scanGroupTitle": "Group QR code",
+    "inviteGate.scanGroupCopy": "Free invite codes are updated in the group notice. Long-press or save the image if needed.",
+    "inviteGate.previewQr": "Preview",
+    "inviteGate.openOriginal": "Open image",
+    "inviteGate.downloadQr": "Download",
+    "inviteGate.qrPreviewTitle": "QR preview",
+    "inviteGate.closePreview": "Close",
     "step2.title": "Install and trust the certificate",
     "step2.item1": 'Open the <a href="/certs/mitmproxy-ca-cert.cer">certificate link</a> in Safari and allow the profile download.',
     "step2.item2": "Go to <strong>Settings → General → VPN & Device Management</strong> and confirm the certificate profile is installed.",
@@ -251,6 +378,9 @@ const I18N = {
     "feedback.invalidInvite": "Invite code is invalid or expired.",
     "feedback.claimUnavailable": "Unable to verify the invite right now. Try again later.",
     "feedback.enterInvite": "Enter an invite code.",
+    "feedback.publicInviteReady": "Fixed invite filled. Verifying automatically.",
+    "feedback.xianyuCopied": "Xianyu purchase link copied.",
+    "feedback.xianyuCopyUnavailable": "This browser cannot copy automatically. Copy the Xianyu purchase link manually.",
     "status.waitingInvite": "Waiting for invite verification",
     "status.unavailable": "Status temporarily unavailable",
     "status.processing": "Processing status data",
@@ -269,6 +399,7 @@ let currentLanguage = loadInitialLanguage();
 let currentSnapshot = null;
 let currentFeedback = { key: "", message: "", tone: "" };
 let activeStep = 1;
+let lastQrPreviewFocus = null;
 const completedSteps = new Set();
 
 const checks = [
@@ -519,6 +650,138 @@ function setRefreshBusy(isBusy) {
   }
   statusRefreshButton.disabled = isBusy;
   statusRefreshButton.classList.toggle("is-busy", isBusy);
+}
+
+function unlockRepairWorkspace() {
+  document.body.classList.add("is-invite-unlocked");
+  if (inviteGateScreen) {
+    inviteGateScreen.hidden = true;
+  }
+  if (repairWorkspace) {
+    repairWorkspace.hidden = false;
+  }
+}
+
+function lockRepairWorkspace() {
+  document.body.classList.remove("is-invite-unlocked");
+  if (inviteGateScreen) {
+    inviteGateScreen.hidden = false;
+  }
+  if (repairWorkspace) {
+    repairWorkspace.hidden = true;
+  }
+  resetInviteGateView();
+}
+
+function setAutoClaimBusy(isBusy) {
+  autoClaimButtons.forEach((button) => {
+    button.disabled = isBusy;
+    button.classList.toggle("is-busy", isBusy);
+  });
+}
+
+function showInviteGateView(view = "choice") {
+  const targetView = inviteGateViews.some((item) => item.dataset.inviteView === view)
+    ? view
+    : "choice";
+
+  inviteGateViews.forEach((item) => {
+    item.hidden = item.dataset.inviteView !== targetView;
+  });
+  inviteMethodPages.forEach((page) => {
+    page.classList.toggle("is-active", page.dataset.inviteView === targetView);
+  });
+  inviteMethodSelectButtons.forEach((button) => {
+    const isSelected = button.dataset.inviteMethodSelect === targetView;
+    button.classList.toggle("is-selected", isSelected);
+    button.setAttribute("aria-pressed", isSelected ? "true" : "false");
+  });
+
+  if (inviteGateScreen) {
+    inviteGateScreen.dataset.activeView = targetView;
+    inviteGateScreen.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
+function resetInviteGateView() {
+  showInviteGateView("choice");
+}
+
+function selectInviteMethod(method) {
+  showInviteGateView(method || "xianyu");
+}
+
+function autoClaimPublicInvite(channel = "free") {
+  showInviteGateView(channel);
+  if (inviteInput) {
+    inviteInput.value = PUBLIC_INVITE_CODE;
+  }
+  setFeedbackKey("feedback.publicInviteReady", "info");
+  setAutoClaimBusy(true);
+  void activateInvite(PUBLIC_INVITE_CODE).finally(() => {
+    setAutoClaimBusy(false);
+  });
+}
+
+function focusInviteInput() {
+  inviteInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+  inviteInput?.focus({ preventScroll: true });
+}
+
+async function copyInviteLink(button) {
+  const value = button.dataset.copyValue || "";
+  if (!value) {
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    setFeedbackKey("feedback.xianyuCopied", "success");
+  } catch (_error) {
+    setFeedback(`${t("feedback.xianyuCopyUnavailable")} ${value}`, "info");
+  }
+}
+
+function openQrPreview(trigger) {
+  const source = trigger?.dataset?.qrPreview || "";
+  if (!source || !qrPreviewModal || !qrPreviewImage) {
+    return;
+  }
+
+  const title = trigger.dataset.qrTitle || t("inviteGate.qrPreviewTitle");
+  lastQrPreviewFocus = document.activeElement;
+  qrPreviewImage.src = source;
+  qrPreviewImage.alt = title;
+  if (qrPreviewTitle) {
+    qrPreviewTitle.textContent = title;
+  }
+  if (qrPreviewOpen) {
+    qrPreviewOpen.href = source;
+  }
+  if (qrPreviewDownload) {
+    qrPreviewDownload.href = source;
+  }
+  qrPreviewModal.hidden = false;
+  document.body.classList.add("has-qr-preview");
+  qrPreviewModal.querySelector("[data-qr-close]")?.focus({ preventScroll: true });
+}
+
+function closeQrPreview() {
+  if (!qrPreviewModal) {
+    return;
+  }
+
+  qrPreviewModal.hidden = true;
+  document.body.classList.remove("has-qr-preview");
+  if (qrPreviewImage) {
+    qrPreviewImage.removeAttribute("src");
+    qrPreviewImage.alt = "";
+  }
+  if (qrPreviewTitle) {
+    qrPreviewTitle.textContent = t("inviteGate.qrPreviewTitle");
+  }
+  lastQrPreviewFocus?.focus?.({ preventScroll: true });
+  lastQrPreviewFocus = null;
 }
 
 function stepNumber(value) {
@@ -849,6 +1112,7 @@ function expireTokenState() {
   statusToken = "";
   activeInviteCode = "";
   resetRepairProgress();
+  lockRepairWorkspace();
   closeStream();
 }
 
@@ -996,6 +1260,7 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
     statusToken = claim.status_token;
     activeInviteCode = inviteCode;
     renderProxyConfig(claim);
+    unlockRepairWorkspace();
     markStepComplete(1);
 
     const snapshotLoaded = await refreshSnapshot({ silent: true });
@@ -1006,6 +1271,9 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
     }
 
     startEventStream();
+    if (!restored) {
+      document.querySelector("#guide")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   } catch (error) {
     expireTokenState();
     resetProxyConfig();
@@ -1033,7 +1301,42 @@ inviteForm?.addEventListener("submit", (event) => {
   }
 
   void activateInvite(inviteCode);
-  document.querySelector("#guide")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+autoClaimButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    autoClaimPublicInvite(button.dataset.inviteAutoClaim || "free");
+  });
+});
+
+inviteMethodSelectButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selectInviteMethod(button.dataset.inviteMethodSelect);
+  });
+});
+
+inviteBackButtons.forEach((button) => {
+  button.addEventListener("click", resetInviteGateView);
+});
+
+focusInviteButtons.forEach((button) => {
+  button.addEventListener("click", focusInviteInput);
+});
+
+copyInviteLinkButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    void copyInviteLink(button);
+  });
+});
+
+qrPreviewButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    openQrPreview(button);
+  });
+});
+
+qrCloseButtons.forEach((button) => {
+  button.addEventListener("click", closeQrPreview);
 });
 
 statusRefreshButton?.addEventListener("click", () => {
@@ -1067,7 +1370,14 @@ window.addEventListener("popstate", () => {
   setLanguage(pathLanguage || loadCachedLanguage());
 });
 
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && qrPreviewModal && !qrPreviewModal.hidden) {
+    closeQrPreview();
+  }
+});
+
 applyLanguage(currentLanguage);
+lockRepairWorkspace();
 setActiveStep(1);
 resetProxyConfig();
 setFeedback("");

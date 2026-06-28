@@ -78,6 +78,25 @@ def test_claim_invite_rejects_invalid_code():
     assert response.status_code == 404
 
 
+def test_claim_public_invite_code_creates_stable_invite_when_missing():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/invites/claim",
+        json={"invite_code": "INV-VXK44LB9URXY"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    stored = invite_store.claim_invite("INV-VXK44LB9URXY")
+    assert stored is not None
+    assert stored["proxy_port"] == body["proxy_port"]
+    assert stored["note"] == "public invite acquisition gate"
+    assert stored["expires_at"].startswith("2099-12-31")
+    assert verify_status_token(body["status_token"], secret="status-secret") == stored["session_id"]
+
+
 def test_claim_invite_rejects_malformed_json():
     app, _invite_store, _status_store = app_parts()
     client = TestClient(app)
