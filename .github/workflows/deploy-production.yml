@@ -1,0 +1,113 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Test and deploy production
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    env:
+      DEPLOY_HOST: ${{ vars.PROD_SSH_HOST }}
+      DEPLOY_USER: ${{ vars.PROD_SSH_USER }}
+      DEPLOY_PORT: ${{ vars.PROD_SSH_PORT }}
+      GITHUB_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Prepare SSH
+        env:
+          PROD_SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          PROD_SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$PROD_SSH_PRIVATE_KEY" > ~/.ssh/production_deploy_key
+          chmod 600 ~/.ssh/production_deploy_key
+          printf '%s\n' "$PROD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Package release
+        run: |
+          set -euo pipefail
+          tar -czf /tmp/claude-ios-repair-${GITHUB_SHA}.tgz requirements.txt repair_site
+
+      - name: Upload release
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/production_deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p /tmp/claude-ios-repair-deploy"
+          scp -i ~/.ssh/production_deploy_key -P "$DEPLOY_PORT" -o StrictHostKeyChecking=yes \
+            /tmp/claude-ios-repair-${GITHUB_SHA}.tgz \
+            "$DEPLOY_USER@$DEPLOY_HOST:/tmp/claude-ios-repair-deploy/app-${GITHUB_SHA}.tgz"
+
+      - name: Deploy on server
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/production_deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "GITHUB_SHA='$GITHUB_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          APP_DIR=/opt/claude-ios-repair
+          RELEASE_ROOT=/tmp/claude-ios-repair-deploy
+          RELEASE_DIR="${RELEASE_ROOT}/release-${GITHUB_SHA}"
+          ARCHIVE="${RELEASE_ROOT}/app-${GITHUB_SHA}.tgz"
+
+          rm -rf "$RELEASE_DIR"
+          mkdir -p "$RELEASE_DIR" "$APP_DIR" "$APP_DIR/data" "$APP_DIR/mitmproxy" /var/www/letsencrypt/.well-known/acme-challenge
+          tar -xzf "$ARCHIVE" -C "$RELEASE_DIR"
+
+          cd "$RELEASE_DIR"
+          docker build -f repair_site/deploy/Dockerfile -t claude-ios-repair:${GITHUB_SHA} .
+          docker tag claude-ios-repair:${GITHUB_SHA} claude-ios-repair:latest
+
+          rsync -a --delete "$RELEASE_DIR/repair_site/" "$APP_DIR/repair_site/"
+          install -m 0644 "$RELEASE_DIR/requirements.txt" "$APP_DIR/requirements.txt"
+          printf '%s\n' "$GITHUB_SHA" > /opt/claude-ios-repair/REVISION
+
+          install -D -m 0644 "$APP_DIR/repair_site/deploy/claude-repair-status.service" /etc/systemd/system/claude-repair-status.service
+          install -D -m 0644 "$APP_DIR/repair_site/deploy/claude-repair-mitm.service" /etc/systemd/system/claude-repair-mitm.service
+          install -D -m 0644 "$APP_DIR/repair_site/deploy/nginx.conf" /etc/nginx/conf.d/claude-ios-repair.conf
+
+          systemctl daemon-reload
+          nginx -t
+          systemctl reload nginx
+          systemctl restart claude-repair-status.service
+          sleep 2
+          systemctl restart claude-repair-mitm.service
+          sleep 2
+          systemctl is-active claude-repair-status.service
+          systemctl is-active claude-repair-mitm.service
+          REMOTE
+
+      - name: Verify public endpoints
+        run: |
+          set -euo pipefail
+          curl -fsS https://sg2.claude89757.cc/api/health
+          curl -fsS https://claude89757.cc/api/health
+          curl -fsSI https://sg2.claude89757.cc/certs/mitmproxy-ca-cert.cer

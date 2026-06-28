@@ -49,6 +49,23 @@ uvicorn repair_site.status_app.main:app --host 127.0.0.1 --port 9000
 - Admin-created invites expire after `INVITE_DEFAULT_TTL_SECONDS` seconds by default; production default is `86400` seconds.
 - Free/tip public buttons generate one-hour temporary invites by default; configure with `PUBLIC_INVITE_TTL_SECONDS`.
 
+## Deployment
+
+Production deploys through GitHub Actions. Pull requests run the CI workflow without touching production; pushes to `main` run tests and then deploy through the `production` environment.
+
+Required `production` environment variables:
+
+- `PROD_SSH_HOST`
+- `PROD_SSH_USER`
+- `PROD_SSH_PORT`
+
+Required `production` environment secrets:
+
+- `PROD_SSH_PRIVATE_KEY`
+- `PROD_SSH_KNOWN_HOSTS`
+
+The deployment workflow packages only `requirements.txt` and `repair_site`, uploads the archive to the server, builds `claude-ios-repair:<commit-sha>` on the server, tags it as `latest`, updates `/opt/claude-ios-repair`, and leaves `/opt/claude-ios-repair/data` plus `/opt/claude-ios-repair/mitmproxy` untouched.
+
 ## Security Notes
 
 公开页面不内置代理账号密码。用户通过管理员发放的邀请码，或免费/打赏入口动态生成的 1 小时临时邀请码获取专属代理端口；iPhone Wi-Fi 代理认证保持关闭。端口到期或邀请码停用后会回收再利用。服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。
