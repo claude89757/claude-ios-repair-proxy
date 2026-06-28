@@ -21,8 +21,7 @@ class Settings:
     proxy_port_start: int = 10001
     proxy_port_end: int = 10999
     invite_default_ttl_seconds: int = 86400
-    public_invite_code: str = "INV-VXK44LB9URXY"
-    public_invite_expires_at: str = "2099-12-31T00:00:00+00:00"
+    public_invite_ttl_seconds: int = 3600
 
 
 def load_settings() -> Settings:
@@ -39,11 +38,7 @@ def load_settings() -> Settings:
         proxy_port_start=int(os.getenv("PROXY_PORT_START", "10001")),
         proxy_port_end=int(os.getenv("PROXY_PORT_END", "10999")),
         invite_default_ttl_seconds=int(os.getenv("INVITE_DEFAULT_TTL_SECONDS", "86400")),
-        public_invite_code=os.getenv("PUBLIC_INVITE_CODE", "INV-VXK44LB9URXY").strip().upper(),
-        public_invite_expires_at=os.getenv(
-            "PUBLIC_INVITE_EXPIRES_AT",
-            "2099-12-31T00:00:00+00:00",
-        ).strip(),
+        public_invite_ttl_seconds=int(os.getenv("PUBLIC_INVITE_TTL_SECONDS", "3600")),
     )
 
 

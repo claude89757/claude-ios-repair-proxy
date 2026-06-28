@@ -38,7 +38,6 @@ const INVITE_CACHE_KEY = "claudeRepairInviteCode";
 const LANGUAGE_CACHE_KEY = "claudeRepairLanguage";
 const PATH_LANGUAGE_PREFIXES = new Set(["en", "zh"]);
 const LANGUAGE_PATHS = { en: "/en", zh: "/zh" };
-const PUBLIC_INVITE_CODE = "INV-VXK44LB9URXY";
 
 const I18N = {
   zh: {
@@ -53,7 +52,7 @@ const I18N = {
     "hero.cta": "开始修复",
     "entry.kicker": "状态入口",
     "entry.title": "验证邀请码并查看临时修复通道",
-    "entry.copy": "使用顶部固定的邀请码栏输入管理员提供的邀请码。验证后页面会显示默认 24 小时失效的一次性修复端口和脱敏实时状态。",
+    "entry.copy": "免费/打赏入口会生成 1 小时临时邀请码；售后邀请码以管理员设置为准。验证后页面会显示本次修复端口和脱敏实时状态。",
     "entry.label": "邀请码",
     "entry.placeholder": "输入邀请码",
     "entry.submit": "验证",
@@ -94,7 +93,7 @@ const I18N = {
     "inviteGate.freeTitle": "免费使用",
     "inviteGate.freeBrief": "适合完全自助操作，无售后支持。",
     "inviteGate.freeDetailTitle": "一键三连后自动验证",
-    "inviteGate.freeCopy": "适合愿意自助操作的用户。请先去小红书一键三连，点击后会自动填入并验证固定邀请码。",
+    "inviteGate.freeCopy": "适合愿意自助操作的用户。请先去小红书一键三连，完成后会生成 1 小时临时邀请码并自动验证。",
     "inviteGate.freePageCopy": "先打开小红书完成一键三连，也可扫码进群查看公告。完成后点击按钮自动验证。",
     "inviteGate.selfServe": "自助使用，无售后和远程支持",
     "inviteGate.autoVerify": "点击后自动验证",
@@ -103,7 +102,7 @@ const I18N = {
     "inviteGate.startFree": "已完成一键三连，自动验证",
     "inviteGate.alipayLabel": "支持开发",
     "inviteGate.alipayTitle": "支付宝随缘付费",
-    "inviteGate.alipayBrief": "随缘打赏后自动填入固定邀请码。",
+    "inviteGate.alipayBrief": "随缘打赏后生成 1 小时临时邀请码。",
     "inviteGate.alipayDetailTitle": "打赏后自动验证",
     "inviteGate.alipayCopy": "适合想支持工具维护，并希望获得远程指导和后续售后技术支持的用户。扫码打赏后点击下方按钮，系统会自动处理邀请码。",
     "inviteGate.alipayPageCopy": "扫码随缘打赏，点击“已打赏”后自动填入邀请码并验证。包含远程指导和后续售后技术支持。",
@@ -120,7 +119,7 @@ const I18N = {
     "inviteGate.xianyuCodeLabel": "闲鱼购买链接",
     "inviteGate.openXianyu": "打开闲鱼下单链接",
     "inviteGate.copyXianyu": "复制链接",
-    "inviteGate.xianyuFootnote": "此方式不使用固定邀请码；请以下单后的售后邀请码为准。",
+    "inviteGate.xianyuFootnote": "此方式使用售后邀请码；请以下单后的售后邀请码为准。",
     "inviteGate.recommended": "推荐",
     "inviteGate.focusInvite": "去顶部输入邀请码",
     "inviteGate.scanAlipayTitle": "支付宝收款二维码",
@@ -153,7 +152,7 @@ const I18N = {
     "status.refresh": "刷新状态",
     "status.copy": "邀请码验证后，这里会显示你的一次性修复端口、脱敏状态和事件元数据。正常已登录的 Claude App 可能只显示修复通道已连接，不一定触发修复事件。",
     "proxy.kicker": "临时修复通道配置",
-    "proxy.title": "请按以下信息填写当前 Wi‑Fi 的 HTTP 代理，认证保持关闭；该端口仅用于本次 Claude iOS 登录态修复，默认 24 小时失效",
+    "proxy.title": "请按以下信息填写当前 Wi‑Fi 的 HTTP 代理，认证保持关闭；该端口仅用于本次 Claude iOS 登录态修复，公开入口默认 1 小时失效",
     "proxy.host": "服务器",
     "proxy.port": "端口",
     "proxy.certUrl": "证书链接",
@@ -188,7 +187,7 @@ const I18N = {
     "safety.item1": "请只在自己的设备和账号上使用，本工具只用于清理卡住的本地旧会话，不用于绕过账号、地区或网络限制。",
     "safety.item2": "修复期间不要提交、记录或共享真实 Cookie、sessionKey、routingHint、Authorization、mitmproxy 证书或设备标识。",
     "safety.item3": "服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。",
-    "safety.item4": "完成后关闭 Wi‑Fi HTTP 代理，并取消修复 CA 的完全信任；专属端口默认 24 小时失效。",
+    "safety.item4": "完成后关闭 Wi‑Fi HTTP 代理，并取消修复 CA 的完全信任；公开入口生成的临时端口默认 1 小时失效，售后邀请码以管理员设置为准。",
     "safety.item5": "如果状态只显示已连接但没有 Claude 请求，优先检查是否还有其它 VPN、代理或第三方网络工具未关闭。",
     "safety.item6": "如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。",
     "feedback.restoring": "正在恢复上次的邀请码...",
@@ -211,7 +210,7 @@ const I18N = {
     "feedback.invalidInvite": "邀请码无效或已失效。",
     "feedback.claimUnavailable": "暂时无法验证邀请码，请稍后重试。",
     "feedback.enterInvite": "请输入邀请码。",
-    "feedback.publicInviteReady": "已填入固定邀请码，正在自动验证。",
+    "feedback.publicInviteReady": "正在生成 1 小时临时邀请码并自动验证。",
     "feedback.xianyuCopied": "闲鱼购买链接已复制。",
     "feedback.xianyuCopyUnavailable": "当前浏览器无法自动复制，请手动复制闲鱼购买链接。",
     "status.waitingInvite": "等待邀请码验证",
@@ -234,7 +233,7 @@ const I18N = {
     "hero.cta": "Start repair",
     "entry.kicker": "Status entry",
     "entry.title": "Verify invite and view the repair channel",
-    "entry.copy": "Use the sticky invite bar at the top to enter the invite code from the administrator. After verification, this page shows your one-time repair port and sanitized live status.",
+    "entry.copy": "Free and tip flows generate a one-hour temporary invite. After-sales invites follow the administrator's setting. After verification, this page shows the repair port and sanitized live status for this session.",
     "entry.label": "Invite code",
     "entry.placeholder": "Enter invite code",
     "entry.submit": "Verify",
@@ -275,7 +274,7 @@ const I18N = {
     "inviteGate.freeTitle": "Use for free",
     "inviteGate.freeBrief": "For fully self-service use. No after-sales support.",
     "inviteGate.freeDetailTitle": "Auto-verify after the Xiaohongshu action",
-    "inviteGate.freeCopy": "Best for users who can operate on their own. Visit Xiaohongshu first, then tap to auto-fill and verify the fixed invite.",
+    "inviteGate.freeCopy": "Best for users who can operate on their own. Visit Xiaohongshu first, then tap to generate a one-hour temporary invite and verify it automatically.",
     "inviteGate.freePageCopy": "Open Xiaohongshu first, then scan the group QR if you need the notice. After that, tap the button to auto-verify.",
     "inviteGate.selfServe": "Self-service, no after-sales or remote support",
     "inviteGate.autoVerify": "Auto-verifies after tapping",
@@ -284,7 +283,7 @@ const I18N = {
     "inviteGate.startFree": "Done, auto-verify",
     "inviteGate.alipayLabel": "Support the tool",
     "inviteGate.alipayTitle": "Alipay optional tip",
-    "inviteGate.alipayBrief": "Tip any amount, then use the fixed invite automatically.",
+    "inviteGate.alipayBrief": "Tip any amount, then generate a one-hour temporary invite.",
     "inviteGate.alipayDetailTitle": "Auto-verify after tipping",
     "inviteGate.alipayCopy": "For users who want to support maintenance and receive remote guidance plus follow-up technical support. Scan to tip, then tap below and the page handles the invite.",
     "inviteGate.alipayPageCopy": "Scan to tip any amount, then tap the button to fill and verify the invite automatically. Remote guidance and follow-up technical support are included.",
@@ -301,7 +300,7 @@ const I18N = {
     "inviteGate.xianyuCodeLabel": "Xianyu purchase link",
     "inviteGate.openXianyu": "Open Xianyu order link",
     "inviteGate.copyXianyu": "Copy link",
-    "inviteGate.xianyuFootnote": "This option does not use the fixed invite. Use the after-sales invite from your order.",
+    "inviteGate.xianyuFootnote": "Use the after-sales invite from your order for this option.",
     "inviteGate.recommended": "Recommended",
     "inviteGate.focusInvite": "Enter invite in top bar",
     "inviteGate.scanAlipayTitle": "Alipay QR code",
@@ -334,7 +333,7 @@ const I18N = {
     "status.refresh": "Refresh status",
     "status.copy": "After invite verification, this area shows your one-time repair port, sanitized status, and event metadata. A normally signed-in Claude App may only show that the repair channel is connected and may not trigger repair events.",
     "proxy.kicker": "Temporary repair channel configuration",
-    "proxy.title": "Enter the following values in the current Wi‑Fi HTTP Proxy settings. Keep authentication off. This port is only for this Claude iOS session repair and expires after 24 hours by default.",
+    "proxy.title": "Enter the following values in the current Wi‑Fi HTTP Proxy settings. Keep authentication off. This port is only for this Claude iOS session repair. Public temporary ports expire after one hour by default.",
     "proxy.host": "Server",
     "proxy.port": "Port",
     "proxy.certUrl": "Certificate link",
@@ -369,7 +368,7 @@ const I18N = {
     "safety.item1": "Use this only on your own device and account. This tool is for clearing stuck local session state, not for bypassing account, regional, or network restrictions.",
     "safety.item2": "Do not submit, log, or share real Cookie, sessionKey, routingHint, Authorization, mitmproxy certificates, or device identifiers during repair.",
     "safety.item3": "The service stores only sanitized status and event metadata. It does not store cookies, request bodies, or full device identifiers.",
-    "safety.item4": "After repair, turn off the Wi‑Fi HTTP proxy and disable full trust for the repair CA. The dedicated port expires after 24 hours by default.",
+    "safety.item4": "After repair, turn off the Wi‑Fi HTTP proxy and disable full trust for the repair CA. Public temporary ports expire after one hour by default; after-sales invites follow the administrator's setting.",
     "safety.item5": "If status only shows connected but no Claude requests, first check whether another VPN, proxy, or third-party network tool is still enabled.",
     "safety.item6": "If status does not change for a long time, verify the iPhone Wi-Fi, certificate trust, and proxy configuration match this page.",
     "feedback.restoring": "Restoring the last invite code...",
@@ -392,7 +391,7 @@ const I18N = {
     "feedback.invalidInvite": "Invite code is invalid or expired.",
     "feedback.claimUnavailable": "Unable to verify the invite right now. Try again later.",
     "feedback.enterInvite": "Enter an invite code.",
-    "feedback.publicInviteReady": "Fixed invite filled. Verifying automatically.",
+    "feedback.publicInviteReady": "Generating a one-hour temporary invite and verifying it automatically.",
     "feedback.xianyuCopied": "Xianyu purchase link copied.",
     "feedback.xianyuCopyUnavailable": "This browser cannot copy automatically. Copy the Xianyu purchase link manually.",
     "status.waitingInvite": "Waiting for invite verification",
@@ -725,16 +724,30 @@ function selectInviteMethod(method) {
   showInviteGateView(method || "xianyu");
 }
 
-function autoClaimPublicInvite(channel = "free") {
+async function autoClaimPublicInvite(channel = "free") {
   showInviteGateView(channel);
-  if (inviteInput) {
-    inviteInput.value = PUBLIC_INVITE_CODE;
-  }
   setFeedbackKey("feedback.publicInviteReady", "info");
+  setBusy(true);
   setAutoClaimBusy(true);
-  void activateInvite(PUBLIC_INVITE_CODE).finally(() => {
+
+  try {
+    const claim = await createPublicInvite(channel);
+    if (!claim.invite_code) {
+      throw new Error("missing invite code");
+    }
+    if (inviteInput) {
+      inviteInput.value = claim.invite_code;
+    }
+    await activateInviteClaim(claim.invite_code, claim);
+  } catch (_error) {
+    expireTokenState();
+    resetProxyConfig();
+    setFeedbackKey("feedback.claimUnavailable", "error");
+    renderWaitingState("status.waitingInvite");
+  } finally {
+    setBusy(false);
     setAutoClaimBusy(false);
-  });
+  }
 }
 
 function focusInviteInput() {
@@ -1105,6 +1118,27 @@ async function claimInvite(inviteCode) {
   return payload || {};
 }
 
+async function createPublicInvite(channel) {
+  const response = await fetch("/api/invites/public", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ channel }),
+  });
+  const payload = await readJson(response);
+
+  if (!response.ok) {
+    const error = new Error("public invite failed");
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+
+  return payload || {};
+}
+
 async function loadSnapshot() {
   const response = await fetch("/api/invites/me/status", {
     headers: {
@@ -1266,28 +1300,7 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
 
   try {
     const claim = await claimInvite(inviteCode);
-    if (typeof claim.status_token !== "string" || !claim.status_token) {
-      throw new Error("missing status token");
-    }
-
-    saveCachedInviteCode(inviteCode);
-    statusToken = claim.status_token;
-    activeInviteCode = inviteCode;
-    renderProxyConfig(claim);
-    unlockRepairWorkspace();
-    markStepComplete(1);
-
-    const snapshotLoaded = await refreshSnapshot({ silent: true });
-    if (snapshotLoaded) {
-      setFeedbackKey("feedback.claimLoaded", "success");
-    } else if (statusToken) {
-      setFeedbackKey("feedback.claimConfigLoaded", "success");
-    }
-
-    startEventStream();
-    if (!restored) {
-      document.querySelector("#guide")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    await activateInviteClaim(inviteCode, claim, { restored });
   } catch (error) {
     expireTokenState();
     resetProxyConfig();
@@ -1305,6 +1318,31 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
   }
 }
 
+async function activateInviteClaim(inviteCode, claim, { restored = false } = {}) {
+  if (typeof claim.status_token !== "string" || !claim.status_token) {
+    throw new Error("missing status token");
+  }
+
+  saveCachedInviteCode(inviteCode);
+  statusToken = claim.status_token;
+  activeInviteCode = inviteCode;
+  renderProxyConfig(claim);
+  unlockRepairWorkspace();
+  markStepComplete(1);
+
+  const snapshotLoaded = await refreshSnapshot({ silent: true });
+  if (snapshotLoaded) {
+    setFeedbackKey("feedback.claimLoaded", "success");
+  } else if (statusToken) {
+    setFeedbackKey("feedback.claimConfigLoaded", "success");
+  }
+
+  startEventStream();
+  if (!restored) {
+    document.querySelector("#guide")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
 inviteForm?.addEventListener("submit", (event) => {
   event.preventDefault();
   const inviteCode = inviteInput?.value.trim();
@@ -1319,7 +1357,7 @@ inviteForm?.addEventListener("submit", (event) => {
 
 autoClaimButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    autoClaimPublicInvite(button.dataset.inviteAutoClaim || "free");
+    void autoClaimPublicInvite(button.dataset.inviteAutoClaim || "free");
   });
 });
 

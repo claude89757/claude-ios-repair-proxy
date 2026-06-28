@@ -31,7 +31,8 @@ def test_site_contains_required_user_guidance():
     assert "正常已登录" in html
     assert "不一定触发修复事件" in html
     assert "不提供 VPN、翻墙、通用代理或网络加速能力" in html
-    assert "默认 24 小时失效" in html
+    assert "免费/打赏入口会生成 1 小时临时邀请码" in html
+    assert "公开入口默认 1 小时失效" in html
     assert "脱敏状态和事件元数据" in html
     assert "不记录 Cookie、请求体或完整设备标识" in html
     assert "Repair session ID" not in html
@@ -139,12 +140,14 @@ def test_public_site_has_invite_acquisition_gate_with_three_options():
     assert 'data-invite-method-panel="alipay"' in html
     assert 'data-invite-method-panel="free"' in html
     assert html.count("data-invite-auto-claim") == 2
-    assert "PUBLIC_INVITE_CODE" in js
-    assert "INV-VXK44LB9URXY" in js
+    assert "PUBLIC_INVITE_CODE" not in js
+    assert "INV-VXK44LB9URXY" not in js
+    assert "/api/invites/public" in js
     assert "function selectInviteMethod" in js
     assert "function showInviteGateView" in js
     assert "function resetInviteGateView" in js
     assert "function autoClaimPublicInvite" in js
+    assert "function createPublicInvite" in js
     assert "function unlockRepairWorkspace" in js
     assert "function lockRepairWorkspace" in js
     assert 'data-invite-view="choice"' in html
@@ -227,8 +230,14 @@ def test_public_invite_auto_claim_fills_invite_and_verifies_immediately():
     assert "function startInviteCountdown" not in js
     assert "function finishInviteCountdown" not in js
     assert "setInterval" not in auto_claim_block
-    assert "inviteInput.value = PUBLIC_INVITE_CODE" in auto_claim_block
-    assert "activateInvite(PUBLIC_INVITE_CODE)" in auto_claim_block
+    assert "PUBLIC_INVITE_CODE" not in js
+    assert "INV-VXK44LB9URXY" not in js
+    assert "/api/invites/public" in js
+    assert "createPublicInvite(channel)" in auto_claim_block
+    assert "activateInviteClaim(claim.invite_code, claim)" in auto_claim_block
+    assert "inviteInput.value = claim.invite_code" in auto_claim_block
+    assert "临时邀请码" in js
+    assert "fixed invite" not in js.lower()
 
 
 def test_alipay_and_free_primary_actions_appear_before_qr_codes():

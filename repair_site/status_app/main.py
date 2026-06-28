@@ -202,6 +202,27 @@ def _strip_proxy_password(value: dict[str, Any]) -> dict[str, Any]:
     return output
 
 
+def _invite_claim_payload(
+    invite: dict[str, Any],
+    settings: Settings,
+    *,
+    include_invite_metadata: bool = False,
+) -> dict[str, Any]:
+    payload = {
+        "proxy_host": "sg2.claude89757.cc",
+        "proxy_port": invite["proxy_port"],
+        "certificate_url": "/certs/mitmproxy-ca-cert.cer",
+        "status_token": sign_status_token(
+            invite["session_id"],
+            secret=settings.status_token_secret,
+        ),
+    }
+    if include_invite_metadata:
+        payload["invite_code"] = invite["invite_code"]
+        payload["expires_at"] = invite.get("expires_at")
+    return payload
+
+
 def _status_stream_response(
     status_store: StatusStore,
     session_id: str,
@@ -363,6 +384,23 @@ def create_app(
             raise HTTPException(status_code=401, detail="invalid proxy auth")
         return {"session_id": session_id.strip()}
 
+    @created_app.post("/api/invites/public")
+    async def create_public_invite(request: Request) -> dict[str, Any]:
+        payload = await _json_object(request)
+        channel = payload.get("channel", "free")
+        if not isinstance(channel, str) or channel not in {"free", "alipay"}:
+            raise HTTPException(status_code=400, detail="unsupported public invite channel")
+        settings = _settings(request.app)
+        invite = _invite_store(request.app).create_temporary_invite(
+            note=f"public temporary invite: {channel}",
+            ttl_seconds=settings.public_invite_ttl_seconds,
+        )
+        return _invite_claim_payload(
+            invite,
+            settings,
+            include_invite_metadata=True,
+        )
+
     @created_app.post("/api/invites/claim")
     async def claim_invite(request: Request) -> dict[str, Any]:
         payload = await _json_object(request)
@@ -373,27 +411,11 @@ def create_app(
         normalized_invite_code = invite_code.strip()
         settings = _settings(request.app)
         invite_store = _invite_store(request.app)
-        public_invite_code = settings.public_invite_code.strip().upper()
-        if public_invite_code and normalized_invite_code.upper() == public_invite_code:
-            invite_store.ensure_invite(
-                invite_code=public_invite_code,
-                note="public invite acquisition gate",
-                expires_at=settings.public_invite_expires_at,
-            )
-
         invite = invite_store.claim_invite(normalized_invite_code)
         if invite is None:
             raise HTTPException(status_code=404, detail="invite not found")
 
-        return {
-            "proxy_host": "sg2.claude89757.cc",
-            "proxy_port": invite["proxy_port"],
-            "certificate_url": "/certs/mitmproxy-ca-cert.cer",
-            "status_token": sign_status_token(
-                invite["session_id"],
-                secret=_settings(request.app).status_token_secret,
-            ),
-        }
+        return _invite_claim_payload(invite, settings)
 
     @created_app.get("/api/invites/me/status")
     def invite_status(request: Request) -> dict[str, Any]:

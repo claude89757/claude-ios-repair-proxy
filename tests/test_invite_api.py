@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
@@ -12,7 +13,11 @@ from repair_site.status_app.main import _status_stream_response, create_app
 INTERNAL_HEADERS = {"x-internal-secret": "internal-secret"}
 
 
-def settings(database_path: str = ":memory:") -> Settings:
+def settings(
+    database_path: str = ":memory:",
+    *,
+    public_invite_ttl_seconds: int = 3600,
+) -> Settings:
     return Settings(
         admin_username="admin",
         admin_password_hash="sha256:unused",
@@ -20,6 +25,7 @@ def settings(database_path: str = ":memory:") -> Settings:
         status_token_secret="status-secret",
         internal_api_secret="internal-secret",
         database_path=database_path,
+        public_invite_ttl_seconds=public_invite_ttl_seconds,
     )
 
 
@@ -78,7 +84,7 @@ def test_claim_invite_rejects_invalid_code():
     assert response.status_code == 404
 
 
-def test_claim_public_invite_code_creates_stable_invite_when_missing():
+def test_claim_invite_does_not_create_magic_public_invite_code():
     app, invite_store, _status_store = app_parts()
     client = TestClient(app)
 
@@ -87,14 +93,44 @@ def test_claim_public_invite_code_creates_stable_invite_when_missing():
         json={"invite_code": "INV-VXK44LB9URXY"},
     )
 
-    assert response.status_code == 200
-    body = response.json()
-    stored = invite_store.claim_invite("INV-VXK44LB9URXY")
-    assert stored is not None
-    assert stored["proxy_port"] == body["proxy_port"]
-    assert stored["note"] == "public invite acquisition gate"
-    assert stored["expires_at"].startswith("2099-12-31")
-    assert verify_status_token(body["status_token"], secret="status-secret") == stored["session_id"]
+    assert response.status_code == 404
+    assert invite_store.list_invites() == []
+
+
+def test_public_invite_endpoint_creates_one_hour_temporary_invite_each_time():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+    before = datetime.now(timezone.utc)
+
+    first = client.post("/api/invites/public", json={"channel": "free"})
+    second = client.post("/api/invites/public", json={"channel": "alipay"})
+
+    after = datetime.now(timezone.utc)
+    assert first.status_code == 200
+    assert second.status_code == 200
+    first_body = first.json()
+    second_body = second.json()
+    assert first_body["invite_code"].startswith("INV-")
+    assert second_body["invite_code"].startswith("INV-")
+    assert first_body["invite_code"] != second_body["invite_code"]
+    assert first_body["proxy_port"] != second_body["proxy_port"]
+    assert first_body["certificate_url"] == "/certs/mitmproxy-ca-cert.cer"
+    assert "proxy_password" not in first_body
+    assert verify_status_token(first_body["status_token"], secret="status-secret")
+
+    stored = invite_store.claim_invite(first_body["invite_code"])
+    expires_at = datetime.fromisoformat(stored["expires_at"])
+    assert before + timedelta(hours=1) <= expires_at <= after + timedelta(hours=1)
+    assert stored["note"] == "public temporary invite: free"
+
+
+def test_public_invite_endpoint_rejects_unknown_channel():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.post("/api/invites/public", json={"channel": "xianyu"})
+
+    assert response.status_code == 400
 
 
 def test_claim_invite_rejects_malformed_json():

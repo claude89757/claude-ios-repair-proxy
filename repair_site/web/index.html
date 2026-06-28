@@ -30,7 +30,7 @@
         </div>
         <p class="claim-feedback" data-claim-feedback></p>
       </form>
-      <p class="invite-floating-note" data-i18n="entry.copy">使用顶部固定的邀请码栏输入管理员提供的邀请码。验证后页面会显示默认 24 小时失效的一次性修复端口和脱敏实时状态。</p>
+      <p class="invite-floating-note" data-i18n="entry.copy">免费/打赏入口会生成 1 小时临时邀请码；售后邀请码以管理员设置为准。验证后页面会显示本次修复端口和脱敏实时状态。</p>
     </div>
   </header>
 
@@ -67,7 +67,7 @@
                   <strong data-i18n="inviteGate.alipayTitle">支付宝随缘付费</strong>
                 </span>
               </span>
-              <span data-i18n="inviteGate.alipayBrief">随缘打赏后自动填入固定邀请码。</span>
+              <span data-i18n="inviteGate.alipayBrief">随缘打赏后生成 1 小时临时邀请码。</span>
             </button>
 
             <button class="invite-method-option" type="button" data-invite-method-select="free" aria-controls="invite-method-free">
@@ -110,7 +110,7 @@
                 <button class="button secondary" type="button" data-copy-invite-link data-copy-value="https://www.goofish.com/item?spm=a21ybx.personal.feeds.1.3e076ac2wWp67j&amp;id=1061136454887&amp;categoryId=50023914" data-i18n="inviteGate.copyXianyu">复制链接</button>
                 <button class="button secondary" type="button" data-focus-invite data-i18n="inviteGate.focusInvite">去顶部输入邀请码</button>
               </div>
-              <p class="method-footnote" data-i18n="inviteGate.xianyuFootnote">此方式不使用固定邀请码；请以下单后的售后邀请码为准。</p>
+              <p class="method-footnote" data-i18n="inviteGate.xianyuFootnote">此方式使用售后邀请码；请以下单后的售后邀请码为准。</p>
             </div>
           </div>
         </section>
@@ -335,7 +335,7 @@
                   <li data-i18n="safety.item1">请只在自己的设备和账号上使用，本工具只用于清理卡住的本地旧会话，不用于绕过账号、地区或网络限制。</li>
                   <li data-i18n="safety.item2">修复期间不要提交、记录或共享真实 Cookie、sessionKey、routingHint、Authorization、mitmproxy 证书或设备标识。</li>
                   <li data-i18n="safety.item3">服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。</li>
-                  <li data-i18n="safety.item4">完成后关闭 Wi‑Fi HTTP 代理，并取消修复 CA 的完全信任；专属端口默认 24 小时失效。</li>
+                  <li data-i18n="safety.item4">完成后关闭 Wi‑Fi HTTP 代理，并取消修复 CA 的完全信任；公开入口生成的临时端口默认 1 小时失效，售后邀请码以管理员设置为准。</li>
                   <li data-i18n="safety.item5">如果状态只显示已连接但没有 Claude 请求，优先检查是否还有其它 VPN、代理或第三方网络工具未关闭。</li>
                   <li data-i18n="safety.item6">如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。</li>
                 </ul>
@@ -372,7 +372,7 @@
               <div class="proxy-panel-head">
                 <div>
                   <p class="panel-kicker" data-i18n="proxy.kicker">临时修复通道配置</p>
-                  <h3 id="proxy-title" data-i18n="proxy.title">请按以下信息填写当前 Wi‑Fi 的 HTTP 代理，认证保持关闭；该端口仅用于本次 Claude iOS 登录态修复，默认 24 小时失效</h3>
+                  <h3 id="proxy-title" data-i18n="proxy.title">请按以下信息填写当前 Wi‑Fi 的 HTTP 代理，认证保持关闭；该端口仅用于本次 Claude iOS 登录态修复，公开入口默认 1 小时失效</h3>
                 </div>
               </div>
               <dl class="proxy-grid">

@@ -90,6 +90,7 @@ class InviteStore:
         expires_at: str | None = None,
     ) -> dict[str, Any]:
         with self._lock:
+            self._reclaim_expired_invites_locked()
             for _ in range(10):
                 try:
                     cursor = self.conn.execute(
@@ -130,6 +131,18 @@ class InviteStore:
                     continue
         raise RuntimeError("could not create unique invite")
 
+    def create_temporary_invite(
+        self,
+        *,
+        note: str,
+        ttl_seconds: int,
+    ) -> dict[str, Any]:
+        if ttl_seconds <= 0:
+            raise ValueError("ttl_seconds must be positive")
+        with self._lock:
+            expires_at = self._expires_at_for_ttl_locked(ttl_seconds)
+        return self.create_invite(note=note, expires_at=expires_at)
+
     def ensure_invite(
         self,
         *,
@@ -142,6 +155,7 @@ class InviteStore:
             raise ValueError("invite_code must not be empty")
 
         with self._lock:
+            self._reclaim_expired_invites_locked()
             row = self.conn.execute(
                 "SELECT * FROM invites WHERE invite_code = ?",
                 (normalized_code,),
@@ -214,6 +228,7 @@ class InviteStore:
 
     def list_invites(self) -> list[dict[str, Any]]:
         with self._lock:
+            self._reclaim_expired_invites_locked()
             rows = self.conn.execute("SELECT * FROM invites ORDER BY id DESC").fetchall()
             return [
                 invite
@@ -224,6 +239,7 @@ class InviteStore:
 
     def list_active_proxy_targets(self) -> list[dict[str, Any]]:
         with self._lock:
+            self._reclaim_expired_invites_locked()
             rows = self.conn.execute(
                 """
                 SELECT *
@@ -261,6 +277,7 @@ class InviteStore:
 
     def claim_invite(self, invite_code: str) -> dict[str, Any] | None:
         with self._lock:
+            self._reclaim_expired_invites_locked()
             row = self.conn.execute(
                 """
                 SELECT * FROM invites
@@ -281,7 +298,11 @@ class InviteStore:
     def disable_invite(self, invite_id: int) -> dict[str, Any] | None:
         with self._lock:
             self.conn.execute(
-                "UPDATE invites SET status = 'disabled', disabled_at = ? WHERE id = ?",
+                """
+                UPDATE invites
+                SET status = 'disabled', disabled_at = ?, proxy_port = NULL
+                WHERE id = ?
+                """,
                 (now_iso(), invite_id),
             )
             self.conn.commit()
@@ -309,6 +330,7 @@ class InviteStore:
         proxy_password: str,
     ) -> dict[str, Any] | None:
         with self._lock:
+            self._reclaim_expired_invites_locked()
             row = self.conn.execute(
                 """
                 SELECT * FROM invites
@@ -357,6 +379,33 @@ class InviteStore:
             base = datetime.now(timezone.utc)
         return (base + timedelta(seconds=ttl_seconds)).isoformat()
 
+    def _expires_at_for_ttl_locked(self, ttl_seconds: int) -> str:
+        return (datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)).isoformat()
+
+    def _reclaim_expired_invites_locked(self) -> int:
+        rows = self.conn.execute(
+            """
+            SELECT *
+            FROM invites
+            WHERE status = 'active'
+              AND disabled_at IS NULL
+              AND proxy_port IS NOT NULL
+            """
+        ).fetchall()
+        expired_ids = [
+            int(row["id"])
+            for row in rows
+            if self._is_expired(dict(row))
+        ]
+        if not expired_ids:
+            return 0
+        self.conn.executemany(
+            "UPDATE invites SET status = 'expired', proxy_port = NULL WHERE id = ?",
+            [(invite_id,) for invite_id in expired_ids],
+        )
+        self.conn.commit()
+        return len(expired_ids)
+
     def _assign_missing_expires_at_locked(self) -> None:
         rows = self.conn.execute(
             """
@@ -378,8 +427,16 @@ class InviteStore:
             )
 
     def _assign_missing_proxy_ports_locked(self) -> None:
+        self._reclaim_expired_invites_locked()
         rows = self.conn.execute(
-            "SELECT id FROM invites WHERE proxy_port IS NULL ORDER BY id ASC"
+            """
+            SELECT id
+            FROM invites
+            WHERE proxy_port IS NULL
+              AND status = 'active'
+              AND disabled_at IS NULL
+            ORDER BY id ASC
+            """
         ).fetchall()
         for row in rows:
             self.conn.execute(
@@ -390,8 +447,15 @@ class InviteStore:
     def _next_proxy_port_locked(self) -> int:
         if self.settings.proxy_port_start > self.settings.proxy_port_end:
             raise RuntimeError("proxy port range is invalid")
+        self._reclaim_expired_invites_locked()
         rows = self.conn.execute(
-            "SELECT proxy_port FROM invites WHERE proxy_port IS NOT NULL"
+            """
+            SELECT proxy_port
+            FROM invites
+            WHERE proxy_port IS NOT NULL
+              AND status = 'active'
+              AND disabled_at IS NULL
+            """
         ).fetchall()
         used_ports = {int(row["proxy_port"]) for row in rows}
         for port in range(self.settings.proxy_port_start, self.settings.proxy_port_end + 1):

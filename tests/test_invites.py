@@ -8,7 +8,12 @@ from repair_site.status_app.config import Settings, derive_proxy_password
 from repair_site.status_app.invites import InviteStore
 
 
-def settings(database_path: str = ":memory:") -> Settings:
+def settings(
+    database_path: str = ":memory:",
+    *,
+    proxy_port_start: int = 10001,
+    proxy_port_end: int = 10999,
+) -> Settings:
     return Settings(
         admin_username="admin",
         admin_password_hash="sha256:unused",
@@ -16,6 +21,8 @@ def settings(database_path: str = ":memory:") -> Settings:
         status_token_secret="status-secret",
         internal_api_secret="internal-secret",
         database_path=database_path,
+        proxy_port_start=proxy_port_start,
+        proxy_port_end=proxy_port_end,
     )
 
 
@@ -145,6 +152,33 @@ def test_expired_invite_claim_and_auth_rejected_with_timezone_string():
         invite["proxy_username"],
         invite["proxy_password"],
     ) is None
+
+
+def test_create_invite_reclaims_expired_invite_port_before_allocating():
+    store = InviteStore(settings(proxy_port_start=10001, proxy_port_end=10001))
+    expired = store.create_invite(
+        note="expired",
+        expires_at=(datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat(),
+    )
+
+    fresh = store.create_invite(note="fresh")
+    reclaimed = store.get_invite_by_id(expired["id"])
+
+    assert fresh["proxy_port"] == 10001
+    assert reclaimed["status"] == "expired"
+    assert reclaimed["proxy_port"] is None
+    assert store.claim_invite(expired["invite_code"]) is None
+
+
+def test_disable_invite_releases_proxy_port_for_future_invites():
+    store = InviteStore(settings(proxy_port_start=10001, proxy_port_end=10001))
+    disabled = store.create_invite(note="disabled")
+
+    store.disable_invite(disabled["id"])
+    fresh = store.create_invite(note="fresh")
+
+    assert fresh["proxy_port"] == 10001
+    assert store.get_invite_by_id(disabled["id"])["proxy_port"] is None
 
 
 def test_reset_proxy_password_invalidates_old_password():
