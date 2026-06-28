@@ -45,8 +45,13 @@ def test_public_site_supports_chinese_english_language_toggle():
     js = (WEB / "app.js").read_text()
 
     assert 'id="language-toggle"' in html
-    assert 'class="language-toggle"' in html
+    assert 'class="language-toggle icon-button"' in html
     assert 'aria-label="Switch language"' in html
+    assert 'class="language-toggle-icon"' in html
+    assert '<circle cx="12" cy="12" r="10"></circle>' in html
+    assert "M12.9 17.3" not in html
+    assert 'class="language-toggle-label sr-only"' in html
+    assert 'languageToggleLabel' in js
     assert 'data-i18n=' in html
     assert 'data-i18n-placeholder=' in html
     assert "LANGUAGE_CACHE_KEY" in js
@@ -60,13 +65,20 @@ def test_public_site_supports_chinese_english_language_toggle():
 
 def test_public_site_links_to_github_repository_from_topbar():
     html = (WEB / "index.html").read_text()
+    header = re.search(r"<header class=\"topbar\">.*?</header>", html, re.S)
 
+    assert header is not None
     assert "https://github.com/claude89757/claude-ios-repair-proxy" in html
-    assert 'class="github-link"' in html
+    assert 'class="github-link icon-button"' in html
     assert 'aria-label="GitHub 开源地址"' in html
     assert 'target="_blank"' in html
     assert 'rel="noreferrer noopener"' in html
+    assert 'class="github-icon"' in html
+    assert 'class="sr-only">GitHub</span>' in html
     assert ">GitHub<" in html
+    assert "<nav" not in header.group(0)
+    assert 'href="#guide"' not in header.group(0)
+    assert 'href="#status"' not in header.group(0)
 
 
 def test_public_site_keeps_invite_form_in_sticky_header():
@@ -108,21 +120,27 @@ def test_public_site_uses_step_by_step_wizard_cards():
     assert ".step-complete-button" in css
 
 
-def test_public_site_has_invite_acquisition_gate_with_three_options():
+def test_public_site_has_invite_acquisition_gate_with_two_entry_points():
     html = (WEB / "index.html").read_text()
     js = (WEB / "app.js").read_text()
     css = (WEB / "styles.css").read_text()
 
     assert 'class="invite-gate-screen' in html
-    assert "获取修复邀请码" in html
-    assert "选择一个获取方式，按提示拿到邀请码后继续修复。" in html
-    assert "免费使用" in html
-    assert "先打开小红书" in html
+    assert "选择修复入口" in html
+    assert "需要人工协助请选择售后协助" in html
+    assert "售后协助" in html
+    assert "自助获取" in html
+    assert "免费自助" in html
+    assert "打开小红书" in html
     assert "一键三连" in html
     assert "自助使用，无售后和远程支持" in html
-    assert "支付宝随缘付费" in html
-    assert "远程指导和后续售后技术支持" in html
-    assert "闲鱼下单购买" in html
+    assert "请作者喝杯咖啡" in html
+    assert "我已请咖啡，生成邀请码" in html
+    assert "支付宝随缘支持" not in html
+    assert "支付宝随缘付费" not in html
+    assert "已支持维护" not in html
+    assert "远程指导或后续技术支持" in html
+    assert "去闲鱼获取售后邀请码" in html
     assert "购买后按售后指引获取邀请码" in html
     assert "无法帮助解决被封号" in html
     assert "不提供 VPN、翻墙、通用代理或网络加速能力" in html
@@ -134,11 +152,14 @@ def test_public_site_has_invite_acquisition_gate_with_three_options():
     assert "categoryId=50023914" in html
     assert "#小程序://闲鱼/GI2JHZ8RzMQrHWn" not in html
     assert "推荐" in html
-    assert html.index("闲鱼下单购买") < html.index("支付宝随缘付费") < html.index("免费使用")
-    assert html.count("data-invite-method-select") == 3
+    assert "method-index" not in html
+    assert ">01<" not in html
+    assert ">02<" not in html
+    assert ">03<" not in html
+    assert html.index("售后协助") < html.index("自助获取")
+    assert html.count("data-invite-method-select") == 2
     assert 'data-invite-method-panel="xianyu"' in html
-    assert 'data-invite-method-panel="alipay"' in html
-    assert 'data-invite-method-panel="free"' in html
+    assert 'data-invite-method-panel="self"' in html
     assert html.count("data-invite-auto-claim") == 2
     assert "PUBLIC_INVITE_CODE" not in js
     assert "INV-VXK44LB9URXY" not in js
@@ -152,9 +173,12 @@ def test_public_site_has_invite_acquisition_gate_with_three_options():
     assert "function lockRepairWorkspace" in js
     assert 'data-invite-view="choice"' in html
     assert 'data-invite-view="xianyu"' in html
-    assert 'data-invite-view="alipay"' in html
-    assert 'data-invite-view="free"' in html
-    assert html.count("data-invite-back") == 3
+    assert 'data-invite-view="self"' in html
+    assert 'data-invite-view="alipay"' not in html
+    assert 'data-invite-view="free"' not in html
+    assert html.count("data-invite-back") == 2
+    assert ".method-icon" in css
+    assert ".self-service-options" in css
     assert ".invite-methods" in css
     assert ".invite-method-page" in css
     assert ".invite-choice-view" in css
@@ -166,19 +190,34 @@ def test_public_site_has_compliance_disclaimer_footer():
     disclaimer = (WEB / "disclaimer.html").read_text()
     css = (WEB / "styles.css").read_text()
 
+    topbar = re.search(r"<header class=\"topbar\">.*?</header>", html, re.S)
+    assert topbar is not None
+
     assert 'href="/disclaimer.html"' in html
-    assert 'data-i18n="nav.safety">使用边界</a>' in html
+    assert 'data-i18n="footer.disclaimer">免责声明</a>' in html
+    assert 'data-i18n="nav.safety"' not in topbar.group(0)
+    assert ">使用边界<" not in html
     assert 'id="disclaimer"' not in html
     assert "免责声明与使用边界" not in html
     assert 'id="disclaimer"' in disclaimer
-    assert "免责声明与使用边界" in disclaimer
+    assert "<title>免责声明 - Claude iOS Repair</title>" in disclaimer
+    assert '<h1 id="disclaimer-title">免责声明</h1>' in disclaimer
+    assert "免责声明与使用边界" not in disclaimer
+    assert "Usage Boundaries" not in disclaimer
+    assert "Disclaimer and usage boundaries" not in disclaimer
     assert "本地旧登录态残留" in disclaimer
     assert "不是 VPN、翻墙工具、网络加速器、通用代理或跨境联网服务" in disclaimer
     assert "请勿将本工具用于访问与修复无关的网站、App 或服务" in disclaimer
     assert "本项目与 Anthropic、Claude、Apple 无官方关联" in disclaimer
-    assert "Disclaimer and usage boundaries" in disclaimer
+    assert "<h2>Disclaimer</h2>" in disclaimer
     assert "not a VPN, circumvention tool, accelerator, general-purpose proxy" in disclaimer
     assert 'href="/zh"' in disclaimer
+    assert ".site-footnote" in css
+    footnote_link_css = re.search(r"\.site-footnote a \{.*?\}", css, re.S)
+    assert footnote_link_css is not None
+    assert "background:" not in footnote_link_css.group(0)
+    assert "border:" not in footnote_link_css.group(0)
+    assert "border-radius" not in footnote_link_css.group(0)
     assert ".site-disclaimer" in css
     assert ".disclaimer-card" in css
 
@@ -190,7 +229,7 @@ def test_invite_options_open_isolated_method_pages():
 
     assert "data-active-view=\"choice\"" in html
     assert "invite-view invite-choice-view" in html
-    assert html.count("invite-view invite-method-page") == 3
+    assert html.count("invite-view invite-method-page") == 2
     assert "invite-method-detail-list" not in html
     assert "invite-manual-note" not in html
     assert "data-countdown-slot" not in html
@@ -202,17 +241,43 @@ def test_invite_options_open_isolated_method_pages():
     assert ".method-page-actions" in css
 
 
-def test_alipay_and_free_invite_pages_use_simple_single_column_layout():
+def test_self_service_invite_page_uses_two_clear_options():
     html = (WEB / "index.html").read_text()
     css = (WEB / "styles.css").read_text()
+    self_start = html.index('<section id="invite-method-self"')
+    modal_start = html.index('<div id="qr-preview-modal"')
+    self_block = html[self_start:modal_start]
 
-    assert 'class="invite-view invite-method-page simple-method-page"' in html
-    assert html.count('class="invite-view invite-method-page simple-method-page"') == 2
-    assert ".simple-method-page .invite-method-page-body" in css
-    assert "grid-template-columns: minmax(0, 680px);" in css
-    assert ".simple-method-page .method-page-copy" in css
-    assert ".simple-method-page .qr-scan-panel" in css
-    assert "box-shadow: none;" in css
+    assert 'id="invite-method-self"' in html
+    assert 'class="invite-view invite-method-page self-method-page"' in html
+    assert html.count('class="self-service-card"') == 2
+    assert 'class="self-service-actions"' not in html
+    assert 'class="self-service-paths"' in html
+    assert 'class="self-service-path is-free"' in html
+    assert 'class="self-service-path is-coffee"' in html
+    assert self_block.index("/assets/alipay-reward-qr.jpg") < self_block.index(
+        "/assets/group-invite-qr.jpg"
+    )
+    free_start = self_block.index('class="self-service-path is-free"')
+    coffee_start = self_block.index('class="self-service-path is-coffee"')
+    free_block = self_block[free_start:coffee_start]
+    coffee_block = self_block[coffee_start:self_block.index('class="self-service-card"', coffee_start)]
+    assert "打开小红书" in free_block
+    assert "我已一键三连，生成邀请码" in free_block
+    assert "我已完成，生成邀请码" not in free_block
+    assert 'data-invite-auto-claim="free"' in free_block
+    assert 'data-invite-auto-claim="alipay"' not in free_block
+    assert "请作者喝杯咖啡" in coffee_block
+    assert 'data-invite-auto-claim="alipay"' in coffee_block
+    assert "打开小红书" not in coffee_block
+    assert ".self-method-page .invite-method-page-body" in css
+    assert ".self-service-options" in css
+    assert ".self-service-actions" not in css
+    assert ".self-service-paths" in css
+    assert ".self-service-path.is-free" in css
+    assert ".self-service-path.is-coffee" in css
+    assert ".self-service-card" in css
+    assert ".self-service-card .qr-scan-panel" in css
 
 
 def test_public_invite_auto_claim_fills_invite_and_verifies_immediately():
@@ -240,21 +305,21 @@ def test_public_invite_auto_claim_fills_invite_and_verifies_immediately():
     assert "fixed invite" not in js.lower()
 
 
-def test_alipay_and_free_primary_actions_appear_before_qr_codes():
+def test_self_service_primary_actions_appear_before_qr_codes():
     html = (WEB / "index.html").read_text()
 
-    alipay_start = html.index('<section id="invite-method-alipay"')
-    free_start = html.index('<section id="invite-method-free"')
+    self_start = html.index('<section id="invite-method-self"')
     modal_start = html.index('<div id="qr-preview-modal"')
-    alipay_block = html[alipay_start:free_start]
-    free_block = html[free_start:modal_start]
+    self_block = html[self_start:modal_start]
 
-    assert alipay_block.index('data-invite-auto-claim="alipay"') < alipay_block.index(
-        'class="qr-scan-panel"'
+    assert self_block.index('data-invite-auto-claim="alipay"') < self_block.index(
+        "/assets/alipay-reward-qr.jpg"
     )
-    assert free_block.index("打开小红书") < free_block.index('class="qr-scan-panel"')
-    assert free_block.index('data-invite-auto-claim="free"') < free_block.index(
-        'class="qr-scan-panel"'
+    assert self_block.index('data-invite-auto-claim="free"') < self_block.index(
+        "/assets/group-invite-qr.jpg"
+    )
+    assert self_block.index("打开小红书") < self_block.index(
+        "/assets/group-invite-qr.jpg"
     )
 
 

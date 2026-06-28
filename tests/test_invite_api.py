@@ -41,6 +41,31 @@ def app_parts():
     return app, invite_store, status_store
 
 
+def test_localized_public_pages_return_index_html():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    for path in ("/zh", "/en"):
+        response = client.get(path)
+
+        assert response.status_code == 200
+        assert "Claude iOS Repair" in response.text
+
+
+def test_static_assets_are_not_shadowed_by_localized_routes():
+    app, _invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    for path, expected_content in (
+        ("/styles.css", ".topbar"),
+        ("/app.js", "LANGUAGE_CACHE_KEY"),
+    ):
+        response = client.get(path)
+
+        assert response.status_code == 200
+        assert expected_content in response.text
+
+
 def test_claim_invite_returns_proxy_config_and_status_token():
     app, invite_store, _status_store = app_parts()
     client = TestClient(app)

@@ -502,6 +502,14 @@ def create_app(
             raise HTTPException(status_code=404, detail="admin page not found")
         return FileResponse(admin_html)
 
+    @created_app.get("/zh", include_in_schema=False)
+    @created_app.get("/en", include_in_schema=False)
+    def localized_public_page() -> FileResponse:
+        index_html = web_root / "index.html"
+        if not index_html.exists():
+            raise HTTPException(status_code=404, detail="public page not found")
+        return FileResponse(index_html)
+
     if web_root.exists():
         created_app.mount("/", StaticFiles(directory=web_root, html=True), name="web")
 

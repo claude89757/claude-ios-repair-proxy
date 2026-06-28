@@ -13,13 +13,21 @@
       <div class="topbar-main">
         <a class="brand" href="#top" aria-label="返回指南顶部">Claude iOS Repair</a>
         <div class="topbar-actions">
-          <nav aria-label="页面导航">
-            <a href="#guide" data-i18n="nav.guide">修复向导</a>
-            <a href="#status" data-i18n="nav.status">实时状态</a>
-            <a href="/disclaimer.html" data-i18n="nav.safety">使用边界</a>
-          </nav>
-          <a class="github-link" href="https://github.com/claude89757/claude-ios-repair-proxy" target="_blank" rel="noreferrer noopener" aria-label="GitHub 开源地址">GitHub</a>
-          <button id="language-toggle" class="language-toggle" type="button" aria-label="Switch language" aria-pressed="false">EN</button>
+          <a class="github-link icon-button" href="https://github.com/claude89757/claude-ios-repair-proxy" target="_blank" rel="noreferrer noopener" aria-label="GitHub 开源地址" title="GitHub">
+            <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.53 2.87 8.38 6.84 9.74.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.38-3.37-1.38-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.36 1.12 2.93.86.09-.67.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.28 2.75 1.05A9.3 9.3 0 0 1 12 6.98c.85 0 1.7.12 2.5.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.46.1 2.72.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.95.68 1.92 0 1.38-.01 2.49-.01 2.83 0 .27.18.59.69.49A10.14 10.14 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"></path>
+            </svg>
+            <span class="sr-only">GitHub</span>
+          </a>
+          <button id="language-toggle" class="language-toggle icon-button" type="button" aria-label="Switch language" title="Switch language" aria-pressed="false">
+            <svg class="language-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M2 12h20"></path>
+              <path d="M12 2a14.5 14.5 0 0 1 0 20"></path>
+              <path d="M12 2a14.5 14.5 0 0 0 0 20"></path>
+            </svg>
+            <span class="language-toggle-label sr-only">Switch language</span>
+          </button>
         </div>
       </div>
       <form id="invite-form" class="header-invite-form" aria-label="邀请码验证">
@@ -40,45 +48,48 @@
         <section class="invite-view invite-choice-view" data-invite-view="choice" aria-labelledby="invite-gate-title">
           <div class="invite-gate-hero">
             <p class="eyebrow" data-i18n="inviteGate.eyebrow">Invite Access / Claude iOS Repair</p>
-            <h1 id="invite-gate-title" data-i18n="inviteGate.title">获取修复邀请码</h1>
-            <p class="invite-gate-lede" data-i18n="inviteGate.copy">选择一个获取方式，按提示拿到邀请码后继续修复。</p>
+            <h1 id="invite-gate-title" data-i18n="inviteGate.title">选择修复入口</h1>
+            <p class="invite-gate-lede" data-i18n="inviteGate.copy">需要人工协助请选择售后协助；可以自行按步骤操作请选择自助获取。邀请码仅用于生成本次临时修复端口。</p>
           </div>
 
-          <p class="invite-choice-hint" data-i18n="inviteGate.choiceHint">闲鱼最推荐；免费方式为自助使用。</p>
+          <p class="invite-choice-hint" data-i18n="inviteGate.choiceHint">先判断是否需要人工协助，这会让后续选择更简单。</p>
 
           <div class="invite-methods" aria-label="邀请码获取方式">
             <button class="invite-method-option is-recommended" type="button" data-invite-method-select="xianyu" aria-controls="invite-method-xianyu">
               <span class="method-recommend" data-i18n="inviteGate.recommended">推荐</span>
               <span class="invite-method-head">
-                <span class="method-index">01</span>
+                <span class="method-icon method-icon-support" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 12a8 8 0 0 1 16 0"></path>
+                    <path d="M4 12v3a2 2 0 0 0 2 2h1v-7H6a2 2 0 0 0-2 2z"></path>
+                    <path d="M20 12v3a2 2 0 0 1-2 2h-1v-7h1a2 2 0 0 1 2 2z"></path>
+                    <path d="M9 19c1.2.7 4.8.7 6 0"></path>
+                  </svg>
+                </span>
                 <span>
-                  <span class="method-label" data-i18n="inviteGate.xianyuLabel">售后支持</span>
-                  <strong data-i18n="inviteGate.xianyuTitle">闲鱼下单购买</strong>
+                  <span class="method-label" data-i18n="inviteGate.xianyuLabel">人工支持</span>
+                  <strong data-i18n="inviteGate.xianyuTitle">售后协助</strong>
                 </span>
               </span>
-              <span data-i18n="inviteGate.xianyuBrief">适合需要远程指导和售后支持的用户。</span>
+              <span data-i18n="inviteGate.xianyuBrief">通过闲鱼获取售后邀请码，适合需要远程指导或后续技术支持的用户。</span>
             </button>
 
-            <button class="invite-method-option" type="button" data-invite-method-select="alipay" aria-controls="invite-method-alipay">
+            <button class="invite-method-option" type="button" data-invite-method-select="self" aria-controls="invite-method-self">
               <span class="invite-method-head">
-                <span class="method-index">02</span>
+                <span class="method-icon method-icon-self" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M15 7h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h3"></path>
+                    <path d="M8 11l4-8 4 8"></path>
+                    <path d="M10 11h4"></path>
+                    <path d="M9 16h6"></path>
+                  </svg>
+                </span>
                 <span>
-                  <span class="method-label" data-i18n="inviteGate.alipayLabel">支持开发</span>
-                  <strong data-i18n="inviteGate.alipayTitle">支付宝随缘付费</strong>
+                  <span class="method-label" data-i18n="inviteGate.selfLabel">自助操作</span>
+                  <strong data-i18n="inviteGate.selfTitle">自助获取</strong>
                 </span>
               </span>
-              <span data-i18n="inviteGate.alipayBrief">随缘打赏后生成 1 小时临时邀请码。</span>
-            </button>
-
-            <button class="invite-method-option" type="button" data-invite-method-select="free" aria-controls="invite-method-free">
-              <span class="invite-method-head">
-                <span class="method-index">03</span>
-                <span>
-                  <span class="method-label" data-i18n="inviteGate.freeLabel">免费自助</span>
-                  <strong data-i18n="inviteGate.freeTitle">免费使用</strong>
-                </span>
-              </span>
-              <span data-i18n="inviteGate.freeBrief">适合完全自助操作，无售后支持。</span>
+              <span data-i18n="inviteGate.selfBrief">免费使用或随缘支持维护，系统会生成 1 小时临时邀请码。适合能自行完成证书和 Wi‑Fi 代理设置的用户。</span>
             </button>
           </div>
 
@@ -92,7 +103,7 @@
           </div>
           <div class="invite-method-page-body">
             <div class="method-page-copy">
-              <p class="method-label" data-i18n="inviteGate.xianyuLabel">售后支持</p>
+              <p class="method-label" data-i18n="inviteGate.xianyuLabel">人工支持</p>
               <h2 data-i18n="inviteGate.xianyuDetailTitle">闲鱼购买后获取售后邀请码</h2>
               <p data-i18n="inviteGate.xianyuPageCopy">购买后按售后指引获取邀请码，再在顶部输入并验证。</p>
             </div>
@@ -106,7 +117,7 @@
                 <span data-i18n="inviteGate.afterSupport">含后续售后技术支持</span>
               </div>
               <div class="method-page-actions">
-                <a class="button primary" href="https://www.goofish.com/item?spm=a21ybx.personal.feeds.1.3e076ac2wWp67j&amp;id=1061136454887&amp;categoryId=50023914" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openXianyu">打开闲鱼下单链接</a>
+                <a class="button primary" href="https://www.goofish.com/item?spm=a21ybx.personal.feeds.1.3e076ac2wWp67j&amp;id=1061136454887&amp;categoryId=50023914" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openXianyu">去闲鱼获取售后邀请码</a>
                 <button class="button secondary" type="button" data-copy-invite-link data-copy-value="https://www.goofish.com/item?spm=a21ybx.personal.feeds.1.3e076ac2wWp67j&amp;id=1061136454887&amp;categoryId=50023914" data-i18n="inviteGate.copyXianyu">复制链接</button>
                 <button class="button secondary" type="button" data-focus-invite data-i18n="inviteGate.focusInvite">去顶部输入邀请码</button>
               </div>
@@ -115,41 +126,7 @@
           </div>
         </section>
 
-        <section id="invite-method-alipay" class="invite-view invite-method-page simple-method-page" data-invite-view="alipay" data-invite-method-panel="alipay" hidden>
-          <div class="method-page-header">
-            <button class="button secondary method-back-button" type="button" data-invite-back data-i18n="inviteGate.back">返回选择</button>
-            <div class="support-badges is-supported" aria-label="支持说明">
-              <span data-i18n="inviteGate.remoteSupport">含远程指导</span>
-              <span data-i18n="inviteGate.afterSupport">含后续售后技术支持</span>
-            </div>
-          </div>
-          <div class="invite-method-page-body">
-            <div class="method-page-copy">
-              <p class="method-label" data-i18n="inviteGate.alipayLabel">支持开发</p>
-              <h2 data-i18n="inviteGate.alipayDetailTitle">打赏后自动验证</h2>
-              <p data-i18n="inviteGate.alipayPageCopy">扫码随缘打赏，点击“已打赏”后自动填入邀请码并验证。包含远程指导和后续售后技术支持。</p>
-            </div>
-            <div class="method-page-actions">
-              <button class="button primary" type="button" data-invite-auto-claim="alipay" data-i18n="inviteGate.startAlipay">已打赏，自动验证</button>
-            </div>
-            <div class="qr-scan-panel">
-              <button class="qr-image-button" type="button" data-qr-preview="/assets/alipay-reward-qr.jpg" data-qr-title="支付宝收款二维码" aria-label="放大查看支付宝收款二维码">
-                <img class="qr-scan-image" src="/assets/alipay-reward-qr.jpg" alt="支付宝收款二维码">
-              </button>
-              <div class="qr-panel-copy">
-                <h2 data-i18n="inviteGate.scanAlipayTitle">支付宝收款二维码</h2>
-                <p data-i18n="inviteGate.scanAlipayCopy">请用支付宝扫码，或放大后保存再打开。</p>
-              </div>
-              <div class="qr-actions">
-                <button class="button secondary" type="button" data-qr-preview="/assets/alipay-reward-qr.jpg" data-qr-title="支付宝收款二维码" data-i18n="inviteGate.previewQr">放大查看</button>
-                <a class="button secondary" href="/assets/alipay-reward-qr.jpg" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openOriginal">打开原图</a>
-                <a class="button secondary" href="/assets/alipay-reward-qr.jpg" download data-i18n="inviteGate.downloadQr">下载保存</a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="invite-method-free" class="invite-view invite-method-page simple-method-page" data-invite-view="free" data-invite-method-panel="free" hidden>
+        <section id="invite-method-self" class="invite-view invite-method-page self-method-page" data-invite-view="self" data-invite-method-panel="self" hidden>
           <div class="method-page-header">
             <button class="button secondary method-back-button" type="button" data-invite-back data-i18n="inviteGate.back">返回选择</button>
             <div class="support-badges" aria-label="支持说明">
@@ -158,27 +135,100 @@
           </div>
           <div class="invite-method-page-body">
             <div class="method-page-copy">
-              <p class="method-label" data-i18n="inviteGate.freeLabel">免费自助</p>
-              <h2 data-i18n="inviteGate.freeDetailTitle">一键三连后自动验证</h2>
-              <p data-i18n="inviteGate.freePageCopy">先打开小红书完成一键三连，也可扫码进群查看公告。完成后点击按钮自动验证。</p>
+              <p class="method-label" data-i18n="inviteGate.selfLabel">自助操作</p>
+              <h2 data-i18n="inviteGate.selfDetailTitle">自助获取临时邀请码</h2>
+              <p data-i18n="inviteGate.selfPageCopy">可以免费自助，也可以随缘支持维护。两种方式都会生成 1 小时临时邀请码，适合能自行完成证书和 Wi‑Fi 代理设置的用户。</p>
             </div>
-            <div class="method-page-actions">
-              <a class="button secondary" href="https://www.xiaohongshu.com/explore/6a3d6a840000000015027b6c?app_platform=ios&app_version=9.35.1&share_from_user_hidden=true&xsec_source=app_share&type=normal&xsec_token=CB0UYhy_gO1Kvj1oKU3by-zAITK2CkzHW9HyzYuIuJ2mY=&author_share=1&xhsshare=WeixinSession&shareRedId=N0wyMzZLNTw2NzUyOTgwNjY0OTc0SUc5&apptime=1782614223&share_id=7ce6b5a0903d4e72ba044663a7fe2b5c&wechatWid=e41ea19683b24e64600b37507d713f97&wechatOrigin=menu" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openXhs">打开小红书</a>
-              <button class="button primary" type="button" data-invite-auto-claim="free" data-i18n="inviteGate.startFree">已完成一键三连，自动验证</button>
-            </div>
-            <div class="qr-scan-panel">
-              <button class="qr-image-button" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="加群二维码" aria-label="放大查看加群二维码">
-                <img class="qr-scan-image" src="/assets/group-invite-qr.jpg" alt="加群二维码">
-              </button>
-              <div class="qr-panel-copy">
-                <h2 data-i18n="inviteGate.scanGroupTitle">加群二维码</h2>
-                <p data-i18n="inviteGate.scanGroupCopy">群公告会定期更新免费邀请码，可长按保存后扫码。</p>
+
+            <div class="self-service-options">
+              <div class="self-service-paths">
+                <article class="self-service-path is-free">
+                  <div>
+                    <p class="method-label" data-i18n="inviteGate.freePathLabel">方式一</p>
+                    <h3 data-i18n="inviteGate.freePathTitle">小红书一键三连</h3>
+                    <p data-i18n="inviteGate.freePathCopy">先打开小红书完成一键三连，再点击确认生成邀请码。</p>
+                  </div>
+                  <div class="self-service-path-actions">
+                    <a class="button secondary" href="https://www.xiaohongshu.com/explore/6a3d6a840000000015027b6c?app_platform=ios&app_version=9.35.1&share_from_user_hidden=true&xsec_source=app_share&type=normal&xsec_token=CB0UYhy_gO1Kvj1oKU3by-zAITK2CkzHW9HyzYuIuJ2mY=&author_share=1&xhsshare=WeixinSession&shareRedId=N0wyMzZLNTw2NzUyOTgwNjY0OTc0SUc5&apptime=1782614223&share_id=7ce6b5a0903d4e72ba044663a7fe2b5c&wechatWid=e41ea19683b24e64600b37507d713f97&wechatOrigin=menu" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openXhs">打开小红书</a>
+                    <button class="button primary" type="button" data-invite-auto-claim="free" data-i18n="inviteGate.startFree">我已一键三连，生成邀请码</button>
+                  </div>
+                </article>
+
+                <article class="self-service-path is-coffee">
+                  <div>
+                    <p class="method-label" data-i18n="inviteGate.coffeePathLabel">方式二</p>
+                    <h3 data-i18n="inviteGate.coffeePathTitle">请作者喝杯咖啡</h3>
+                    <p data-i18n="inviteGate.coffeePathCopy">扫码下方支付宝二维码后，点击确认生成邀请码。</p>
+                  </div>
+                  <div class="self-service-path-actions">
+                    <button class="button primary" type="button" data-invite-auto-claim="alipay" data-i18n="inviteGate.startAlipay">我已请咖啡，生成邀请码</button>
+                  </div>
+                </article>
               </div>
-              <div class="qr-actions">
-                <button class="button secondary" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="加群二维码" data-i18n="inviteGate.previewQr">放大查看</button>
-                <a class="button secondary" href="/assets/group-invite-qr.jpg" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openOriginal">打开原图</a>
-                <a class="button secondary" href="/assets/group-invite-qr.jpg" download data-i18n="inviteGate.downloadQr">下载保存</a>
-              </div>
+
+              <article class="self-service-card">
+                <div class="self-service-card-head">
+                  <span class="method-icon method-icon-support-dev" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M6 9h12l-1.2 11H7.2z"></path>
+                      <path d="M8 9V6a4 4 0 0 1 8 0v3"></path>
+                      <path d="M9 14h6"></path>
+                    </svg>
+                  </span>
+                  <div>
+                    <p class="method-label" data-i18n="inviteGate.alipayLabel">支持维护</p>
+                    <h3 data-i18n="inviteGate.alipayDetailTitle">请作者喝杯咖啡</h3>
+                  </div>
+                </div>
+                <p data-i18n="inviteGate.alipayPageCopy">如果工具帮到了你，可以请作者喝杯咖啡支持维护。</p>
+                <div class="qr-scan-panel">
+                  <button class="qr-image-button" type="button" data-qr-preview="/assets/alipay-reward-qr.jpg" data-qr-title="支付宝收款二维码" aria-label="放大查看支付宝收款二维码">
+                    <img class="qr-scan-image" src="/assets/alipay-reward-qr.jpg" alt="支付宝收款二维码">
+                  </button>
+                  <div class="qr-panel-copy">
+                    <h2 data-i18n="inviteGate.scanAlipayTitle">支付宝二维码</h2>
+                    <p data-i18n="inviteGate.scanAlipayCopy">可扫码支持维护，完成后点上方按钮自动验证。</p>
+                  </div>
+                  <div class="qr-actions">
+                    <button class="button secondary" type="button" data-qr-preview="/assets/alipay-reward-qr.jpg" data-qr-title="支付宝收款二维码" data-i18n="inviteGate.previewQr">放大查看</button>
+                    <a class="button secondary" href="/assets/alipay-reward-qr.jpg" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openOriginal">打开原图</a>
+                    <a class="button secondary" href="/assets/alipay-reward-qr.jpg" download data-i18n="inviteGate.downloadQr">下载保存</a>
+                  </div>
+                </div>
+              </article>
+
+              <article class="self-service-card">
+                <div class="self-service-card-head">
+                  <span class="method-icon method-icon-free" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path>
+                      <path d="M2 7h20v5H2z"></path>
+                      <path d="M12 22V7"></path>
+                      <path d="M12 7H7.5A2.5 2.5 0 1 1 10 4.5C10 6 12 7 12 7z"></path>
+                      <path d="M12 7h4.5A2.5 2.5 0 1 0 14 4.5C14 6 12 7 12 7z"></path>
+                    </svg>
+                  </span>
+                  <div>
+                    <p class="method-label" data-i18n="inviteGate.freeLabel">免费自助</p>
+                    <h3 data-i18n="inviteGate.freeDetailTitle">一键三连后自动验证</h3>
+                  </div>
+                </div>
+                <p data-i18n="inviteGate.freePageCopy">打开小红书完成一键三连；也可扫码进群查看公告。</p>
+                <div class="qr-scan-panel">
+                  <button class="qr-image-button" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="加群二维码" aria-label="放大查看加群二维码">
+                    <img class="qr-scan-image" src="/assets/group-invite-qr.jpg" alt="加群二维码">
+                  </button>
+                  <div class="qr-panel-copy">
+                    <h2 data-i18n="inviteGate.scanGroupTitle">加群二维码</h2>
+                    <p data-i18n="inviteGate.scanGroupCopy">群公告会定期更新免费邀请码，可长按保存后扫码。</p>
+                  </div>
+                  <div class="qr-actions">
+                    <button class="button secondary" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="加群二维码" data-i18n="inviteGate.previewQr">放大查看</button>
+                    <a class="button secondary" href="/assets/group-invite-qr.jpg" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openOriginal">打开原图</a>
+                    <a class="button secondary" href="/assets/group-invite-qr.jpg" download data-i18n="inviteGate.downloadQr">下载保存</a>
+                  </div>
+                </div>
+              </article>
             </div>
           </div>
         </section>
@@ -420,6 +470,10 @@
       </aside>
     </div>
   </main>
+
+  <footer class="site-footnote" aria-label="免责声明">
+    <a href="/disclaimer.html" data-i18n="footer.disclaimer">免责声明</a>
+  </footer>
 
   <script src="/app.js" defer></script>
 </body>
