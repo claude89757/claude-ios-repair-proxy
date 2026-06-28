@@ -16,7 +16,7 @@
           <nav aria-label="页面导航">
             <a href="#guide" data-i18n="nav.guide">修复向导</a>
             <a href="#status" data-i18n="nav.status">实时状态</a>
-            <a href="#safety" data-i18n="nav.safety">安全</a>
+            <a href="/disclaimer.html" data-i18n="nav.safety">使用边界</a>
           </nav>
           <a class="github-link" href="https://github.com/claude89757/claude-ios-repair-proxy" target="_blank" rel="noreferrer noopener" aria-label="GitHub 开源地址">GitHub</a>
           <button id="language-toggle" class="language-toggle" type="button" aria-label="Switch language" aria-pressed="false">EN</button>
@@ -30,7 +30,7 @@
         </div>
         <p class="claim-feedback" data-claim-feedback></p>
       </form>
-      <p class="invite-floating-note" data-i18n="entry.copy">使用顶部固定的邀请码栏输入管理员提供的邀请码。验证后页面会显示默认 24 小时失效的专属代理端口和脱敏实时状态。</p>
+      <p class="invite-floating-note" data-i18n="entry.copy">使用顶部固定的邀请码栏输入管理员提供的邀请码。验证后页面会显示默认 24 小时失效的一次性修复端口和脱敏实时状态。</p>
     </div>
   </header>
 
@@ -82,7 +82,7 @@
             </button>
           </div>
 
-          <p class="invite-scope-note" data-i18n="inviteGate.scopeNote">仅修复 Claude iOS App 卡 “Something went wrong” 回到登录页；无法帮助解决被封号；不解决梯子或网络问题；公开页面不内置代理账号密码。</p>
+          <p class="invite-scope-note" data-i18n="inviteGate.scopeNote">仅用于 Claude iOS App 卡 “Something went wrong” 时回到登录页；无法帮助解决被封号、账号申诉或地区限制问题；不提供 VPN、翻墙、通用代理或网络加速能力。</p>
         </section>
 
         <section id="invite-method-xianyu" class="invite-view invite-method-page" data-invite-view="xianyu" data-invite-method-panel="xianyu" hidden>
@@ -203,9 +203,9 @@
       <div class="guide-main">
         <section id="guide" class="section wizard-section" aria-labelledby="guide-title">
           <div class="workspace-intro">
-            <p class="eyebrow" data-i18n="hero.eyebrow">iPhone / Claude App / 临时修复代理</p>
+            <p class="eyebrow" data-i18n="hero.eyebrow">iPhone / Claude App / 本地登录态修复</p>
             <h1 id="page-title" data-i18n="hero.title">Claude iOS 登录卡死修复指南</h1>
-            <p class="lede" data-i18n="hero.lede">主要用于账号被 ban、禁用或异常后，Claude iOS 反复出现 “Something went wrong, try again”，删除并重装后仍回不到登录页的场景。按步骤临时连接修复代理，清理旧 session、cookie、routing hint 后立即关闭代理并撤销证书信任。</p>
+            <p class="lede" data-i18n="hero.lede">主要用于账号被 ban、禁用或异常后，Claude iOS 反复出现 “Something went wrong, try again”，删除并重装后仍回不到登录页的场景。按步骤临时配置 Wi‑Fi HTTP 修复通道，帮助 Claude iOS 清理本地旧 session、cookie、routing hint。修复完成后请立即关闭 Wi‑Fi HTTP 代理并撤销证书完全信任。</p>
           </div>
 
           <div class="section-head">
@@ -230,7 +230,7 @@
             <li>
               <button class="step-tab" type="button" data-step-button="3" aria-controls="step-panel-3">
                 <span class="step-index">3</span>
-                <span><strong data-i18n="step3.title">只让 Wi-Fi 走代理</strong><small data-i18n="step.statusWaiting">等待</small></span>
+                <span><strong data-i18n="step3.title">配置 Wi‑Fi 修复通道</strong><small data-i18n="step.statusWaiting">等待</small></span>
               </button>
             </li>
             <li>
@@ -259,7 +259,7 @@
               <p data-i18n="step1.copy">邀请码验证成功。页面已解锁临时代理配置和修复步骤，请继续安装并信任证书。</p>
               <div class="task-note accent">
                 <strong data-i18n="step1.verifiedTitle">邀请码已验证</strong>
-                <span data-i18n="step1.verifiedCopy">专属代理端口已在右侧状态栏显示。下一步只需要按提示完成证书和 Wi-Fi 代理设置。</span>
+                <span data-i18n="step1.verifiedCopy">专属修复端口已在右侧状态栏显示。下一步只需要按提示完成证书和 Wi‑Fi HTTP 代理设置。</span>
               </div>
             </article>
 
@@ -284,12 +284,12 @@
                 <span class="step-number">3</span>
                 <div>
                   <p class="panel-kicker" data-i18n="step.kickerNetwork">网络</p>
-                  <h3 id="step3-title" data-i18n="step3.title">只让 Wi-Fi 走代理</h3>
+                  <h3 id="step3-title" data-i18n="step3.title">配置 Wi‑Fi 修复通道</h3>
                 </div>
               </div>
               <ol class="step-list">
                 <li data-i18n="step3.item1">打开飞行模式，然后只打开 Wi-Fi，保持蜂窝网络关闭。</li>
-                <li data-i18n="step3.item2">关闭手机上的其它 VPN、代理或梯子工具，否则 Claude 流量可能不会走到修复代理。</li>
+                <li data-i18n="step3.item2">关闭手机上的其它 VPN、代理或第三方网络工具，否则 Claude 流量可能不会进入本次修复通道。</li>
                 <li data-i18n="step3.item3">进入当前 Wi-Fi 的信息页，找到 HTTP 代理，选择手动。</li>
                 <li data-i18n="step3.item4">填写页面显示的服务器和端口，认证保持关闭，其余认证字段不用填写。</li>
               </ol>
@@ -306,8 +306,8 @@
               </div>
               <ol class="step-list">
                 <li data-i18n="step4.item1">强退 Claude App，再重新打开。</li>
-                <li data-i18n="step4.item2">等待 10-20 秒，保持当前 Wi-Fi 和代理不变。</li>
-                <li data-i18n="step4.item3">看到登录入口，或状态出现 /api/account、rewrite、Cookie 删除，即可下一步；不需要长时间保持代理。</li>
+                <li data-i18n="step4.item2">等待 10-20 秒，保持当前 Wi‑Fi 和 HTTP 代理设置不变。</li>
+                <li data-i18n="step4.item3">看到登录入口，或状态出现 /api/account、rewrite、Cookie 删除，即可下一步；不需要长时间保持修复通道。</li>
               </ol>
               <button class="button primary step-complete-button" type="button" data-step-complete="4" data-i18n="step.next">我已完成，下一步</button>
             </article>
@@ -322,7 +322,7 @@
               </div>
               <ol class="step-list">
                 <li data-i18n="step5.item1">把当前 Wi-Fi 的 HTTP 代理改回“关闭”。</li>
-                <li data-i18n="step5.item2">关闭飞行模式，恢复蜂窝网络；恢复你日常使用的 VPN、代理或梯子。</li>
+                <li data-i18n="step5.item2">关闭飞行模式，恢复蜂窝网络。若你原本有其他网络配置，请自行按原状恢复；本工具不提供 VPN、翻墙、网络加速或地区访问能力。</li>
                 <li data-i18n="step5.item3">关闭 mitmproxy 证书“完全信任”。这一步做完后再继续正常使用 Claude。</li>
               </ol>
               <button class="button primary step-complete-button" type="button" data-step-complete="5" data-i18n="step.finish">完成修复</button>
@@ -332,11 +332,11 @@
                   <h2 data-i18n="safety.title">安全说明</h2>
                 </div>
                 <ul>
-                  <li data-i18n="safety.item1">请只在自己的设备和账号上使用，修复代理只用于清理卡住的本地旧会话，不用于绕过账号限制。</li>
+                  <li data-i18n="safety.item1">请只在自己的设备和账号上使用，本工具只用于清理卡住的本地旧会话，不用于绕过账号、地区或网络限制。</li>
                   <li data-i18n="safety.item2">修复期间不要提交、记录或共享真实 Cookie、sessionKey、routingHint、Authorization、mitmproxy 证书或设备标识。</li>
                   <li data-i18n="safety.item3">服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。</li>
-                  <li data-i18n="safety.item4">完成后关闭 Wi-Fi 代理，并取消修复 CA 的完全信任；专属端口默认 24 小时失效。</li>
-                  <li data-i18n="safety.item5">如果状态只显示已连接但没有 Claude 请求，优先检查是否还有其它 VPN、代理或梯子工具未关闭。</li>
+                  <li data-i18n="safety.item4">完成后关闭 Wi‑Fi HTTP 代理，并取消修复 CA 的完全信任；专属端口默认 24 小时失效。</li>
+                  <li data-i18n="safety.item5">如果状态只显示已连接但没有 Claude 请求，优先检查是否还有其它 VPN、代理或第三方网络工具未关闭。</li>
                   <li data-i18n="safety.item6">如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。</li>
                 </ul>
               </section>
@@ -365,14 +365,14 @@
                 <h2 id="status-title" data-i18n="status.title">实时状态</h2>
                 <button id="status-refresh" class="button secondary" type="button" data-i18n="status.refresh">刷新状态</button>
               </div>
-              <p data-i18n="status.copy">邀请码验证后，这里会显示你的专属代理端口、脱敏状态和事件元数据。正常已登录的 Claude App 可能只显示代理已连接，不一定触发修复事件。</p>
+              <p data-i18n="status.copy">邀请码验证后，这里会显示你的一次性修复端口、脱敏状态和事件元数据。正常已登录的 Claude App 可能只显示修复通道已连接，不一定触发修复事件。</p>
             </div>
 
             <section id="proxy-config" class="panel proxy-panel" aria-labelledby="proxy-title" hidden>
               <div class="proxy-panel-head">
                 <div>
-                  <p class="panel-kicker" data-i18n="proxy.kicker">临时代理配置</p>
-                  <h3 id="proxy-title" data-i18n="proxy.title">请按以下信息配置当前 Wi-Fi 的 HTTP 代理，认证保持关闭；专属端口默认 24 小时失效</h3>
+                  <p class="panel-kicker" data-i18n="proxy.kicker">临时修复通道配置</p>
+                  <h3 id="proxy-title" data-i18n="proxy.title">请按以下信息填写当前 Wi‑Fi 的 HTTP 代理，认证保持关闭；该端口仅用于本次 Claude iOS 登录态修复，默认 24 小时失效</h3>
                 </div>
               </div>
               <dl class="proxy-grid">
@@ -398,7 +398,7 @@
 
               <section class="panel events-panel" aria-labelledby="events-title">
                 <h3 id="events-title" data-i18n="events.title">Claude 请求事件</h3>
-                <p class="panel-note" data-i18n="events.note">只显示 Claude/Anthropic 相关连接和请求；普通代理连接不会显示在此表。</p>
+                <p class="panel-note" data-i18n="events.note">只显示 Claude/Anthropic 相关连接和请求；与修复无关的普通网络连接不会显示在此表。</p>
                 <div class="table-wrap">
                   <table>
                     <thead>

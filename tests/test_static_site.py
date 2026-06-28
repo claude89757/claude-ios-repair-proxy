@@ -25,12 +25,12 @@ def test_site_contains_required_user_guidance():
     assert "只打开 Wi-Fi" in html
     assert "HTTP 代理" in html
     assert "认证保持关闭" in html
-    assert "关闭手机上的其它 VPN、代理或梯子工具" in html
-    assert "否则 Claude 流量可能不会走到修复代理" in html
+    assert "关闭手机上的其它 VPN、代理或第三方网络工具" in html
+    assert "否则 Claude 流量可能不会进入本次修复通道" in html
     assert "实时状态" in html
     assert "正常已登录" in html
     assert "不一定触发修复事件" in html
-    assert "公开页面不内置代理账号密码" in html
+    assert "不提供 VPN、翻墙、通用代理或网络加速能力" in html
     assert "默认 24 小时失效" in html
     assert "脱敏状态和事件元数据" in html
     assert "不记录 Cookie、请求体或完整设备标识" in html
@@ -54,7 +54,7 @@ def test_public_site_supports_chinese_english_language_toggle():
     assert "function setLanguage" in js
     assert "document.querySelectorAll(\"[data-i18n]\")" in js
     assert "Claude iOS sign-in loop repair guide" in js
-    assert "Turn off any other VPN, proxy, or tunneling app" in js
+    assert "Turn off any other VPN, proxy, or third-party network tool" in js
 
 
 def test_public_site_links_to_github_repository_from_topbar():
@@ -124,7 +124,7 @@ def test_public_site_has_invite_acquisition_gate_with_three_options():
     assert "闲鱼下单购买" in html
     assert "购买后按售后指引获取邀请码" in html
     assert "无法帮助解决被封号" in html
-    assert "不解决梯子或网络问题" in html
+    assert "不提供 VPN、翻墙、通用代理或网络加速能力" in html
     assert "/assets/alipay-reward-qr.jpg" in html
     assert "/assets/group-invite-qr.jpg" in html
     assert "xiaohongshu.com/explore/6a3d6a840000000015027b6c" in html
@@ -156,6 +156,28 @@ def test_public_site_has_invite_acquisition_gate_with_three_options():
     assert ".invite-method-page" in css
     assert ".invite-choice-view" in css
     assert ".invite-gate-screen" in css
+
+
+def test_public_site_has_compliance_disclaimer_footer():
+    html = (WEB / "index.html").read_text()
+    disclaimer = (WEB / "disclaimer.html").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'href="/disclaimer.html"' in html
+    assert 'data-i18n="nav.safety">使用边界</a>' in html
+    assert 'id="disclaimer"' not in html
+    assert "免责声明与使用边界" not in html
+    assert 'id="disclaimer"' in disclaimer
+    assert "免责声明与使用边界" in disclaimer
+    assert "本地旧登录态残留" in disclaimer
+    assert "不是 VPN、翻墙工具、网络加速器、通用代理或跨境联网服务" in disclaimer
+    assert "请勿将本工具用于访问与修复无关的网站、App 或服务" in disclaimer
+    assert "本项目与 Anthropic、Claude、Apple 无官方关联" in disclaimer
+    assert "Disclaimer and usage boundaries" in disclaimer
+    assert "not a VPN, circumvention tool, accelerator, general-purpose proxy" in disclaimer
+    assert 'href="/zh"' in disclaimer
+    assert ".site-disclaimer" in css
+    assert ".disclaimer-card" in css
 
 
 def test_invite_options_open_isolated_method_pages():
@@ -343,9 +365,10 @@ def test_public_site_final_step_tells_users_to_restore_vpn_after_proxy_cleanup()
     html = (WEB / "index.html").read_text()
     js = (WEB / "app.js").read_text()
 
-    assert "恢复你日常使用的 VPN、代理或梯子" in html
-    assert "恢复你日常使用的 VPN、代理或梯子" in js
-    assert "restore your usual VPN, proxy, or tunneling app" in js
+    assert "若你原本有其他网络配置，请自行按原状恢复" in html
+    assert "本工具不提供 VPN、翻墙、网络加速或地区访问能力" in html
+    assert "若你原本有其他网络配置，请自行按原状恢复" in js
+    assert "this tool does not provide VPN, circumvention, acceleration, or regional access capabilities" in js
 
 
 def test_public_site_uses_clear_step_four_and_five_checklists():
@@ -357,15 +380,15 @@ def test_public_site_uses_clear_step_four_and_five_checklists():
     assert "step4.item3" in html
     assert "step4.item4" not in html
     assert "强退 Claude App，再重新打开" in html
-    assert "保持当前 Wi-Fi 和代理不变" in html
+    assert "保持当前 Wi‑Fi 和 HTTP 代理设置不变" in html
     assert "看到登录入口，或状态出现 /api/account、rewrite、Cookie 删除" in html
-    assert "不需要长时间保持代理" in html
+    assert "不需要长时间保持修复通道" in html
     assert "step5.item1" in html
     assert "step5.item2" in html
     assert "step5.item3" in html
     assert "step5.item4" not in html
     assert "Wi-Fi 的 HTTP 代理改回“关闭”" in html
-    assert "关闭飞行模式，恢复蜂窝网络；恢复你日常使用的 VPN、代理或梯子" in html
+    assert "关闭飞行模式，恢复蜂窝网络。若你原本有其他网络配置，请自行按原状恢复" in html
     assert "关闭 mitmproxy 证书“完全信任”" in html
     assert "这一步做完后再继续正常使用 Claude" in html
     assert "Force quit the Claude App, then open it again" in js
