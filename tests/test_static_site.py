@@ -544,6 +544,25 @@ def test_admin_site_contains_required_management_ui():
     assert "repair session ID" not in html
 
 
+def test_admin_invite_list_has_filters_pagination_and_repair_status():
+    html = (WEB / "admin.html").read_text()
+    js = (WEB / "admin.js").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'id="invite-filters"' in html
+    assert 'id="invite-query"' in html
+    assert 'id="invite-status-filter"' in html
+    assert 'id="invite-repair-filter"' in html
+    assert 'id="invite-pagination"' in html
+    assert "修复状态" in html
+    assert "来源" in html
+    assert "renderPagination" in js
+    assert "URLSearchParams" in js
+    assert "repair_status" in js
+    assert ".admin-filters" in css
+    assert ".admin-pagination" in css
+
+
 def test_admin_login_password_can_be_revealed_with_toggle_button():
     html = (WEB / "admin.html").read_text()
     js = (WEB / "admin.js").read_text()

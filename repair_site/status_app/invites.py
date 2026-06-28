@@ -46,6 +46,9 @@ class InviteStore:
                     expires_at TEXT,
                     last_used_at TEXT,
                     disabled_at TEXT,
+                    source_ip TEXT,
+                    source_geo TEXT,
+                    repair_completed_at TEXT,
                     note TEXT NOT NULL
                 )
                 """
@@ -56,6 +59,12 @@ class InviteStore:
             }
             if "proxy_port" not in columns:
                 self.conn.execute("ALTER TABLE invites ADD COLUMN proxy_port INTEGER")
+            if "source_ip" not in columns:
+                self.conn.execute("ALTER TABLE invites ADD COLUMN source_ip TEXT")
+            if "source_geo" not in columns:
+                self.conn.execute("ALTER TABLE invites ADD COLUMN source_geo TEXT")
+            if "repair_completed_at" not in columns:
+                self.conn.execute("ALTER TABLE invites ADD COLUMN repair_completed_at TEXT")
             self.conn.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_invites_proxy_port ON invites(proxy_port)"
             )
@@ -83,12 +92,15 @@ class InviteStore:
                 version=int(invite["proxy_password_version"]),
                 secret=self.settings.invite_secret,
             )
+        invite["repair_completed"] = invite.get("repair_completed_at") is not None
         return invite
 
     def create_invite(
         self,
         note: str,
         expires_at: str | None = None,
+        source_ip: str | None = None,
+        source_geo: str | None = None,
     ) -> dict[str, Any]:
         with self._lock:
             self._release_inactive_proxy_ports_locked()
@@ -106,8 +118,10 @@ class InviteStore:
                             status,
                             created_at,
                             expires_at,
+                            source_ip,
+                            source_geo,
                             note
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             new_invite_code(),
@@ -118,6 +132,8 @@ class InviteStore:
                             "active",
                             now_iso(),
                             expires_at or self._default_expires_at_locked(),
+                            source_ip,
+                            source_geo,
                             note,
                         ),
                     )
@@ -138,12 +154,19 @@ class InviteStore:
         *,
         note: str,
         ttl_seconds: int,
+        source_ip: str | None = None,
+        source_geo: str | None = None,
     ) -> dict[str, Any]:
         if ttl_seconds <= 0:
             raise ValueError("ttl_seconds must be positive")
         with self._lock:
             expires_at = self._expires_at_for_ttl_locked(ttl_seconds)
-        return self.create_invite(note=note, expires_at=expires_at)
+        return self.create_invite(
+            note=note,
+            expires_at=expires_at,
+            source_ip=source_ip,
+            source_geo=source_geo,
+        )
 
     def ensure_invite(
         self,
@@ -241,6 +264,83 @@ class InviteStore:
                 is not None
             ]
 
+    def list_invites_page(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        query: str = "",
+        status: str = "all",
+        repair_status: str = "all",
+    ) -> dict[str, Any]:
+        with self._lock:
+            self._release_inactive_proxy_ports_locked()
+            self._reclaim_expired_invites_locked()
+            safe_page = max(int(page), 1)
+            safe_page_size = min(max(int(page_size), 1), 100)
+            where: list[str] = []
+            params: list[Any] = []
+
+            normalized_status = status.strip().lower()
+            if normalized_status and normalized_status != "all":
+                where.append("status = ?")
+                params.append(normalized_status)
+
+            normalized_repair_status = repair_status.strip().lower()
+            if normalized_repair_status == "completed":
+                where.append("repair_completed_at IS NOT NULL")
+            elif normalized_repair_status == "pending":
+                where.append("repair_completed_at IS NULL")
+
+            normalized_query = query.strip().lower()
+            if normalized_query:
+                like = f"%{normalized_query}%"
+                where.append(
+                    """
+                    (
+                        lower(invite_code) LIKE ?
+                        OR lower(note) LIKE ?
+                        OR lower(coalesce(source_ip, '')) LIKE ?
+                        OR lower(coalesce(source_geo, '')) LIKE ?
+                        OR CAST(proxy_port AS TEXT) LIKE ?
+                    )
+                    """
+                )
+                params.extend([like, like, like, like, like])
+
+            where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+            total = int(
+                self.conn.execute(
+                    f"SELECT COUNT(*) AS count FROM invites {where_sql}",
+                    params,
+                ).fetchone()["count"]
+            )
+            offset = (safe_page - 1) * safe_page_size
+            rows = self.conn.execute(
+                f"""
+                SELECT *
+                FROM invites
+                {where_sql}
+                ORDER BY id DESC
+                LIMIT ? OFFSET ?
+                """,
+                [*params, safe_page_size, offset],
+            ).fetchall()
+            total_pages = max((total + safe_page_size - 1) // safe_page_size, 1)
+            items = [
+                invite
+                for row in rows
+                if (invite := self._row_to_invite(row, include_password=False))
+                is not None
+            ]
+            return {
+                "items": items,
+                "page": safe_page,
+                "page_size": safe_page_size,
+                "total": total,
+                "total_pages": total_pages,
+            }
+
     def list_active_proxy_targets(self) -> list[dict[str, Any]]:
         with self._lock:
             self._release_inactive_proxy_ports_locked()
@@ -329,6 +429,27 @@ class InviteStore:
             )
             self.conn.commit()
             return self.get_invite_by_id(invite_id, include_password=True)
+
+    def mark_repair_completed_by_session(
+        self,
+        session_id: str,
+        *,
+        timestamp: str | None = None,
+    ) -> bool:
+        normalized_session_id = session_id.strip()
+        if not normalized_session_id:
+            return False
+        with self._lock:
+            cursor = self.conn.execute(
+                """
+                UPDATE invites
+                SET repair_completed_at = COALESCE(repair_completed_at, ?)
+                WHERE session_id = ?
+                """,
+                (timestamp or now_iso(), normalized_session_id),
+            )
+            self.conn.commit()
+            return bool(cursor.rowcount)
 
     def verify_proxy_auth(
         self,

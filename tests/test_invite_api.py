@@ -121,7 +121,31 @@ def test_public_invite_endpoint_creates_one_hour_temporary_invite_each_time():
     stored = invite_store.claim_invite(first_body["invite_code"])
     expires_at = datetime.fromisoformat(stored["expires_at"])
     assert before + timedelta(hours=1) <= expires_at <= after + timedelta(hours=1)
-    assert stored["note"] == "public temporary invite: free"
+    assert stored["note"].startswith("public temporary invite: free | IP ")
+
+
+def test_public_invite_records_source_ip_and_geo_in_note():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/invites/public",
+        json={"channel": "free"},
+        headers={
+            "cf-connecting-ip": "203.0.113.9",
+            "cf-ipcountry": "SG",
+            "cf-region": "Singapore",
+            "cf-city": "Singapore",
+        },
+    )
+
+    assert response.status_code == 200
+    invite = invite_store.claim_invite(response.json()["invite_code"])
+    assert invite["source_ip"] == "203.0.113.9"
+    assert invite["source_geo"] == "SG / Singapore / Singapore"
+    assert invite["note"] == (
+        "public temporary invite: free | IP 203.0.113.9 | SG / Singapore / Singapore"
+    )
 
 
 def test_public_invite_endpoint_rejects_unknown_channel():

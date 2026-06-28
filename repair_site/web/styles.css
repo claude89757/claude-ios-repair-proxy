@@ -502,8 +502,45 @@ input:focus {
   line-height: 1.6;
 }
 
+.admin-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(140px, 0.7fr)) auto;
+  align-items: end;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.admin-filters label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-filters input,
+.admin-filters select {
+  min-height: 42px;
+  padding: 0 12px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-filters button {
+  min-height: 42px;
+}
+
 .admin-table {
-  min-width: 1120px;
+  min-width: 1320px;
 }
 
 .admin-status {
@@ -526,6 +563,17 @@ input:focus {
   color: var(--muted);
 }
 
+.admin-status.expired,
+.admin-status.pending {
+  background: #fff7e8;
+  color: #b36b00;
+}
+
+.admin-status.completed {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
 .admin-actions {
   display: flex;
   flex-wrap: wrap;
@@ -539,6 +587,22 @@ input:focus {
   border: 1px solid var(--line);
   color: var(--ink);
   font-size: 13px;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  min-height: 36px;
+}
+
+.admin-pagination-info {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .flow {
@@ -992,6 +1056,14 @@ td {
   .proxy-grid {
     grid-template-columns: 1fr;
   }
+
+  .admin-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-filters button {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 680px) {
@@ -1026,6 +1098,10 @@ td {
 
   .language-toggle {
     flex: 0 0 auto;
+  }
+
+  .admin-filters {
+    grid-template-columns: 1fr;
   }
 
   .header-invite-form {

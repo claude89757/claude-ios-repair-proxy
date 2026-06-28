@@ -202,6 +202,30 @@ def _strip_proxy_password(value: dict[str, Any]) -> dict[str, Any]:
     return output
 
 
+def _client_source_ip(request: Request) -> str:
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    candidates = [
+        request.headers.get("cf-connecting-ip", ""),
+        request.headers.get("x-real-ip", ""),
+        forwarded_for.split(",", 1)[0].strip() if forwarded_for else "",
+        request.client.host if request.client else "",
+    ]
+    for candidate in candidates:
+        if candidate:
+            return candidate.strip()
+    return "unknown"
+
+
+def _client_source_geo(request: Request) -> str:
+    parts = [
+        request.headers.get("cf-ipcountry", ""),
+        request.headers.get("cf-region", "") or request.headers.get("cf-region-code", ""),
+        request.headers.get("cf-city", ""),
+    ]
+    clean_parts = [part.strip() for part in parts if part and part.strip()]
+    return " / ".join(clean_parts) if clean_parts else "unknown"
+
+
 def _invite_claim_payload(
     invite: dict[str, Any],
     settings: Settings,
@@ -321,9 +345,28 @@ def create_app(
         return response
 
     @created_app.get("/api/admin/invites")
-    def admin_list_invites(request: Request) -> list[dict[str, Any]]:
+    def admin_list_invites(
+        request: Request,
+        page: int = 1,
+        page_size: int = 20,
+        q: str = "",
+        status: str = "all",
+        repair_status: str = "all",
+    ) -> dict[str, Any]:
         _require_admin_username(request)
-        return _invite_store(request.app).list_invites()
+        normalized_status = status.strip().lower()
+        normalized_repair_status = repair_status.strip().lower()
+        if normalized_status not in {"all", "active", "disabled", "expired"}:
+            raise HTTPException(status_code=400, detail="invalid status filter")
+        if normalized_repair_status not in {"all", "completed", "pending"}:
+            raise HTTPException(status_code=400, detail="invalid repair status filter")
+        return _invite_store(request.app).list_invites_page(
+            page=page,
+            page_size=page_size,
+            query=q,
+            status=normalized_status,
+            repair_status=normalized_repair_status,
+        )
 
     @created_app.post("/api/admin/invites")
     async def admin_create_invite(request: Request) -> dict[str, Any]:
@@ -365,7 +408,12 @@ def create_app(
         if not isinstance(session_id, str) or not session_id.strip():
             raise HTTPException(status_code=400, detail="session_id is required")
         event["session_id"] = session_id.strip()
-        _status_store(request.app).ingest(event)
+        sanitized = _status_store(request.app).ingest(event)
+        if sanitized.get("rewrite_applied") or sanitized.get("cookie_deletion_headers_sent"):
+            _invite_store(request.app).mark_repair_completed_by_session(
+                session_id.strip(),
+                timestamp=str(sanitized.get("timestamp") or ""),
+            )
         return Response(status_code=204)
 
     @created_app.post("/api/internal/proxy-auth/verify")
@@ -391,9 +439,14 @@ def create_app(
         if not isinstance(channel, str) or channel not in {"free", "alipay"}:
             raise HTTPException(status_code=400, detail="unsupported public invite channel")
         settings = _settings(request.app)
+        source_ip = _client_source_ip(request)
+        source_geo = _client_source_geo(request)
+        note = f"public temporary invite: {channel} | IP {source_ip} | {source_geo}"
         invite = _invite_store(request.app).create_temporary_invite(
-            note=f"public temporary invite: {channel}",
+            note=note,
             ttl_seconds=settings.public_invite_ttl_seconds,
+            source_ip=source_ip,
+            source_geo=source_geo,
         )
         return _invite_claim_payload(
             invite,

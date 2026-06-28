@@ -135,10 +135,78 @@ def test_admin_list_invites_omits_proxy_password():
 
     assert create_response.status_code == 200
     assert list_response.status_code == 200
-    invites = list_response.json()
+    body = list_response.json()
+    invites = body["items"]
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
     assert len(invites) == 1
     assert invites[0]["proxy_port"] == 10001
+    assert invites[0]["repair_completed"] is False
     assert "proxy_password" not in invites[0]
+
+
+def test_admin_list_invites_supports_pagination_and_filters():
+    client, invite_store, _status_store = admin_client()
+    assert login(client).status_code == 204
+    first = invite_store.create_invite(note="alpha user")
+    second = invite_store.create_invite(note="beta user")
+    third = invite_store.create_invite(note="gamma user")
+    invite_store.disable_invite(second["id"])
+    invite_store.mark_repair_completed_by_session(third["session_id"], timestamp="2026-06-25T00:00:00+00:00")
+
+    page_response = client.get("/api/admin/invites?page=2&page_size=2")
+    query_response = client.get("/api/admin/invites?q=alpha")
+    status_response = client.get("/api/admin/invites?status=disabled")
+    repaired_response = client.get("/api/admin/invites?repair_status=completed")
+
+    assert page_response.status_code == 200
+    page_body = page_response.json()
+    assert page_body["total"] == 3
+    assert page_body["page"] == 2
+    assert page_body["page_size"] == 2
+    assert page_body["total_pages"] == 2
+    assert [item["invite_code"] for item in page_body["items"]] == [first["invite_code"]]
+
+    assert query_response.status_code == 200
+    assert [item["invite_code"] for item in query_response.json()["items"]] == [first["invite_code"]]
+
+    assert status_response.status_code == 200
+    assert [item["invite_code"] for item in status_response.json()["items"]] == [second["invite_code"]]
+
+    assert repaired_response.status_code == 200
+    repaired = repaired_response.json()["items"]
+    assert [item["invite_code"] for item in repaired] == [third["invite_code"]]
+    assert repaired[0]["repair_completed"] is True
+    assert repaired[0]["repair_completed_at"] == "2026-06-25T00:00:00+00:00"
+
+
+def test_internal_rewrite_event_marks_invite_repair_completed():
+    client, invite_store, _status_store = admin_client()
+    assert login(client).status_code == 204
+    invite = invite_store.create_invite(note="needs repair")
+
+    response = client.post(
+        "/api/internal/events",
+        headers={"x-internal-secret": "internal-secret"},
+        json={
+            "type": "claude_request",
+            "session_id": invite["session_id"],
+            "timestamp": "2026-06-25T00:00:00+00:00",
+            "host": "claude.ai",
+            "path": "/api/account",
+            "rewrite_applied": True,
+            "cookie_deletion_headers_sent": True,
+        },
+    )
+    list_response = client.get("/api/admin/invites")
+
+    assert response.status_code == 204
+    stored = invite_store.get_invite_by_id(invite["id"])
+    assert stored["repair_completed_at"] == "2026-06-25T00:00:00+00:00"
+    listed = list_response.json()["items"][0]
+    assert listed["repair_completed"] is True
+    assert listed["repair_completed_at"] == "2026-06-25T00:00:00+00:00"
 
 
 def test_admin_session_cookie_is_not_accepted_as_status_token():

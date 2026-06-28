@@ -77,6 +77,43 @@
 
         <p class="admin-note">每个邀请码会分配一个独立代理端口。用户配置 Wi-Fi 代理时关闭认证，只填写服务器和端口。</p>
 
+        <form id="invite-filters" class="admin-filters" aria-label="邀请码筛选">
+          <label for="invite-query">
+            关键词
+            <input id="invite-query" name="q" autocomplete="off" placeholder="邀请码、备注、IP、地区或端口">
+          </label>
+
+          <label for="invite-status-filter">
+            状态
+            <select id="invite-status-filter" name="status">
+              <option value="all">全部状态</option>
+              <option value="active">有效</option>
+              <option value="disabled">停用</option>
+              <option value="expired">已过期</option>
+            </select>
+          </label>
+
+          <label for="invite-repair-filter">
+            修复状态
+            <select id="invite-repair-filter" name="repair_status">
+              <option value="all">全部</option>
+              <option value="completed">已完成修复</option>
+              <option value="pending">未完成</option>
+            </select>
+          </label>
+
+          <label for="invite-page-size">
+            每页
+            <select id="invite-page-size" name="page_size">
+              <option value="10">10 条</option>
+              <option value="20" selected>20 条</option>
+              <option value="50">50 条</option>
+            </select>
+          </label>
+
+          <button class="button secondary" type="submit">查询</button>
+        </form>
+
         <div class="table-wrap">
           <table class="admin-table">
             <thead>
@@ -84,6 +121,8 @@
                 <th>邀请码</th>
                 <th>状态</th>
                 <th>备注</th>
+                <th>来源</th>
+                <th>修复状态</th>
                 <th>代理端口</th>
                 <th>过期时间</th>
                 <th>最后使用</th>
@@ -92,11 +131,13 @@
             </thead>
             <tbody id="invite-table">
               <tr>
-                <td colspan="7">登录后加载邀请码</td>
+                <td colspan="9">登录后加载邀请码</td>
               </tr>
             </tbody>
           </table>
         </div>
+
+        <div id="invite-pagination" class="admin-pagination" aria-live="polite"></div>
       </section>
     </section>
   </main>

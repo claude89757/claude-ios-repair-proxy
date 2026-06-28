@@ -2,16 +2,32 @@ const loginPanel = document.querySelector("#login-panel");
 const workspace = document.querySelector("#admin-workspace");
 const loginForm = document.querySelector("#login-form");
 const createForm = document.querySelector("#create-form");
+const filterForm = document.querySelector("#invite-filters");
 const logoutButton = document.querySelector("#logout-button");
 const refreshButton = document.querySelector("#refresh-button");
 const loginFeedback = document.querySelector("#login-feedback");
 const createFeedback = document.querySelector("#create-feedback");
 const inviteTable = document.querySelector("#invite-table");
+const invitePagination = document.querySelector("#invite-pagination");
+const inviteQuery = document.querySelector("#invite-query");
+const inviteStatusFilter = document.querySelector("#invite-status-filter");
+const inviteRepairFilter = document.querySelector("#invite-repair-filter");
+const invitePageSize = document.querySelector("#invite-page-size");
 const passwordInput = document.querySelector("#admin-password");
 const passwordToggle = document.querySelector("#password-toggle");
 
 const adminActionPaths = {
   disable: (inviteId) => `/api/admin/invites/${inviteId}/disable`,
+};
+
+const inviteListState = {
+  page: 1,
+  pageSize: 20,
+  query: "",
+  status: "all",
+  repairStatus: "all",
+  total: 0,
+  totalPages: 1,
 };
 
 function text(value, fallback = "-") {
@@ -104,6 +120,7 @@ function showLoggedOut(message = "") {
   renderTableMessage("登录后加载邀请码");
   setFeedback(loginFeedback, message, message ? "error" : "");
   setFeedback(createFeedback, "");
+  renderPagination();
 }
 
 function showLoggedIn() {
@@ -132,8 +149,22 @@ function formatDate(value) {
 
 function statusBadge(status) {
   const span = document.createElement("span");
-  span.className = `admin-status ${status === "active" ? "active" : "disabled"}`;
-  span.textContent = status === "active" ? "有效" : "停用";
+  span.className = `admin-status ${status || "disabled"}`;
+  if (status === "active") {
+    span.textContent = "有效";
+  } else if (status === "expired") {
+    span.textContent = "过期";
+  } else {
+    span.textContent = "停用";
+  }
+  return span;
+}
+
+function repairBadge(invite) {
+  const span = document.createElement("span");
+  const completed = invite.repair_completed === true || Boolean(invite.repair_completed_at);
+  span.className = `admin-status ${completed ? "completed" : "pending"}`;
+  span.textContent = completed ? "已完成" : "未完成";
   return span;
 }
 
@@ -150,7 +181,7 @@ function cell(content) {
 function renderTableMessage(message) {
   const tr = document.createElement("tr");
   const td = document.createElement("td");
-  td.colSpan = 7;
+  td.colSpan = 9;
   td.textContent = message;
   tr.appendChild(td);
   inviteTable.replaceChildren(tr);
@@ -167,6 +198,21 @@ function actionButton(label, action, inviteId, disabled = false) {
   return button;
 }
 
+function sourceText(invite) {
+  const sourceIp = text(invite.source_ip);
+  const sourceGeo = text(invite.source_geo);
+  if (sourceIp === "-" && sourceGeo === "-") {
+    return "-";
+  }
+  if (sourceGeo === "-") {
+    return sourceIp;
+  }
+  if (sourceIp === "-") {
+    return sourceGeo;
+  }
+  return `${sourceIp} / ${sourceGeo}`;
+}
+
 function renderInvites(invites) {
   const rows = invites.map((invite) => {
     const tr = document.createElement("tr");
@@ -180,6 +226,8 @@ function renderInvites(invites) {
       cell(invite.invite_code),
       cell(statusBadge(invite.status)),
       cell(invite.note),
+      cell(sourceText(invite)),
+      cell(repairBadge(invite)),
       cell(invite.proxy_port),
       cell(formatDate(invite.expires_at)),
       cell(formatDate(invite.last_used_at)),
@@ -196,9 +244,88 @@ function renderInvites(invites) {
   inviteTable.replaceChildren(...rows);
 }
 
-async function loadInvites() {
-  const invites = await adminFetch("/api/admin/invites");
-  renderInvites(Array.isArray(invites) ? invites : []);
+function normalizeInviteListPayload(payload) {
+  if (Array.isArray(payload)) {
+    return {
+      items: payload,
+      page: 1,
+      page_size: payload.length || inviteListState.pageSize,
+      total: payload.length,
+      total_pages: 1,
+    };
+  }
+  return {
+    items: Array.isArray(payload?.items) ? payload.items : [],
+    page: Number(payload?.page) || 1,
+    page_size: Number(payload?.page_size) || inviteListState.pageSize,
+    total: Number(payload?.total) || 0,
+    total_pages: Number(payload?.total_pages) || 1,
+  };
+}
+
+function syncFilterStateFromForm() {
+  inviteListState.query = text(inviteQuery?.value, "").trim();
+  inviteListState.status = text(inviteStatusFilter?.value, "all");
+  inviteListState.repairStatus = text(inviteRepairFilter?.value, "all");
+  inviteListState.pageSize = Number(invitePageSize?.value) || 20;
+}
+
+function inviteListSearchParams() {
+  const params = new URLSearchParams();
+  params.set("page", String(inviteListState.page));
+  params.set("page_size", String(inviteListState.pageSize));
+  if (inviteListState.query) {
+    params.set("q", inviteListState.query);
+  }
+  if (inviteListState.status !== "all") {
+    params.set("status", inviteListState.status);
+  }
+  if (inviteListState.repairStatus !== "all") {
+    params.set("repair_status", inviteListState.repairStatus);
+  }
+  return params;
+}
+
+function renderPagination(payload = null) {
+  if (!invitePagination) {
+    return;
+  }
+  if (!payload) {
+    invitePagination.replaceChildren();
+    return;
+  }
+  const info = document.createElement("span");
+  info.className = "admin-pagination-info";
+  info.textContent = `共 ${payload.total} 条，第 ${payload.page} / ${payload.total_pages} 页`;
+
+  const previous = document.createElement("button");
+  previous.type = "button";
+  previous.className = "table-action";
+  previous.dataset.page = String(Math.max(payload.page - 1, 1));
+  previous.disabled = payload.page <= 1;
+  previous.textContent = "上一页";
+
+  const next = document.createElement("button");
+  next.type = "button";
+  next.className = "table-action";
+  next.dataset.page = String(Math.min(payload.page + 1, payload.total_pages));
+  next.disabled = payload.page >= payload.total_pages;
+  next.textContent = "下一页";
+
+  invitePagination.replaceChildren(info, previous, next);
+}
+
+async function loadInvites({ page = inviteListState.page } = {}) {
+  inviteListState.page = page;
+  const payload = normalizeInviteListPayload(
+    await adminFetch(`/api/admin/invites?${inviteListSearchParams().toString()}`),
+  );
+  inviteListState.page = payload.page;
+  inviteListState.pageSize = payload.page_size;
+  inviteListState.total = payload.total;
+  inviteListState.totalPages = payload.total_pages;
+  renderInvites(payload.items);
+  renderPagination(payload);
 }
 
 function expiresAtFromInput(value) {
@@ -261,7 +388,7 @@ async function handleCreate(event) {
     });
     createForm.reset();
     setFeedback(createFeedback, "邀请码已创建，代理端口已分配。", "success");
-    await loadInvites();
+    await loadInvites({ page: 1 });
   } catch (error) {
     if (error?.status === 401) {
       showLoggedOut("登录状态已失效，请重新登录。");
@@ -342,6 +469,30 @@ logoutButton?.addEventListener("click", () => {
 });
 refreshButton?.addEventListener("click", () => {
   void loadInvites();
+});
+filterForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  syncFilterStateFromForm();
+  void loadInvites({ page: 1 });
+});
+inviteStatusFilter?.addEventListener("change", () => {
+  syncFilterStateFromForm();
+  void loadInvites({ page: 1 });
+});
+inviteRepairFilter?.addEventListener("change", () => {
+  syncFilterStateFromForm();
+  void loadInvites({ page: 1 });
+});
+invitePageSize?.addEventListener("change", () => {
+  syncFilterStateFromForm();
+  void loadInvites({ page: 1 });
+});
+invitePagination?.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-page]");
+  if (!button) {
+    return;
+  }
+  void loadInvites({ page: Number(button.dataset.page) || 1 });
 });
 inviteTable?.addEventListener("click", (event) => {
   void handleInviteAction(event);
