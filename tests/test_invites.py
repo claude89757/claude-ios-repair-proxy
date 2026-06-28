@@ -181,6 +181,21 @@ def test_disable_invite_releases_proxy_port_for_future_invites():
     assert store.get_invite_by_id(disabled["id"])["proxy_port"] is None
 
 
+def test_create_invite_reclaims_legacy_disabled_invite_port_before_allocating():
+    store = InviteStore(settings(proxy_port_start=10001, proxy_port_end=10001))
+    disabled = store.create_invite(note="legacy disabled")
+    store.conn.execute(
+        "UPDATE invites SET status = 'disabled', disabled_at = ? WHERE id = ?",
+        (datetime.now(timezone.utc).isoformat(), disabled["id"]),
+    )
+    store.conn.commit()
+
+    fresh = store.create_invite(note="fresh")
+
+    assert fresh["proxy_port"] == 10001
+    assert store.get_invite_by_id(disabled["id"])["proxy_port"] is None
+
+
 def test_reset_proxy_password_invalidates_old_password():
     store = InviteStore(settings())
     invite = store.create_invite(note="")
