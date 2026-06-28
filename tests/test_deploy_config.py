@@ -48,6 +48,18 @@ def test_nginx_serves_admin_page_without_falling_back_to_public_index():
     assert "try_files /admin.html =404;" in nginx
 
 
+def test_nginx_supports_apex_and_sg2_domains_with_acme_webroot():
+    nginx = read_deploy_file("nginx.conf")
+
+    assert "server_name sg2.claude89757.cc claude89757.cc;" in nginx
+    assert "listen 80;" in nginx
+    assert "listen [::]:80;" in nginx
+    assert "location ^~ /.well-known/acme-challenge/" in nginx
+    assert "root /var/www/letsencrypt;" in nginx
+    assert "return 301 https://$host$request_uri;" in nginx
+    assert "/etc/letsencrypt/live/sg2.claude89757.cc/fullchain.pem" in nginx
+
+
 def test_nginx_serves_mitmproxy_certificate_without_spa_fallback():
     nginx = read_deploy_file("nginx.conf")
 
