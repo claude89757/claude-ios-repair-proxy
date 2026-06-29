@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 import os
 import signal
+import sqlite3
 import subprocess
 import time
 from dataclasses import dataclass
@@ -14,6 +16,7 @@ from repair_site.status_app.invites import InviteStore
 APP_ROOT = Path("/opt/claude-ios-repair")
 ADDON_PATH = APP_ROOT / "repair_site" / "mitm" / "claude_repair_addon.py"
 POLL_SECONDS = 5
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -30,6 +33,10 @@ class ProcessLike(Protocol):
 
 class PopenFactory(Protocol):
     def __call__(self, command: list[str], env: dict[str, str]) -> ProcessLike: ...
+
+
+class TargetLoader(Protocol):
+    def __call__(self, settings: Settings) -> list[ProxyTarget]: ...
 
 
 def build_mitmdump_command(proxy_port: int) -> list[str]:
@@ -57,14 +64,14 @@ def build_child_env(base_env: dict[str, str], target: ProxyTarget) -> dict[str, 
 
 
 def load_targets(settings: Settings) -> list[ProxyTarget]:
-    store = InviteStore(settings)
+    store = InviteStore(settings, initialize_schema=False)
     try:
         return [
             ProxyTarget(
                 proxy_port=int(target["proxy_port"]),
                 session_id=str(target["session_id"]),
             )
-            for target in store.list_active_proxy_targets()
+            for target in store.list_active_proxy_targets_read_only()
         ]
     finally:
         store.close()
@@ -103,6 +110,35 @@ def reconcile_processes(
         )
 
 
+def _is_database_lock_error(exc: sqlite3.OperationalError) -> bool:
+    message = str(exc).lower()
+    return "database is locked" in message or "database table is locked" in message
+
+
+def run_supervisor_iteration(
+    settings: Settings,
+    processes: dict[int, ProcessLike],
+    *,
+    target_loader: TargetLoader = load_targets,
+    base_env: dict[str, str] | None = None,
+    popen_factory: PopenFactory = _default_popen,
+) -> bool:
+    try:
+        targets = target_loader(settings)
+    except sqlite3.OperationalError as exc:
+        if not _is_database_lock_error(exc):
+            raise
+        LOGGER.warning("Skipping mitm target reconciliation while invite database is locked")
+        return False
+    reconcile_processes(
+        targets,
+        processes,
+        base_env=base_env,
+        popen_factory=popen_factory,
+    )
+    return True
+
+
 def main() -> None:
     settings = load_settings()
     require_configured(settings)
@@ -118,7 +154,7 @@ def main() -> None:
 
     try:
         while not stopping:
-            reconcile_processes(load_targets(settings), processes)
+            run_supervisor_iteration(settings, processes)
             time.sleep(POLL_SECONDS)
     finally:
         for process in list(processes.values()):

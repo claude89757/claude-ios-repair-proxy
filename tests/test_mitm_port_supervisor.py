@@ -1,8 +1,11 @@
+import sqlite3
+
 from repair_site.mitm.port_supervisor import (
     ProxyTarget,
     build_child_env,
     build_mitmdump_command,
     reconcile_processes,
+    run_supervisor_iteration,
 )
 
 
@@ -68,3 +71,23 @@ def test_reconcile_processes_starts_and_stops_by_proxy_port():
     assert 10003 in processes
     assert created[0][0][created[0][0].index("--listen-port") + 1] == "10003"
     assert created[0][1]["REPAIR_SESSION_ID"] == "sess_c"
+
+
+def test_supervisor_iteration_keeps_existing_processes_on_database_lock():
+    process = FakeProcess()
+    processes = {10001: process}
+
+    def locked_loader(_settings):
+        raise sqlite3.OperationalError("database is locked")
+
+    ran = run_supervisor_iteration(
+        object(),
+        processes,
+        target_loader=locked_loader,
+        base_env={},
+        popen_factory=lambda _command, _env: FakeProcess(),
+    )
+
+    assert ran is False
+    assert processes == {10001: process}
+    assert process.terminated is False

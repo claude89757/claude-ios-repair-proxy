@@ -15,20 +15,35 @@ from repair_site.status_app.config import (
     new_session_id,
 )
 
+SQLITE_BUSY_TIMEOUT_MS = 30_000
+SQLITE_BUSY_TIMEOUT_SECONDS = SQLITE_BUSY_TIMEOUT_MS / 1000
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
 class InviteStore:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, *, initialize_schema: bool = True) -> None:
         self.settings = settings
         if settings.database_path != ":memory:":
             Path(settings.database_path).parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
-        self.conn = sqlite3.connect(settings.database_path, check_same_thread=False)
+        self.conn = sqlite3.connect(
+            settings.database_path,
+            check_same_thread=False,
+            timeout=SQLITE_BUSY_TIMEOUT_SECONDS,
+        )
         self.conn.row_factory = sqlite3.Row
-        self.init_schema()
+        self._configure_connection(initialize_schema=initialize_schema)
+        if initialize_schema:
+            self.init_schema()
+
+    def _configure_connection(self, *, initialize_schema: bool) -> None:
+        self.conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
+        if initialize_schema and self.settings.database_path != ":memory:":
+            self.conn.execute("PRAGMA journal_mode=WAL")
+            self.conn.execute("PRAGMA synchronous=NORMAL")
 
     def init_schema(self) -> None:
         with self._lock:
@@ -345,28 +360,11 @@ class InviteStore:
         with self._lock:
             self._release_inactive_proxy_ports_locked()
             self._reclaim_expired_invites_locked()
-            rows = self.conn.execute(
-                """
-                SELECT *
-                FROM invites
-                WHERE status = 'active'
-                  AND disabled_at IS NULL
-                  AND proxy_port IS NOT NULL
-                ORDER BY proxy_port ASC
-                """
-            ).fetchall()
-            targets: list[dict[str, Any]] = []
-            for row in rows:
-                invite = self._row_to_invite(row, include_password=False)
-                if invite is None or self._is_expired(invite):
-                    continue
-                targets.append(
-                    {
-                        "session_id": invite["session_id"],
-                        "proxy_port": int(invite["proxy_port"]),
-                    }
-                )
-            return targets
+            return self._list_active_proxy_targets_locked()
+
+    def list_active_proxy_targets_read_only(self) -> list[dict[str, Any]]:
+        with self._lock:
+            return self._list_active_proxy_targets_locked()
 
     def get_invite_by_id(
         self,
@@ -533,6 +531,30 @@ class InviteStore:
         )
         self.conn.commit()
         return len(expired_ids)
+
+    def _list_active_proxy_targets_locked(self) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            SELECT session_id, proxy_port, expires_at
+            FROM invites
+            WHERE status = 'active'
+              AND disabled_at IS NULL
+              AND proxy_port IS NOT NULL
+            ORDER BY proxy_port ASC
+            """
+        ).fetchall()
+        targets: list[dict[str, Any]] = []
+        for row in rows:
+            invite = dict(row)
+            if self._is_expired(invite):
+                continue
+            targets.append(
+                {
+                    "session_id": str(invite["session_id"]),
+                    "proxy_port": int(invite["proxy_port"]),
+                }
+            )
+        return targets
 
     def _release_inactive_proxy_ports_locked(self) -> int:
         cursor = self.conn.execute(

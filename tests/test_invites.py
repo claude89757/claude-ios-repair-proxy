@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import sqlite3
 import threading
 import time
 
@@ -220,6 +221,64 @@ def test_file_backed_persistence_can_read_invite_from_second_store(tmp_path: Pat
     assert persisted["invite_code"] == invite["invite_code"]
     assert persisted["session_id"] == invite["session_id"]
     assert "proxy_password" not in persisted
+
+
+def test_file_backed_store_uses_wal_and_busy_timeout(tmp_path: Path):
+    database_path = str(tmp_path / "invites.sqlite3")
+    store = InviteStore(settings(database_path=database_path))
+
+    busy_timeout_ms = store.conn.execute("PRAGMA busy_timeout").fetchone()[0]
+    journal_mode = store.conn.execute("PRAGMA journal_mode").fetchone()[0]
+
+    assert busy_timeout_ms >= 30000
+    assert journal_mode == "wal"
+
+
+def test_read_only_active_proxy_targets_do_not_run_maintenance_writes(tmp_path: Path):
+    database_path = str(tmp_path / "targets.sqlite3")
+    store = InviteStore(settings(database_path=database_path))
+    invite = store.create_invite(note="active")
+    store.close()
+
+    read_store = InviteStore(settings(database_path=database_path), initialize_schema=False)
+    read_store._release_inactive_proxy_ports_locked = (  # type: ignore[method-assign]
+        lambda: (_ for _ in ()).throw(AssertionError("release should not run"))
+    )
+    read_store._reclaim_expired_invites_locked = (  # type: ignore[method-assign]
+        lambda: (_ for _ in ()).throw(AssertionError("reclaim should not run"))
+    )
+
+    targets = read_store.list_active_proxy_targets_read_only()
+
+    assert targets == [
+        {
+            "session_id": invite["session_id"],
+            "proxy_port": invite["proxy_port"],
+        }
+    ]
+
+
+def test_load_targets_reads_active_ports_while_writer_holds_database_lock(tmp_path: Path):
+    from repair_site.mitm.port_supervisor import load_targets
+
+    database_path = str(tmp_path / "locked.sqlite3")
+    app_settings = settings(database_path=database_path)
+    store = InviteStore(app_settings)
+    invite = store.create_invite(note="locked writer")
+    store.close()
+    writer = sqlite3.connect(database_path, timeout=0.1)
+    try:
+        writer.execute("BEGIN IMMEDIATE")
+        writer.execute("UPDATE invites SET note = note WHERE id = ?", (invite["id"],))
+
+        targets = load_targets(app_settings)
+    finally:
+        writer.rollback()
+        writer.close()
+
+    assert [(target.proxy_port, target.session_id) for target in targets] == [
+        (invite["proxy_port"], invite["session_id"])
+    ]
 
 
 def test_legacy_active_invite_without_expiration_gets_default_on_reopen(tmp_path: Path):
