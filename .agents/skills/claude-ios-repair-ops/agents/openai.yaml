@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude iOS Repair Ops"
+  short_description: "Operate production repair proxy services"
+  default_prompt: "Use $claude-ios-repair-ops to deploy, debug, or maintain the production Claude iOS repair proxy service."
