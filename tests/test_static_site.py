@@ -250,7 +250,9 @@ def test_self_service_invite_page_uses_two_clear_options():
 
     assert 'id="invite-method-self"' in html
     assert 'class="invite-view invite-method-page self-method-page"' in html
-    assert html.count('class="self-service-card"') == 2
+    assert html.count('class="self-service-card"') == 1
+    assert 'class="floating-group-qr"' in self_block
+    assert 'class="floating-group-qr-image"' in self_block
     assert 'class="self-service-actions"' not in html
     assert 'class="self-service-paths"' in html
     assert 'class="self-service-path is-free"' in html
@@ -277,7 +279,8 @@ def test_self_service_invite_page_uses_two_clear_options():
     assert ".self-service-path.is-free" in css
     assert ".self-service-path.is-coffee" in css
     assert ".self-service-card" in css
-    assert ".self-service-card .qr-scan-panel" in css
+    assert ".floating-group-qr" in css
+    assert ".floating-group-qr-image" in css
 
 
 def test_public_invite_auto_claim_fills_invite_and_verifies_immediately():
@@ -315,12 +318,9 @@ def test_self_service_primary_actions_appear_before_qr_codes():
     assert self_block.index('data-invite-auto-claim="alipay"') < self_block.index(
         "/assets/alipay-reward-qr.jpg"
     )
-    assert self_block.index('data-invite-auto-claim="free"') < self_block.index(
-        "/assets/group-invite-qr.jpg"
-    )
-    assert self_block.index("打开小红书") < self_block.index(
-        "/assets/group-invite-qr.jpg"
-    )
+    group_qr_start = self_block.index('class="floating-group-qr"')
+    assert self_block.index('data-invite-auto-claim="free"') < group_qr_start
+    assert self_block.index("打开小红书") < group_qr_start
 
 
 def test_public_site_qr_codes_are_large_and_previewable():
@@ -332,20 +332,24 @@ def test_public_site_qr_codes_are_large_and_previewable():
         DCOS / "支付宝二维码.jpg"
     ).read_bytes()
     assert (WEB / "assets" / "group-invite-qr.jpg").exists()
-    assert html.count("qr-scan-panel") == 2
-    assert html.count("data-qr-preview") == 4
+    assert html.count("qr-scan-panel") == 1
+    assert html.count("data-qr-preview") == 3
     assert "支付宝收款二维码" in html
     assert "加群二维码" in html
+    assert "点击打开，长按保存" in html
     assert "放大查看" in html
     assert "打开原图" in html
     assert "下载保存" in html
     assert 'class="qr-image-button"' in html
     assert 'class="qr-actions"' in html
+    assert 'class="floating-group-qr"' in html
     assert 'id="qr-preview-modal"' in html
     assert 'id="qr-preview-image"' in html
     assert "function openQrPreview" in js
     assert "function closeQrPreview" in js
     assert ".qr-scan-image" in css
+    assert ".floating-group-qr" in css
+    assert ".floating-group-qr-image" in css
     assert "min-height: min(64svh, 720px);" in css
     assert ".qr-preview-modal" in css
 

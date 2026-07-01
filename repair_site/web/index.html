@@ -197,38 +197,14 @@
                 </div>
               </article>
 
-              <article class="self-service-card">
-                <div class="self-service-card-head">
-                  <span class="method-icon method-icon-free" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false">
-                      <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path>
-                      <path d="M2 7h20v5H2z"></path>
-                      <path d="M12 22V7"></path>
-                      <path d="M12 7H7.5A2.5 2.5 0 1 1 10 4.5C10 6 12 7 12 7z"></path>
-                      <path d="M12 7h4.5A2.5 2.5 0 1 0 14 4.5C14 6 12 7 12 7z"></path>
-                    </svg>
-                  </span>
-                  <div>
-                    <p class="method-label" data-i18n="inviteGate.freeLabel">免费自助</p>
-                    <h3 data-i18n="inviteGate.freeDetailTitle">一键三连后自动验证</h3>
-                  </div>
-                </div>
-                <p data-i18n="inviteGate.freePageCopy">打开小红书完成一键三连；也可扫码进群查看公告。</p>
-                <div class="qr-scan-panel">
-                  <button class="qr-image-button" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="加群二维码" aria-label="放大查看加群二维码">
-                    <img class="qr-scan-image" src="/assets/group-invite-qr.jpg" alt="加群二维码">
-                  </button>
-                  <div class="qr-panel-copy">
-                    <h2 data-i18n="inviteGate.scanGroupTitle">加群二维码</h2>
-                    <p data-i18n="inviteGate.scanGroupCopy">群公告会定期更新免费邀请码，可长按保存后扫码。</p>
-                  </div>
-                  <div class="qr-actions">
-                    <button class="button secondary" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="加群二维码" data-i18n="inviteGate.previewQr">放大查看</button>
-                    <a class="button secondary" href="/assets/group-invite-qr.jpg" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openOriginal">打开原图</a>
-                    <a class="button secondary" href="/assets/group-invite-qr.jpg" download data-i18n="inviteGate.downloadQr">下载保存</a>
-                  </div>
-                </div>
-              </article>
+              <button class="floating-group-qr" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="加群二维码" aria-label="打开加群二维码">
+                <img class="floating-group-qr-image" src="/assets/group-invite-qr.jpg" alt="加群二维码">
+                <span class="floating-group-qr-copy">
+                  <span class="floating-group-qr-title" data-i18n="inviteGate.scanGroupTitle">加群二维码</span>
+                  <span class="floating-group-qr-text" data-i18n="inviteGate.scanGroupCopy">群公告会定期更新免费邀请码，可长按保存后扫码。</span>
+                  <span class="floating-group-qr-action" data-i18n="inviteGate.openGroupQr">点击打开，长按保存</span>
+                </span>
+              </button>
             </div>
           </div>
         </section>
