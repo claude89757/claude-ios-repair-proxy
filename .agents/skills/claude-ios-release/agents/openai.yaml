@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude iOS Release"
+  short_description: "手动发布版本 Tag 和 GitHub Release"
+  default_prompt: "Use $claude-ios-release to prepare and publish a manual version release."

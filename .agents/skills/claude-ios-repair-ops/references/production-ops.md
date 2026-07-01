@@ -145,6 +145,17 @@ gh workflow run "Deploy production" \
   --ref main
 ```
 
+## Manual Version Releases
+
+Use `$claude-ios-release` for public version tags and GitHub Releases. Version
+releases are manual and do not deploy production. The release workflow is
+`.github/workflows/release-version.yml`; it creates `vX.Y.Z` tags only after the
+target commit matches the latest successful `Deploy production` run and tests
+pass.
+
+Before publishing, independently verify `/opt/claude-ios-repair/REVISION`
+equals the target release SHA.
+
 Initial setup checklist:
 
 ```bash
