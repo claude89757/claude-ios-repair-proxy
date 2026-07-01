@@ -13,6 +13,7 @@ __pycache__/
 
 _archive/
 _private/
+_private*.zip
 output/
 
 *.sqlite3

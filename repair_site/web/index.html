@@ -291,6 +291,24 @@
       </div>
     </div>
 
+    <div id="repair-complete-modal" class="repair-complete-modal" role="dialog" aria-modal="true" aria-labelledby="repair-complete-title" hidden>
+      <div class="repair-complete-backdrop"></div>
+      <div class="repair-fireworks" aria-hidden="true">
+        <span class="repair-firework repair-firework-one"></span>
+        <span class="repair-firework repair-firework-two"></span>
+        <span class="repair-firework repair-firework-three"></span>
+        <span class="repair-firework repair-firework-four"></span>
+      </div>
+      <div class="repair-complete-dialog">
+        <p class="panel-kicker" data-i18n="repairComplete.kicker">Repair Complete</p>
+        <h2 id="repair-complete-title" data-i18n="repairComplete.title">恭喜，修复已完成</h2>
+        <p data-i18n="repairComplete.copy">现在请关闭 Wi‑Fi HTTP 代理，恢复原来的网络，然后强退并重新打开 Claude App。</p>
+        <div class="repair-complete-actions">
+          <button class="button primary" type="button" data-repair-complete-close data-i18n="repairComplete.ack">我知道了</button>
+        </div>
+      </div>
+    </div>
+
     <div id="repair-workspace" class="guide-layout" hidden>
       <div class="guide-main">
         <section id="guide" class="section wizard-section" aria-labelledby="guide-title">

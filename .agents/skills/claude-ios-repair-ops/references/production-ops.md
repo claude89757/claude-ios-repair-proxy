@@ -2,7 +2,7 @@
 
 ## Topology
 
-- Repository: `/Users/claude89757/Desktop/cc`
+- Repository: `/Users/claude89757/github/claude-ios-repair-proxy`
 - GitHub remote: `claude89757/claude-ios-repair-proxy`
 - Production host: `43.160.213.247`
 - Public hostnames: `sg2.claude89757.cc`, `claude89757.cc`

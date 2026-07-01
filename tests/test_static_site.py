@@ -694,6 +694,39 @@ def test_dashboard_latches_completed_repair_checks_for_active_invite():
     assert "resetRepairProgress();" in js
 
 
+def test_public_site_shows_repair_complete_modal_only_after_successful_cookie_cleanup():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'id="repair-complete-modal"' in html
+    assert 'role="dialog"' in html
+    assert 'aria-labelledby="repair-complete-title"' in html
+    assert 'class="repair-fireworks"' in html
+    assert 'data-repair-complete-close' in html
+    assert "恭喜，修复已完成" in html
+    assert "关闭 Wi‑Fi HTTP 代理" in html
+    assert "恢复原来的网络" in html
+    assert "强退并重新打开 Claude App" in html
+
+    assert "function isSuccessfulRepairComplete" in js
+    assert "function openRepairCompleteModal" in js
+    assert "function closeRepairCompleteModal" in js
+    assert "function maybeShowRepairCompleteModal" in js
+    assert "let repairCompleteModalShown = false;" in js
+    assert 'event.path === "/api/account"' in js
+    assert "event.rewrite_applied === true" in js
+    assert "event.cookie_deletion_headers_sent === true" in js
+    assert "maybeShowRepairCompleteModal(data || {});" in js
+
+    assert ".repair-complete-modal" in css
+    assert ".repair-complete-dialog" in css
+    assert ".repair-fireworks" in css
+    assert ".repair-firework" in css
+    assert "@keyframes repairFirework" in css
+    assert ".has-repair-complete-modal" in css
+
+
 def test_dashboard_separates_proxy_connections_from_claude_events():
     html = (WEB / "index.html").read_text()
     js = (WEB / "app.js").read_text()

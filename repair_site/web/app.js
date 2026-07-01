@@ -46,6 +46,8 @@ const qrPreviewImage = document.querySelector("#qr-preview-image");
 const qrPreviewOpen = document.querySelector("#qr-preview-open");
 const qrPreviewDownload = document.querySelector("#qr-preview-download");
 const publicLimitModal = document.querySelector("#public-limit-modal");
+const repairCompleteModal = document.querySelector("#repair-complete-modal");
+const repairCompleteCloseButtons = Array.from(document.querySelectorAll("[data-repair-complete-close]"));
 const INVITE_CACHE_KEY = "claudeRepairInviteState";
 const LEGACY_INVITE_CACHE_KEY = "claudeRepairInviteCode";
 const LANGUAGE_CACHE_KEY = "claudeRepairLanguage";
@@ -260,6 +262,10 @@ const I18N = {
     "publicLimit.xianyu": "去闲鱼获取售后邀请码",
     "publicLimit.ack": "我知道了",
     "publicLimit.close": "关闭",
+    "repairComplete.kicker": "Repair Complete",
+    "repairComplete.title": "恭喜，修复已完成",
+    "repairComplete.copy": "现在请关闭 Wi‑Fi HTTP 代理，恢复原来的网络，然后强退并重新打开 Claude App。",
+    "repairComplete.ack": "我知道了",
     "feedback.xianyuCopied": "闲鱼购买链接已复制。",
     "feedback.xianyuCopyUnavailable": "当前浏览器无法自动复制，请手动复制闲鱼购买链接。",
     "feedback.proxyHostCopied": "服务器已复制。",
@@ -480,6 +486,10 @@ const I18N = {
     "publicLimit.xianyu": "Get an after-sales invite on Xianyu",
     "publicLimit.ack": "Got it",
     "publicLimit.close": "Close",
+    "repairComplete.kicker": "Repair Complete",
+    "repairComplete.title": "Repair complete",
+    "repairComplete.copy": "Turn off the Wi‑Fi HTTP proxy now, restore your original network, then force quit and reopen the Claude App.",
+    "repairComplete.ack": "Got it",
     "feedback.xianyuCopied": "Xianyu purchase link copied.",
     "feedback.xianyuCopyUnavailable": "This browser cannot copy automatically. Copy the Xianyu purchase link manually.",
     "feedback.proxyHostCopied": "Server copied.",
@@ -508,6 +518,8 @@ let currentPublicStats = null;
 let currentFeedback = { key: "", message: "", tone: "" };
 let activeStep = 1;
 let lastQrPreviewFocus = null;
+let lastRepairCompleteFocus = null;
+let repairCompleteModalShown = false;
 const completedSteps = new Set();
 
 const checks = [
@@ -532,6 +544,8 @@ let repairProgress = initialRepairProgress();
 
 function resetRepairProgress() {
   repairProgress = initialRepairProgress();
+  repairCompleteModalShown = false;
+  closeRepairCompleteModal({ restoreFocus: false });
 }
 
 function normalizeLanguage(language) {
@@ -1143,6 +1157,29 @@ function closePublicLimitModal() {
   document.body.classList.remove("has-public-limit-modal");
 }
 
+function openRepairCompleteModal() {
+  if (!repairCompleteModal || repairCompleteModalShown) {
+    return;
+  }
+  repairCompleteModalShown = true;
+  lastRepairCompleteFocus = document.activeElement;
+  repairCompleteModal.hidden = false;
+  document.body.classList.add("has-repair-complete-modal");
+  repairCompleteModal.querySelector("[data-repair-complete-close]")?.focus({ preventScroll: true });
+}
+
+function closeRepairCompleteModal({ restoreFocus = true } = {}) {
+  if (!repairCompleteModal) {
+    return;
+  }
+  repairCompleteModal.hidden = true;
+  document.body.classList.remove("has-repair-complete-modal");
+  if (restoreFocus) {
+    lastRepairCompleteFocus?.focus?.({ preventScroll: true });
+  }
+  lastRepairCompleteFocus = null;
+}
+
 function errorCode(error) {
   return error?.payload?.detail?.code || error?.payload?.code || "";
 }
@@ -1257,6 +1294,21 @@ function observedChecklistState(data) {
   };
 }
 
+function isSuccessfulRepairComplete(data) {
+  const events = Array.isArray(data?.events) ? data.events : [];
+  const hasAccount = repairProgress.account || events.some((event) => event.path === "/api/account");
+  const hasRewrite = repairProgress.rewrite || events.some((event) => event.rewrite_applied === true);
+  const hasCookieCleanup =
+    repairProgress.cookies || events.some((event) => event.cookie_deletion_headers_sent === true);
+  return Boolean(hasAccount && hasRewrite && hasCookieCleanup);
+}
+
+function maybeShowRepairCompleteModal(data) {
+  if (isSuccessfulRepairComplete(data)) {
+    openRepairCompleteModal();
+  }
+}
+
 function mergeRepairProgress(data) {
   const observed = observedChecklistState(data);
   Object.keys(repairProgress).forEach((key) => {
@@ -1356,6 +1408,7 @@ function render(data) {
   renderChecklist(data || {});
   renderEvents(data || {});
   updateStatusDock(data || {});
+  maybeShowRepairCompleteModal(data || {});
 }
 
 function setCertificateLink(url) {
@@ -1792,6 +1845,12 @@ publicLimitCloseButtons.forEach((button) => {
   button.addEventListener("click", closePublicLimitModal);
 });
 
+repairCompleteCloseButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    closeRepairCompleteModal();
+  });
+});
+
 statusRefreshButton?.addEventListener("click", () => {
   void refreshStatusManually();
 });
@@ -1834,6 +1893,9 @@ window.addEventListener("keydown", (event) => {
   }
   if (event.key === "Escape" && publicLimitModal && !publicLimitModal.hidden) {
     closePublicLimitModal();
+  }
+  if (event.key === "Escape" && repairCompleteModal && !repairCompleteModal.hidden) {
+    closeRepairCompleteModal();
   }
 });
 
