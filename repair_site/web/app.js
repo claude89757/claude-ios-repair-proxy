@@ -21,6 +21,7 @@ const languageToggleLabel = languageToggle?.querySelector(".language-toggle-labe
 const stepButtons = Array.from(document.querySelectorAll("[data-step-button]"));
 const stepPanels = Array.from(document.querySelectorAll("[data-step-panel]"));
 const stepCompleteButtons = Array.from(document.querySelectorAll("[data-step-complete]"));
+const stepProgressFeedback = document.querySelector("#step-progress-feedback");
 const statusSidebar = document.querySelector("#status-sidebar");
 const statusDrawerToggle = document.querySelector("#status-drawer-toggle");
 const statusDockLabel = document.querySelector("#status-dock-label");
@@ -92,6 +93,9 @@ const I18N = {
     "guide.copy": "按卡片逐步操作。每完成一步点击“我已完成，下一步”，右侧实时状态会同步显示修复通道连接、证书信任和 Claude 请求事件。",
     "step.next": "我已完成，下一步",
     "step.finish": "完成修复",
+    "step.completedAction": "已完成",
+    "step.completedNotice": "第 {step} 步已完成，已进入第 {next} 步。",
+    "step.completedFinalNotice": "第 {step} 步已完成。",
     "step.statusCurrent": "当前步骤",
     "step.statusDone": "已完成",
     "step.statusWaiting": "等待",
@@ -316,6 +320,9 @@ const I18N = {
     "guide.copy": "Follow the cards one by one. After each task, tap Done and next. The live status panel stays visible with repair-channel, certificate, and Claude request signals.",
     "step.next": "Done, next",
     "step.finish": "Finish repair",
+    "step.completedAction": "Done",
+    "step.completedNotice": "Step {step} is done. Step {next} is now active.",
+    "step.completedFinalNotice": "Step {step} is done.",
     "step.statusCurrent": "Current",
     "step.statusDone": "Done",
     "step.statusWaiting": "Waiting",
@@ -517,6 +524,8 @@ let currentSnapshot = null;
 let currentPublicStats = null;
 let currentFeedback = { key: "", message: "", tone: "" };
 let activeStep = 1;
+let lastCompletedStep = null;
+let lastCompletionNextStep = null;
 let lastQrPreviewFocus = null;
 let lastRepairCompleteFocus = null;
 let repairCompleteModalShown = false;
@@ -664,6 +673,7 @@ function refreshDynamicLanguage() {
     setFeedback(t(currentFeedback.key), currentFeedback.tone, currentFeedback.key);
   }
   updateInviteCountdown();
+  renderStepProgressFeedback();
   updateStepControls();
   updateStatusDock(currentSnapshot);
 }
@@ -1196,35 +1206,88 @@ function stepNumber(value) {
   return Math.min(Math.max(parsed, 1), Math.max(stepPanels.length, 1));
 }
 
+function stepMessage(key, values = {}) {
+  return t(key)
+    .replace("{step}", String(values.step || ""))
+    .replace("{next}", String(values.next || ""));
+}
+
+function renderStepProgressFeedback() {
+  if (!stepProgressFeedback || lastCompletedStep === null) {
+    return;
+  }
+  const key = lastCompletionNextStep ? "step.completedNotice" : "step.completedFinalNotice";
+  stepProgressFeedback.textContent = stepMessage(key, {
+    step: lastCompletedStep,
+    next: lastCompletionNextStep,
+  });
+  stepProgressFeedback.hidden = false;
+}
+
+function announceStepCompletion(step, nextStep = null) {
+  lastCompletedStep = step;
+  lastCompletionNextStep = nextStep;
+  renderStepProgressFeedback();
+  if (!stepProgressFeedback) {
+    return;
+  }
+  stepProgressFeedback.classList.remove("is-fresh");
+  void stepProgressFeedback.offsetWidth;
+  stepProgressFeedback.classList.add("is-fresh");
+}
+
 function updateStepControls() {
   stepButtons.forEach((button) => {
     const step = stepNumber(button.dataset.stepButton);
     const isActive = step === activeStep;
     const isComplete = completedSteps.has(step);
+    const state = isComplete ? "complete" : isActive ? "current" : "waiting";
     button.classList.toggle("is-active", isActive);
     button.classList.toggle("is-complete", isComplete);
+    button.dataset.stepState = state;
+    button.setAttribute("aria-pressed", isComplete ? "true" : "false");
     if (isActive) {
       button.setAttribute("aria-current", "step");
     } else {
       button.removeAttribute("aria-current");
     }
 
-    const status = button.querySelector("small");
-    if (status) {
-      status.textContent = isActive
-        ? t("step.statusCurrent")
-        : isComplete
-          ? t("step.statusDone")
-          : t("step.statusWaiting");
+    const index = button.querySelector(".step-index");
+    if (index) {
+      index.textContent = isComplete ? "✓" : String(step);
+      index.setAttribute("aria-hidden", "true");
     }
+
+    const status = button.querySelector("small");
+    const statusText = isComplete
+      ? t("step.statusDone")
+      : isActive
+        ? t("step.statusCurrent")
+        : t("step.statusWaiting");
+    if (status) {
+      status.textContent = statusText;
+    }
+    const title = button.querySelector("strong")?.textContent?.trim() || "";
+    button.setAttribute("aria-label", `${step} ${title} ${statusText}`.trim());
   });
 
   stepPanels.forEach((panel) => {
     const step = stepNumber(panel.dataset.stepPanel);
     const isActive = step === activeStep;
+    const isComplete = completedSteps.has(step);
     panel.hidden = !isActive;
     panel.classList.toggle("is-active", isActive);
-    panel.classList.toggle("is-complete", completedSteps.has(step));
+    panel.classList.toggle("is-complete", isComplete);
+
+    const completeButton = panel.querySelector("[data-step-complete]");
+    if (completeButton) {
+      completeButton.classList.toggle("is-completed", isComplete);
+      completeButton.disabled = isComplete;
+      completeButton.setAttribute("aria-pressed", isComplete ? "true" : "false");
+      completeButton.textContent = isComplete
+        ? t("step.completedAction")
+        : t(step === stepPanels.length ? "step.finish" : "step.next");
+    }
   });
 }
 
@@ -1238,8 +1301,10 @@ function markStepComplete(step, { advance = true } = {}) {
   completedSteps.add(nextStep);
   if (advance && nextStep < stepPanels.length) {
     setActiveStep(nextStep + 1);
+    announceStepCompletion(nextStep, nextStep + 1);
   } else {
     updateStepControls();
+    announceStepCompletion(nextStep);
   }
 }
 

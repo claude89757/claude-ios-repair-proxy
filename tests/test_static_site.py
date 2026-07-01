@@ -223,6 +223,34 @@ def test_public_site_uses_step_by_step_wizard_cards():
     assert ".step-complete-button" in css
 
 
+def test_public_site_makes_completed_wizard_steps_visibly_stateful():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'id="step-progress-feedback"' in html
+    assert 'aria-live="polite"' in html
+    assert 'role="status"' in html
+
+    assert "let lastCompletedStep = null;" in js
+    assert "function announceStepCompletion" in js
+    assert "step.completedAction" in js
+    assert "step.completedNotice" in js
+    assert "button.dataset.stepState" in js
+    assert "button.setAttribute(\"aria-pressed\", isComplete ? \"true\" : \"false\")" in js
+    assert 'index.textContent = isComplete ? "✓" : String(step);' in js
+    assert "const statusText = isComplete" in js
+    assert "completeButton.classList.toggle(\"is-completed\", isComplete);" in js
+    assert "completeButton.disabled = isComplete;" in js
+
+    assert ".step-progress-feedback" in css
+    assert ".step-progress-feedback.is-fresh" in css
+    assert ".step-tab.is-complete::after" in css
+    assert ".step-tab.is-complete small" in css
+    assert ".step-complete-button.is-completed" in css
+    assert "@keyframes stepFeedbackPulse" in css
+
+
 def test_public_site_has_invite_acquisition_gate_with_two_entry_points():
     html = (WEB / "index.html").read_text()
     js = (WEB / "app.js").read_text()

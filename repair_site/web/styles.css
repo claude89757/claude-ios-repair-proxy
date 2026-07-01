@@ -1525,6 +1525,7 @@ nav {
 }
 
 .step-tab {
+  position: relative;
   width: 100%;
   min-height: 78px;
   display: flex;
@@ -1538,6 +1539,12 @@ nav {
   font: inherit;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .step-tab:hover,
@@ -1553,11 +1560,25 @@ nav {
 }
 
 .step-tab.is-complete {
-  border-color: rgba(8, 127, 91, 0.35);
+  background: #ecfdf5;
+  border-color: rgba(8, 127, 91, 0.62);
+  box-shadow: inset 0 0 0 1px rgba(8, 127, 91, 0.1);
+}
+
+.step-tab.is-complete::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--green);
 }
 
 .step-tab.is-complete .step-index {
   background: var(--green);
+}
+
+.step-tab.is-complete small {
+  color: var(--green);
 }
 
 .step-index {
@@ -1593,6 +1614,44 @@ nav {
   display: grid;
 }
 
+.step-progress-feedback {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -2px 0 14px;
+  padding: 10px 14px;
+  background: #ecfdf5;
+  border: 1px solid rgba(8, 127, 91, 0.28);
+  border-radius: 8px;
+  color: #066047;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.step-progress-feedback[hidden] {
+  display: none;
+}
+
+.step-progress-feedback::before {
+  content: "✓";
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  background: var(--green);
+  color: white;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.step-progress-feedback.is-fresh {
+  animation: stepFeedbackPulse 900ms ease;
+}
+
 .wizard-card {
   min-height: 420px;
   display: grid;
@@ -1609,6 +1668,28 @@ nav {
 
 .wizard-card.is-complete {
   border-top-color: var(--green);
+}
+
+.step-complete-button.is-completed,
+.step-complete-button.is-completed:disabled {
+  background: var(--green);
+  color: white;
+  cursor: default;
+  opacity: 1;
+}
+
+@keyframes stepFeedbackPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(8, 127, 91, 0.32);
+    transform: translateY(-2px);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(8, 127, 91, 0);
+    transform: translateY(0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(8, 127, 91, 0);
+  }
 }
 
 .wizard-card p {
