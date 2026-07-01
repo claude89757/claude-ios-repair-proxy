@@ -77,6 +77,25 @@
 
         <p class="admin-note">每个邀请码会分配一个独立代理端口。用户配置 Wi-Fi 代理时关闭认证，只填写服务器和端口。</p>
 
+        <div id="invite-summary" class="invite-summary-grid" aria-label="邀请码运营摘要">
+          <button class="invite-summary-card" type="button" data-quick-filter="needs_followup" aria-pressed="false">
+            <span>待跟进</span>
+            <strong data-summary-count="needs_followup">0</strong>
+          </button>
+          <button class="invite-summary-card" type="button" data-quick-filter="used_pending" aria-pressed="false">
+            <span>已连接未修复</span>
+            <strong data-summary-count="used_pending">0</strong>
+          </button>
+          <button class="invite-summary-card" type="button" data-quick-filter="expiring_soon" aria-pressed="false">
+            <span>即将过期</span>
+            <strong data-summary-count="expiring_soon">0</strong>
+          </button>
+          <button class="invite-summary-card" type="button" data-quick-filter="completed_today" aria-pressed="false">
+            <span>今日完成</span>
+            <strong data-summary-count="completed_today">0</strong>
+          </button>
+        </div>
+
         <form id="invite-filters" class="admin-filters" aria-label="邀请码筛选">
           <label for="invite-query">
             关键词
@@ -114,6 +133,9 @@
           <button class="button secondary" type="submit">查询</button>
         </form>
 
+        <div id="active-filter-chips" class="invite-filter-chips" aria-label="当前筛选"></div>
+        <p id="invite-list-feedback" class="invite-list-feedback" aria-live="polite" hidden></p>
+
         <div class="table-wrap">
           <table class="admin-table">
             <thead>
@@ -137,10 +159,25 @@
           </table>
         </div>
 
+        <div id="invite-card-list" class="invite-card-list" aria-label="邀请码卡片列表"></div>
+
         <div id="invite-pagination" class="admin-pagination" aria-live="polite"></div>
       </section>
     </section>
   </main>
+
+  <div id="disable-confirm-modal" class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="disable-confirm-title" hidden>
+    <div class="admin-modal-dialog">
+      <p class="eyebrow">Disable Invite</p>
+      <h2 id="disable-confirm-title">确认停用邀请码？</h2>
+      <p>停用后会释放代理端口，用户将无法继续使用这个邀请码。</p>
+      <p class="admin-modal-code" id="disable-confirm-code"></p>
+      <div class="admin-modal-actions">
+        <button class="button secondary" type="button" data-disable-cancel>取消</button>
+        <button class="button primary danger" type="button" data-disable-confirm>确认停用</button>
+      </div>
+    </div>
+  </div>
 
   <script src="/admin.js" defer></script>
 </body>

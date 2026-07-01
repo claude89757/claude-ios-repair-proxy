@@ -1,4 +1,5 @@
 from http.cookies import SimpleCookie
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
@@ -179,6 +180,84 @@ def test_admin_list_invites_supports_pagination_and_filters():
     assert [item["invite_code"] for item in repaired] == [third["invite_code"]]
     assert repaired[0]["repair_completed"] is True
     assert repaired[0]["repair_completed_at"] == "2026-06-25T00:00:00+00:00"
+
+
+def test_admin_list_invites_returns_operational_summary_and_quick_filters():
+    client, invite_store, _status_store = admin_client()
+    assert login(client).status_code == 204
+    now = datetime.now(timezone.utc)
+
+    unused = invite_store.create_invite(note="unused manual")
+    used_pending = invite_store.create_invite(note="used pending")
+    invite_store.claim_invite(used_pending["invite_code"])
+    expiring = invite_store.create_invite(
+        note="expiring soon",
+        expires_at=(now + timedelta(minutes=10)).isoformat(),
+    )
+    done = invite_store.create_invite(note="completed today")
+    invite_store.mark_repair_completed_by_session(
+        done["session_id"],
+        timestamp=now.isoformat(),
+    )
+    later = invite_store.create_invite(
+        note="later pending",
+        expires_at=(now + timedelta(hours=3)).isoformat(),
+    )
+    disabled = invite_store.create_invite(note="disabled pending")
+    invite_store.disable_invite(disabled["id"])
+
+    all_response = client.get("/api/admin/invites?page_size=50")
+    used_response = client.get("/api/admin/invites?quick_filter=used_pending&page_size=50")
+    expiring_response = client.get("/api/admin/invites?quick_filter=expiring_soon&page_size=50")
+    completed_response = client.get("/api/admin/invites?quick_filter=completed_today&page_size=50")
+    followup_response = client.get("/api/admin/invites?quick_filter=needs_followup&page_size=50")
+
+    assert all_response.status_code == 200
+    summary = all_response.json()["summary"]
+    assert summary == {
+        "total": 6,
+        "active": 5,
+        "needs_followup": 4,
+        "used_pending": 1,
+        "expiring_soon": 1,
+        "completed_today": 1,
+    }
+
+    assert used_response.status_code == 200
+    assert used_response.json()["quick_filter"] == "used_pending"
+    assert [item["invite_code"] for item in used_response.json()["items"]] == [
+        used_pending["invite_code"]
+    ]
+    assert used_response.json()["summary"] == summary
+
+    assert expiring_response.status_code == 200
+    assert [item["invite_code"] for item in expiring_response.json()["items"]] == [
+        expiring["invite_code"]
+    ]
+
+    assert completed_response.status_code == 200
+    assert [item["invite_code"] for item in completed_response.json()["items"]] == [
+        done["invite_code"]
+    ]
+
+    assert followup_response.status_code == 200
+    followup_codes = [item["invite_code"] for item in followup_response.json()["items"]]
+    assert followup_codes == [
+        later["invite_code"],
+        expiring["invite_code"],
+        used_pending["invite_code"],
+        unused["invite_code"],
+    ]
+
+
+def test_admin_list_invites_rejects_invalid_quick_filter():
+    client, _invite_store, _status_store = admin_client()
+    assert login(client).status_code == 204
+
+    response = client.get("/api/admin/invites?quick_filter=tomorrow")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "invalid quick filter"
 
 
 def test_internal_rewrite_event_marks_invite_repair_completed():

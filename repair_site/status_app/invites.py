@@ -287,12 +287,17 @@ class InviteStore:
         query: str = "",
         status: str = "all",
         repair_status: str = "all",
+        quick_filter: str = "all",
     ) -> dict[str, Any]:
         with self._lock:
             self._release_inactive_proxy_ports_locked()
             self._reclaim_expired_invites_locked()
             safe_page = max(int(page), 1)
             safe_page_size = min(max(int(page_size), 1), 100)
+            now = datetime.now(timezone.utc)
+            expiring_soon_at = now + timedelta(minutes=30)
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            tomorrow_start = today_start + timedelta(days=1)
             where: list[str] = []
             params: list[Any] = []
 
@@ -323,11 +328,48 @@ class InviteStore:
                 )
                 params.extend([like, like, like, like, like])
 
-            where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+            summary_where = list(where)
+            summary_params = list(params)
+            quick_where = list(where)
+            quick_params = list(params)
+
+            normalized_quick_filter = quick_filter.strip().lower()
+            if normalized_quick_filter == "needs_followup":
+                quick_where.append(
+                    "status = 'active' AND disabled_at IS NULL AND repair_completed_at IS NULL"
+                )
+            elif normalized_quick_filter == "used_pending":
+                quick_where.append(
+                    """
+                    status = 'active'
+                    AND disabled_at IS NULL
+                    AND repair_completed_at IS NULL
+                    AND last_used_at IS NOT NULL
+                    """
+                )
+            elif normalized_quick_filter == "expiring_soon":
+                quick_where.append(
+                    """
+                    status = 'active'
+                    AND disabled_at IS NULL
+                    AND repair_completed_at IS NULL
+                    AND expires_at IS NOT NULL
+                    AND expires_at > ?
+                    AND expires_at <= ?
+                    """
+                )
+                quick_params.extend([now.isoformat(), expiring_soon_at.isoformat()])
+            elif normalized_quick_filter == "completed_today":
+                quick_where.append(
+                    "repair_completed_at >= ? AND repair_completed_at < ?"
+                )
+                quick_params.extend([today_start.isoformat(), tomorrow_start.isoformat()])
+
+            where_sql = f"WHERE {' AND '.join(quick_where)}" if quick_where else ""
             total = int(
                 self.conn.execute(
                     f"SELECT COUNT(*) AS count FROM invites {where_sql}",
-                    params,
+                    quick_params,
                 ).fetchone()["count"]
             )
             offset = (safe_page - 1) * safe_page_size
@@ -339,8 +381,72 @@ class InviteStore:
                 ORDER BY id DESC
                 LIMIT ? OFFSET ?
                 """,
-                [*params, safe_page_size, offset],
+                [*quick_params, safe_page_size, offset],
             ).fetchall()
+            summary_where_sql = (
+                f"WHERE {' AND '.join(summary_where)}" if summary_where else ""
+            )
+            summary = self.conn.execute(
+                f"""
+                SELECT
+                    COUNT(*) AS total,
+                    COALESCE(
+                        SUM(CASE
+                            WHEN status = 'active' AND disabled_at IS NULL
+                            THEN 1 ELSE 0
+                        END),
+                        0
+                    ) AS active,
+                    COALESCE(
+                        SUM(CASE
+                            WHEN status = 'active'
+                              AND disabled_at IS NULL
+                              AND repair_completed_at IS NULL
+                            THEN 1 ELSE 0
+                        END),
+                        0
+                    ) AS needs_followup,
+                    COALESCE(
+                        SUM(CASE
+                            WHEN status = 'active'
+                              AND disabled_at IS NULL
+                              AND repair_completed_at IS NULL
+                              AND last_used_at IS NOT NULL
+                            THEN 1 ELSE 0
+                        END),
+                        0
+                    ) AS used_pending,
+                    COALESCE(
+                        SUM(CASE
+                            WHEN status = 'active'
+                              AND disabled_at IS NULL
+                              AND repair_completed_at IS NULL
+                              AND expires_at IS NOT NULL
+                              AND expires_at > ?
+                              AND expires_at <= ?
+                            THEN 1 ELSE 0
+                        END),
+                        0
+                    ) AS expiring_soon,
+                    COALESCE(
+                        SUM(CASE
+                            WHEN repair_completed_at >= ?
+                              AND repair_completed_at < ?
+                            THEN 1 ELSE 0
+                        END),
+                        0
+                    ) AS completed_today
+                FROM invites
+                {summary_where_sql}
+                """,
+                [
+                    now.isoformat(),
+                    expiring_soon_at.isoformat(),
+                    today_start.isoformat(),
+                    tomorrow_start.isoformat(),
+                    *summary_params,
+                ],
+            ).fetchone()
             total_pages = max((total + safe_page_size - 1) // safe_page_size, 1)
             items = [
                 invite
@@ -354,6 +460,15 @@ class InviteStore:
                 "page_size": safe_page_size,
                 "total": total,
                 "total_pages": total_pages,
+                "quick_filter": normalized_quick_filter or "all",
+                "summary": {
+                    "total": int(summary["total"]),
+                    "active": int(summary["active"]),
+                    "needs_followup": int(summary["needs_followup"]),
+                    "used_pending": int(summary["used_pending"]),
+                    "expiring_soon": int(summary["expiring_soon"]),
+                    "completed_today": int(summary["completed_today"]),
+                },
             }
 
     def public_stats(self) -> dict[str, int]:

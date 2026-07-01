@@ -853,6 +853,51 @@ def test_admin_invite_list_has_filters_pagination_and_repair_status():
     assert ".admin-pagination" in css
 
 
+def test_admin_invite_list_has_operational_summary_and_mobile_cards():
+    html = (WEB / "admin.html").read_text()
+    js = (WEB / "admin.js").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'id="invite-summary"' in html
+    assert 'data-quick-filter="needs_followup"' in html
+    assert 'data-quick-filter="used_pending"' in html
+    assert 'data-quick-filter="expiring_soon"' in html
+    assert 'data-quick-filter="completed_today"' in html
+    assert 'id="active-filter-chips"' in html
+    assert 'id="invite-list-feedback"' in html
+    assert 'id="invite-card-list"' in html
+    assert 'id="disable-confirm-modal"' in html
+    assert 'aria-modal="true"' in html
+    assert "确认停用邀请码？" in html
+
+    assert "quickFilter" in js
+    assert "quick_filter" in js
+    assert "function renderInviteSummary" in js
+    assert "function renderActiveFilters" in js
+    assert "function renderMobileInvites" in js
+    assert "function openDisableConfirm" in js
+    assert "function closeDisableConfirm" in js
+    assert "function sourceLabel" in js
+    assert "function formatRelativeTime" in js
+    assert "setListFeedback" in js
+    assert "createFeedback, \"正在更新邀请码" not in js
+    assert "停用邀请码" in js
+    assert "已停用" in js
+    assert "无可用操作" in js
+
+    assert ".invite-summary-grid" in css
+    assert ".invite-summary-card" in css
+    assert ".invite-filter-chips" in css
+    assert ".invite-list-feedback" in css
+    assert ".invite-card-list" in css
+    assert ".invite-card" in css
+    assert ".admin-modal" in css
+    assert ".source-label" in css
+    assert ".time-relative" in css
+    assert "@media (max-width: 680px)" in css
+    assert ".admin-table" in css and "display: none;" in css
+
+
 def test_admin_login_password_can_be_revealed_with_toggle_button():
     html = (WEB / "admin.html").read_text()
     js = (WEB / "admin.js").read_text()

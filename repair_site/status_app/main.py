@@ -357,20 +357,31 @@ def create_app(
         q: str = "",
         status: str = "all",
         repair_status: str = "all",
+        quick_filter: str = "all",
     ) -> dict[str, Any]:
         _require_admin_username(request)
         normalized_status = status.strip().lower()
         normalized_repair_status = repair_status.strip().lower()
+        normalized_quick_filter = quick_filter.strip().lower()
         if normalized_status not in {"all", "active", "disabled", "expired"}:
             raise HTTPException(status_code=400, detail="invalid status filter")
         if normalized_repair_status not in {"all", "completed", "pending"}:
             raise HTTPException(status_code=400, detail="invalid repair status filter")
+        if normalized_quick_filter not in {
+            "all",
+            "needs_followup",
+            "used_pending",
+            "expiring_soon",
+            "completed_today",
+        }:
+            raise HTTPException(status_code=400, detail="invalid quick filter")
         return _invite_store(request.app).list_invites_page(
             page=page,
             page_size=page_size,
             query=q,
             status=normalized_status,
             repair_status=normalized_repair_status,
+            quick_filter=normalized_quick_filter,
         )
 
     @created_app.post("/api/admin/invites")
