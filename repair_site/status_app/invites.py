@@ -356,6 +356,24 @@ class InviteStore:
                 "total_pages": total_pages,
             }
 
+    def public_stats(self) -> dict[str, int]:
+        with self._lock:
+            row = self.conn.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_invites,
+                    COALESCE(
+                        SUM(CASE WHEN repair_completed_at IS NOT NULL THEN 1 ELSE 0 END),
+                        0
+                    ) AS completed_repairs
+                FROM invites
+                """
+            ).fetchone()
+            return {
+                "total_invites": int(row["total_invites"]),
+                "completed_repairs": int(row["completed_repairs"]),
+            }
+
     def list_active_proxy_targets(self) -> list[dict[str, Any]]:
         with self._lock:
             self._release_inactive_proxy_ports_locked()

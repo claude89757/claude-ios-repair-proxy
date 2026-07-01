@@ -87,6 +87,21 @@ def test_public_site_links_to_github_repository_from_topbar():
     assert 'href="#status"' not in header.group(0)
 
 
+def test_public_site_uses_updated_brand_title():
+    html = (WEB / "index.html").read_text()
+    disclaimer = (WEB / "disclaimer.html").read_text()
+
+    header = re.search(r"<header class=\"topbar\">.*?</header>", html, re.S)
+    disclaimer_header = re.search(r"<header class=\"topbar\">.*?</header>", disclaimer, re.S)
+
+    assert header is not None
+    assert disclaimer_header is not None
+    assert ">Claude修复工具</a>" in header.group(0)
+    assert ">Claude修复工具</a>" in disclaimer_header.group(0)
+    assert ">Claude iOS Repair</a>" not in header.group(0)
+    assert ">Claude iOS Repair</a>" not in disclaimer_header.group(0)
+
+
 def test_public_site_has_header_human_support_entry():
     html = (WEB / "index.html").read_text()
     disclaimer = (WEB / "disclaimer.html").read_text()
@@ -100,8 +115,8 @@ def test_public_site_has_header_human_support_entry():
     assert 'class="support-entry-button"' in header.group(0)
     assert 'data-support-entry' in header.group(0)
     assert 'class="support-entry-icon"' in header.group(0)
-    assert "人工协助" in header.group(0)
-    assert "售后邀请码" in header.group(0)
+    assert "人工" in header.group(0)
+    assert "售后协助" in header.group(0)
     assert "推荐" in header.group(0)
     assert 'class="support-entry-button"' in disclaimer_header.group(0)
     assert 'href="/zh#support"' in disclaimer
@@ -114,6 +129,35 @@ def test_public_site_has_header_human_support_entry():
     assert "@keyframes supportBreath" in css
     assert ".support-entry-badge" in css
     assert "position: fixed;" not in re.search(r"\.support-entry-button \{.*?\}", css, re.S).group(0)
+
+
+def test_public_site_has_header_wechat_group_entry():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+    header = re.search(r"<header class=\"topbar\">.*?</header>", html, re.S)
+    self_start = html.index('<section id="invite-method-self"')
+    modal_start = html.index('<div id="qr-preview-modal"')
+    self_block = html[self_start:modal_start]
+
+    assert header is not None
+    assert 'class="group-entry-button"' in header.group(0)
+    assert 'data-qr-preview="/assets/group-invite-qr.jpg"' in header.group(0)
+    assert 'aria-label="加入微信群"' in header.group(0)
+    assert 'data-i18n="groupEntry.title"' in header.group(0)
+    assert 'data-i18n="groupEntry.copy"' in header.group(0)
+    assert 'data-i18n="groupEntry.badge"' in header.group(0)
+    assert 'class="group-entry-icon"' in header.group(0)
+    assert "groupEntry.title" in js
+    assert "groupEntry.copy" in js
+    assert "groupEntry.badge" in js
+    assert "加入微信群" in js
+    assert "入群" in header.group(0)
+    assert "交流答疑" in js
+    assert "qrPreviewButtons" in js
+    assert ".group-entry-button" in css
+    assert ".group-entry-badge" in css
+    assert ".floating-group-qr" not in self_block
 
 
 def test_public_site_keeps_invite_form_in_sticky_header():
@@ -246,6 +290,30 @@ def test_public_site_has_invite_acquisition_gate_with_two_entry_points():
     assert ".invite-gate-screen" in css
 
 
+def test_public_site_shows_live_usage_stats_on_invite_gate():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+    choice_start = html.index('<section class="invite-view invite-choice-view"')
+    choice_end = html.index('<section id="invite-method-xianyu"')
+    choice_block = html[choice_start:choice_end]
+
+    assert 'id="ops-stats"' in choice_block
+    assert 'id="stats-total-invites"' in choice_block
+    assert 'id="stats-completed-repairs"' in choice_block
+    assert "累计使用" in choice_block
+    assert "完成修复" in choice_block
+    assert "已生成修复通道" in choice_block
+    assert "已记录成功修复" in choice_block
+    assert "/api/public/stats" in js
+    assert "function loadPublicStats" in js
+    assert "function renderPublicStats" in js
+    assert "startPublicStatsRefresh()" in js
+    assert "loadPublicStats({ silent: true })" in js
+    assert ".ops-stats" in css
+    assert ".ops-stat-card" in css
+
+
 def test_public_site_has_compliance_disclaimer_footer():
     html = (WEB / "index.html").read_text()
     disclaimer = (WEB / "disclaimer.html").read_text()
@@ -261,7 +329,7 @@ def test_public_site_has_compliance_disclaimer_footer():
     assert 'id="disclaimer"' not in html
     assert "免责声明与使用边界" not in html
     assert 'id="disclaimer"' in disclaimer
-    assert "<title>免责声明 - Claude iOS Repair</title>" in disclaimer
+    assert "<title>免责声明 - Claude修复工具</title>" in disclaimer
     assert '<h1 id="disclaimer-title">免责声明</h1>' in disclaimer
     assert "免责声明与使用边界" not in disclaimer
     assert "Usage Boundaries" not in disclaimer
@@ -312,15 +380,13 @@ def test_self_service_invite_page_uses_two_clear_options():
     assert 'id="invite-method-self"' in html
     assert 'class="invite-view invite-method-page self-method-page"' in html
     assert html.count('class="self-service-card"') == 1
-    assert 'class="floating-group-qr"' in self_block
-    assert 'class="floating-group-qr-image"' in self_block
+    assert 'class="floating-group-qr"' not in self_block
+    assert 'class="floating-group-qr-image"' not in self_block
     assert 'class="self-service-actions"' not in html
     assert 'class="self-service-paths"' in html
     assert 'class="self-service-path is-free"' in html
     assert 'class="self-service-path is-coffee"' in html
-    assert self_block.index("/assets/alipay-reward-qr.jpg") < self_block.index(
-        "/assets/group-invite-qr.jpg"
-    )
+    assert "/assets/group-invite-qr.jpg" not in self_block
     free_start = self_block.index('class="self-service-path is-free"')
     coffee_start = self_block.index('class="self-service-path is-coffee"')
     free_block = self_block[free_start:coffee_start]
@@ -340,8 +406,8 @@ def test_self_service_invite_page_uses_two_clear_options():
     assert ".self-service-path.is-free" in css
     assert ".self-service-path.is-coffee" in css
     assert ".self-service-card" in css
-    assert ".floating-group-qr" in css
-    assert ".floating-group-qr-image" in css
+    assert ".floating-group-qr" not in css
+    assert ".floating-group-qr-image" not in css
 
 
 def test_public_invite_auto_claim_fills_invite_and_verifies_immediately():
@@ -398,9 +464,11 @@ def test_self_service_primary_actions_appear_before_qr_codes():
     assert self_block.index('data-invite-auto-claim="alipay"') < self_block.index(
         "/assets/alipay-reward-qr.jpg"
     )
-    group_qr_start = self_block.index('class="floating-group-qr"')
-    assert self_block.index('data-invite-auto-claim="free"') < group_qr_start
-    assert self_block.index("打开小红书") < group_qr_start
+    assert 'class="floating-group-qr"' not in self_block
+    assert self_block.index('data-invite-auto-claim="free"') < self_block.index(
+        "/assets/alipay-reward-qr.jpg"
+    )
+    assert self_block.index("打开小红书") < self_block.index("/assets/alipay-reward-qr.jpg")
 
 
 def test_public_site_qr_codes_are_large_and_previewable():
@@ -416,21 +484,25 @@ def test_public_site_qr_codes_are_large_and_previewable():
     assert html.count("data-qr-preview") == 3
     assert "支付宝收款二维码" in html
     assert "加入微信群" in html
-    assert "扫码入群交流" in html
+    assert "入群" in html
+    assert "交流答疑" in html
+    assert "微信群二维码" in html
     assert "群公告会定期更新免费邀请码" not in html
     assert "放大查看" in html
     assert "打开原图" in html
     assert "下载保存" in html
     assert 'class="qr-image-button"' in html
     assert 'class="qr-actions"' in html
-    assert 'class="floating-group-qr"' in html
+    assert 'class="group-entry-button"' in html
+    assert 'class="floating-group-qr"' not in html
     assert 'id="qr-preview-modal"' in html
     assert 'id="qr-preview-image"' in html
     assert "function openQrPreview" in js
     assert "function closeQrPreview" in js
     assert ".qr-scan-image" in css
-    assert ".floating-group-qr" in css
-    assert ".floating-group-qr-image" in css
+    assert ".group-entry-button" in css
+    assert ".floating-group-qr" not in css
+    assert ".floating-group-qr-image" not in css
     assert "min-height: min(64svh, 720px);" in css
     assert ".qr-preview-modal" in css
 
@@ -636,14 +708,21 @@ def test_dashboard_separates_proxy_connections_from_claude_events():
     assert "尚未观察到 Claude/Anthropic 请求" in js
 
 
-def test_dashboard_caches_only_invite_code_for_browser_restore():
+def test_dashboard_caches_only_expiring_invite_state_for_browser_restore():
     js = (WEB / "app.js").read_text()
 
     assert "localStorage" in js
-    assert "claudeRepairInviteCode" in js
+    assert "claudeRepairInviteState" in js
+    assert "LEGACY_INVITE_CACHE_KEY" in js
     assert "restoreCachedInvite" in js
-    assert "saveCachedInviteCode(inviteCode)" in js
-    assert "localStorage.setItem(INVITE_CACHE_KEY, inviteCode)" in js
+    assert "loadCachedInviteState" in js
+    assert "saveCachedInviteState(inviteCode, claim.expires_at)" in js
+    assert "JSON.stringify" in js
+    assert "invite_code: inviteCode" in js
+    assert "expires_at: expiresAt" in js
+    assert "function isCachedInviteExpired" in js
+    assert "Date.parse(state.expires_at)" in js
+    assert "clearCachedInviteState();" in js
     assert "localStorage.setItem" in js
     assert "localStorage.setItem(INVITE_CACHE_KEY, statusToken)" not in js
     assert "localStorage.setItem(INVITE_CACHE_KEY, claim.status_token)" not in js

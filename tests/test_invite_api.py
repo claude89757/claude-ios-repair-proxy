@@ -51,7 +51,7 @@ def test_localized_public_pages_return_index_html():
         response = client.get(path)
 
         assert response.status_code == 200
-        assert "Claude iOS Repair" in response.text
+        assert "Claude修复工具" in response.text
 
 
 def test_static_assets_are_not_shadowed_by_localized_routes():
@@ -206,6 +206,24 @@ def test_public_invite_records_source_ip_and_geo_in_note():
     assert invite["note"] == (
         "public temporary invite: free | IP 203.0.113.9 | SG / Singapore / Singapore"
     )
+
+
+def test_public_stats_endpoint_returns_total_invites_and_completed_repairs():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+    first = invite_store.create_invite(note="ios user 1")
+    invite_store.create_invite(note="ios user 2")
+    invite_store.create_temporary_invite(note="public temporary invite: free", ttl_seconds=1800)
+
+    invite_store.mark_repair_completed_by_session(first["session_id"])
+
+    response = client.get("/api/public/stats")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total_invites": 3,
+        "completed_repairs": 1,
+    }
 
 
 def test_public_invite_endpoint_rejects_unknown_channel():

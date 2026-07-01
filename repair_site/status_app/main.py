@@ -322,6 +322,10 @@ def create_app(
     def health() -> dict[str, bool]:
         return {"ok": True}
 
+    @created_app.get("/api/public/stats")
+    def public_stats(request: Request) -> dict[str, int]:
+        return _invite_store(request.app).public_stats()
+
     @created_app.post("/api/admin/login", status_code=204)
     async def admin_login(request: Request) -> Response:
         payload = await _json_object(request)

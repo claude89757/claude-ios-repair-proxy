@@ -11,8 +11,22 @@
   <header class="topbar">
     <div class="topbar-shell">
       <div class="topbar-main">
-        <a class="brand" href="#top" aria-label="返回指南顶部">Claude iOS Repair</a>
+        <a class="brand" href="#top" aria-label="返回指南顶部">Claude修复工具</a>
         <div class="topbar-actions">
+          <button class="group-entry-button" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="微信群二维码" aria-label="加入微信群">
+            <span class="group-entry-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+                <path d="M8 9h8"></path>
+                <path d="M8 13h5"></path>
+              </svg>
+            </span>
+            <span class="group-entry-copy">
+              <strong data-i18n="groupEntry.title">入群</strong>
+              <small data-i18n="groupEntry.copy">交流答疑</small>
+            </span>
+            <span class="group-entry-badge" data-i18n="groupEntry.badge">微信群</span>
+          </button>
           <button class="support-entry-button" type="button" data-support-entry aria-label="打开售后协助">
             <span class="support-entry-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" focusable="false">
@@ -23,8 +37,8 @@
               </svg>
             </span>
             <span class="support-entry-copy">
-              <strong data-i18n="supportEntry.title">人工协助</strong>
-              <small data-i18n="supportEntry.copy">售后邀请码</small>
+              <strong data-i18n="supportEntry.title">人工</strong>
+              <small data-i18n="supportEntry.copy">售后协助</small>
             </span>
             <span class="support-entry-badge" data-i18n="supportEntry.badge">推荐</span>
           </button>
@@ -86,6 +100,19 @@
           </div>
 
           <p class="invite-choice-hint" data-i18n="inviteGate.choiceHint">先判断是否需要人工协助，这会让后续选择更简单。</p>
+
+          <div id="ops-stats" class="ops-stats" aria-live="polite">
+            <article class="ops-stat-card">
+              <span data-i18n="stats.totalLabel">累计使用</span>
+              <strong id="stats-total-invites">-</strong>
+              <small data-i18n="stats.totalCopy">已生成修复通道</small>
+            </article>
+            <article class="ops-stat-card">
+              <span data-i18n="stats.completedLabel">完成修复</span>
+              <strong id="stats-completed-repairs">-</strong>
+              <small data-i18n="stats.completedCopy">已记录成功修复</small>
+            </article>
+          </div>
 
           <div class="invite-methods" aria-label="邀请码获取方式">
             <button class="invite-method-option is-recommended" type="button" data-invite-method-select="xianyu" aria-controls="invite-method-xianyu">
@@ -230,13 +257,6 @@
                 </div>
               </article>
 
-              <button class="floating-group-qr" type="button" data-qr-preview="/assets/group-invite-qr.jpg" data-qr-title="微信群二维码" aria-label="打开微信群二维码">
-                <img class="floating-group-qr-image" src="/assets/group-invite-qr.jpg" alt="微信群二维码">
-                <span class="floating-group-qr-copy">
-                  <span class="floating-group-qr-title" data-i18n="inviteGate.scanGroupTitle">加入微信群</span>
-                  <span class="floating-group-qr-action" data-i18n="inviteGate.openGroupQr">扫码入群交流</span>
-                </span>
-              </button>
             </div>
           </div>
         </section>

@@ -13,6 +13,8 @@ const headerProxyHost = document.querySelector("#header-proxy-host");
 const headerProxyPort = document.querySelector("#header-proxy-port");
 const headerInviteCountdown = document.querySelector("#header-invite-countdown");
 const inviteCountdownValue = document.querySelector("#invite-countdown-value");
+const statsTotalInvites = document.querySelector("#stats-total-invites");
+const statsCompletedRepairs = document.querySelector("#stats-completed-repairs");
 const statusRefreshButton = document.querySelector("#status-refresh");
 const languageToggle = document.querySelector("#language-toggle");
 const languageToggleLabel = languageToggle?.querySelector(".language-toggle-label");
@@ -44,7 +46,8 @@ const qrPreviewImage = document.querySelector("#qr-preview-image");
 const qrPreviewOpen = document.querySelector("#qr-preview-open");
 const qrPreviewDownload = document.querySelector("#qr-preview-download");
 const publicLimitModal = document.querySelector("#public-limit-modal");
-const INVITE_CACHE_KEY = "claudeRepairInviteCode";
+const INVITE_CACHE_KEY = "claudeRepairInviteState";
+const LEGACY_INVITE_CACHE_KEY = "claudeRepairInviteCode";
 const LANGUAGE_CACHE_KEY = "claudeRepairLanguage";
 const PATH_LANGUAGE_PREFIXES = new Set(["en", "zh"]);
 const LANGUAGE_PATHS = { en: "/en", zh: "/zh" };
@@ -71,8 +74,11 @@ const I18N = {
     "headerProxy.title": "当前修复通道",
     "inviteCountdown.label": "邀请码剩余",
     "inviteCountdown.expired": "已过期",
-    "supportEntry.title": "人工协助",
-    "supportEntry.copy": "售后邀请码",
+    "groupEntry.title": "入群",
+    "groupEntry.copy": "交流答疑",
+    "groupEntry.badge": "微信群",
+    "supportEntry.title": "人工",
+    "supportEntry.copy": "售后协助",
     "supportEntry.badge": "推荐",
     "flow.phoneScreen": "重新登录",
     "flow.proxyLink": "临时修复通道",
@@ -102,6 +108,10 @@ const I18N = {
     "inviteGate.title": "选择修复入口",
     "inviteGate.copy": "需要人工协助请选择售后协助；可以自行按步骤操作请选择自助获取。邀请码仅用于生成本次临时修复端口。",
     "inviteGate.choiceHint": "先判断是否需要人工协助，这会让后续选择更简单。",
+    "stats.totalLabel": "累计使用",
+    "stats.totalCopy": "已生成修复通道",
+    "stats.completedLabel": "完成修复",
+    "stats.completedCopy": "已记录成功修复",
     "inviteGate.back": "返回选择",
     "inviteGate.scopeNote": "仅用于 Claude iOS App 卡 “Something went wrong” 时回到登录页；无法帮助解决被封号、账号申诉或地区限制问题；不提供 VPN、翻墙、通用代理或网络加速能力。",
     "inviteGate.limit1": "无法帮助解决被封号、账号恢复或账号申诉问题。",
@@ -284,8 +294,11 @@ const I18N = {
     "headerProxy.title": "Current repair channel",
     "inviteCountdown.label": "Invite left",
     "inviteCountdown.expired": "Expired",
-    "supportEntry.title": "Human help",
-    "supportEntry.copy": "After-sales invite",
+    "groupEntry.title": "Group",
+    "groupEntry.copy": "Repair chat",
+    "groupEntry.badge": "WeChat",
+    "supportEntry.title": "Human",
+    "supportEntry.copy": "After-sales",
     "supportEntry.badge": "Help",
     "flow.phoneScreen": "Sign in again",
     "flow.proxyLink": "Repair channel",
@@ -315,6 +328,10 @@ const I18N = {
     "inviteGate.title": "Choose a repair entry",
     "inviteGate.copy": "Choose assisted support if you need help. Choose self-service if you can follow the steps yourself. The invite only creates a temporary repair port for this session.",
     "inviteGate.choiceHint": "Start with whether you need human help; the rest becomes simpler.",
+    "stats.totalLabel": "Channels issued",
+    "stats.totalCopy": "Temporary repair channels generated",
+    "stats.completedLabel": "Repairs completed",
+    "stats.completedCopy": "Successful repair records",
     "inviteGate.back": "Back",
     "inviteGate.scopeNote": 'Only helps Claude iOS return to the sign-in screen when stuck on "Something went wrong". It cannot help with banned accounts, appeals, or regional availability. It does not provide VPN, circumvention, general-purpose proxy, or acceleration capabilities.',
     "inviteGate.limit1": "It cannot help with banned accounts, account recovery, or appeals.",
@@ -484,8 +501,10 @@ let activeInviteCode = "";
 let activeProxyPort = "";
 let activeInviteExpiresAt = "";
 let inviteCountdownTimer = null;
+let publicStatsTimer = null;
 let currentLanguage = loadInitialLanguage();
 let currentSnapshot = null;
+let currentPublicStats = null;
 let currentFeedback = { key: "", message: "", tone: "" };
 let activeStep = 1;
 let lastQrPreviewFocus = null;
@@ -624,6 +643,9 @@ function refreshDynamicLanguage() {
     renderChecklist(currentSnapshot);
     renderEvents(currentSnapshot);
   }
+  if (currentPublicStats) {
+    renderPublicStats(currentPublicStats);
+  }
   if (currentFeedback.key) {
     setFeedback(t(currentFeedback.key), currentFeedback.tone, currentFeedback.key);
   }
@@ -655,27 +677,119 @@ function text(value, fallback = "-") {
   return String(value);
 }
 
-function loadCachedInviteCode() {
-  try {
-    return (localStorage.getItem(INVITE_CACHE_KEY) || "").trim();
-  } catch (_error) {
-    return "";
+function formatStatNumber(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return "-";
+  }
+  return new Intl.NumberFormat(currentLanguage === "en" ? "en-US" : "zh-CN").format(number);
+}
+
+function renderPublicStats(stats = currentPublicStats) {
+  if (!stats) {
+    return;
+  }
+  if (statsTotalInvites) {
+    statsTotalInvites.textContent = formatStatNumber(stats.total_invites);
+  }
+  if (statsCompletedRepairs) {
+    statsCompletedRepairs.textContent = formatStatNumber(stats.completed_repairs);
   }
 }
 
-function saveCachedInviteCode(inviteCode) {
+async function loadPublicStats({ silent = false } = {}) {
   try {
-    localStorage.setItem(INVITE_CACHE_KEY, inviteCode);
+    const response = await fetch("/api/public/stats", {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    const payload = await readJson(response);
+
+    if (!response.ok) {
+      throw new Error("public stats failed");
+    }
+
+    currentPublicStats = payload || {};
+    renderPublicStats(currentPublicStats);
   } catch (_error) {
-    // Browser storage can be disabled; the repair flow still works without it.
+    if (!silent) {
+      renderPublicStats(currentPublicStats);
+    }
   }
 }
 
-function clearCachedInviteCode() {
+function startPublicStatsRefresh() {
+  if (!statsTotalInvites && !statsCompletedRepairs) {
+    return;
+  }
+  void loadPublicStats({ silent: true });
+  if (publicStatsTimer) {
+    window.clearInterval(publicStatsTimer);
+  }
+  publicStatsTimer = window.setInterval(() => {
+    void loadPublicStats({ silent: true });
+  }, 30000);
+}
+
+function isCachedInviteExpired(state) {
+  const expiryTimestamp = Date.parse(state.expires_at);
+  return Number.isNaN(expiryTimestamp) || expiryTimestamp <= Date.now();
+}
+
+function clearCachedInviteState() {
   try {
     localStorage.removeItem(INVITE_CACHE_KEY);
+    localStorage.removeItem(LEGACY_INVITE_CACHE_KEY);
   } catch (_error) {
     // Ignore storage failures so invalid invites still reset the visible state.
+  }
+}
+
+function loadCachedInviteState() {
+  try {
+    localStorage.removeItem(LEGACY_INVITE_CACHE_KEY);
+    const rawValue = localStorage.getItem(INVITE_CACHE_KEY);
+    if (!rawValue) {
+      return null;
+    }
+
+    const state = JSON.parse(rawValue);
+    if (
+      !state ||
+      typeof state.invite_code !== "string" ||
+      typeof state.expires_at !== "string" ||
+      !state.invite_code.trim() ||
+      isCachedInviteExpired(state)
+    ) {
+      clearCachedInviteState();
+      return null;
+    }
+
+    return {
+      inviteCode: state.invite_code.trim(),
+      expiresAt: state.expires_at,
+    };
+  } catch (_error) {
+    clearCachedInviteState();
+    return null;
+  }
+}
+
+function saveCachedInviteState(inviteCode, expiresAt) {
+  const state = {
+    invite_code: inviteCode,
+    expires_at: expiresAt,
+  };
+  try {
+    if (!inviteCode || !expiresAt || isCachedInviteExpired(state)) {
+      clearCachedInviteState();
+      return;
+    }
+    localStorage.setItem(INVITE_CACHE_KEY, JSON.stringify(state));
+    localStorage.removeItem(LEGACY_INVITE_CACHE_KEY);
+  } catch (_error) {
+    // Browser storage can be disabled; the repair flow still works without it.
   }
 }
 
@@ -684,16 +798,16 @@ function restoreCachedInvite() {
     return;
   }
 
-  const inviteCode = loadCachedInviteCode();
-  if (!inviteCode) {
+  const cachedInvite = loadCachedInviteState();
+  if (!cachedInvite) {
     return;
   }
 
   if (inviteInput) {
-    inviteInput.value = inviteCode;
+    inviteInput.value = cachedInvite.inviteCode;
   }
   setFeedbackKey("feedback.restoring", "info");
-  void activateInvite(inviteCode, { restored: true });
+  void activateInvite(cachedInvite.inviteCode, { restored: true });
 }
 
 function latestEvent(data) {
@@ -758,6 +872,9 @@ function updateInviteCountdown() {
   inviteCountdownValue.textContent = formatInviteRemaining(remaining);
   headerInviteCountdown.classList.toggle("is-warning", remaining > 0 && remaining <= 5 * 60 * 1000);
   headerInviteCountdown.classList.toggle("is-expired", remaining <= 0);
+  if (remaining <= 0) {
+    clearCachedInviteState();
+  }
 }
 
 function stopInviteCountdown() {
@@ -1574,7 +1691,7 @@ async function activateInvite(inviteCode, { restored = false } = {}) {
     resetProxyConfig();
 
     if (error?.status === 400 || error?.status === 404) {
-      clearCachedInviteCode();
+      clearCachedInviteState();
       setFeedbackKey("feedback.invalidInvite", "error");
     } else {
       setFeedbackKey("feedback.claimUnavailable", "error");
@@ -1591,12 +1708,13 @@ async function activateInviteClaim(inviteCode, claim, { restored = false } = {})
     throw new Error("missing status token");
   }
 
-  saveCachedInviteCode(inviteCode);
+  saveCachedInviteState(inviteCode, claim.expires_at);
   statusToken = claim.status_token;
   activeInviteCode = inviteCode;
   unlockRepairWorkspace();
   renderProxyConfig(claim);
   startInviteCountdown(claim.expires_at);
+  void loadPublicStats({ silent: true });
   markStepComplete(1);
 
   const snapshotLoaded = await refreshSnapshot({ silent: true });
@@ -1725,5 +1843,6 @@ setActiveStep(1);
 resetProxyConfig();
 setFeedback("");
 renderWaitingState("status.waitingInvite");
+startPublicStatsRefresh();
 restoreCachedInvite();
 openSupportEntryFromHash();
