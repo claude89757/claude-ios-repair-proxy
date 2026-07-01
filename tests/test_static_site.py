@@ -87,24 +87,33 @@ def test_public_site_links_to_github_repository_from_topbar():
     assert 'href="#status"' not in header.group(0)
 
 
-def test_public_site_has_global_human_support_fab():
+def test_public_site_has_header_human_support_entry():
     html = (WEB / "index.html").read_text()
     disclaimer = (WEB / "disclaimer.html").read_text()
     js = (WEB / "app.js").read_text()
     css = (WEB / "styles.css").read_text()
+    header = re.search(r"<header class=\"topbar\">.*?</header>", html, re.S)
+    disclaimer_header = re.search(r"<header class=\"topbar\">.*?</header>", disclaimer, re.S)
 
-    assert 'id="support-fab"' in html
-    assert 'class="support-fab"' in html
-    assert "data-support-entry" in html
-    assert "人工" in html
-    assert "推荐" in html
-    assert 'class="support-fab"' in disclaimer
+    assert header is not None
+    assert disclaimer_header is not None
+    assert 'class="support-entry-button"' in header.group(0)
+    assert 'data-support-entry' in header.group(0)
+    assert 'class="support-entry-icon"' in header.group(0)
+    assert "人工协助" in header.group(0)
+    assert "售后邀请码" in header.group(0)
+    assert "推荐" in header.group(0)
+    assert 'class="support-entry-button"' in disclaimer_header.group(0)
     assert 'href="/zh#support"' in disclaimer
+    assert "support-fab" not in html
+    assert "support-fab" not in disclaimer
     assert "function openSupportEntry" in js
     assert "supportEntryButtons" in js
-    assert ".support-fab" in css
-    assert "position: fixed;" in css
-    assert "border-radius: 999px;" in css
+    assert ".support-entry-button" in css
+    assert "animation: supportBreath" in css
+    assert "@keyframes supportBreath" in css
+    assert ".support-entry-badge" in css
+    assert "position: fixed;" not in re.search(r"\.support-entry-button \{.*?\}", css, re.S).group(0)
 
 
 def test_public_site_keeps_invite_form_in_sticky_header():
@@ -125,9 +134,16 @@ def test_public_site_keeps_invite_form_in_sticky_header():
     assert "data-copy-proxy-value" in header.group(0)
     assert "headerProxyChip" in js
     assert "function copyProxyValue" in js
+    assert "function shouldShowHeaderProxy" in js
+    assert 'document.body.classList.contains("is-invite-unlocked")' in js
     assert "navigator.clipboard.writeText(value)" in js
     assert "feedback.proxyHostCopied" in js
     assert "feedback.proxyPortCopied" in js
+    assert "setHeaderProxyVisible(false)" in js[js.index("function openSupportEntry"):js.index("function openSupportEntryFromHash")]
+    claim_start = js.index("async function activateInviteClaim")
+    claim_end = js.index("inviteForm?.addEventListener")
+    claim_block = js[claim_start:claim_end]
+    assert claim_block.index("unlockRepairWorkspace();") < claim_block.index("renderProxyConfig(claim);")
     assert 'class="invite-floating-note"' in header.group(0)
     assert "entry-panel" not in html
     assert html.count('id="invite-form"') == 1

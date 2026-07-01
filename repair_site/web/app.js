@@ -65,8 +65,9 @@ const I18N = {
     "entry.placeholder": "输入邀请码",
     "entry.submit": "验证",
     "headerProxy.title": "当前修复通道",
-    "supportFab.badge": "推荐",
-    "supportFab.main": "人工",
+    "supportEntry.title": "人工协助",
+    "supportEntry.copy": "售后邀请码",
+    "supportEntry.badge": "推荐",
     "flow.phoneScreen": "重新登录",
     "flow.proxyLink": "临时修复通道",
     "flow.proxy": "修复通道",
@@ -267,8 +268,9 @@ const I18N = {
     "entry.placeholder": "Enter invite code",
     "entry.submit": "Verify",
     "headerProxy.title": "Current repair channel",
-    "supportFab.badge": "Help",
-    "supportFab.main": "Human",
+    "supportEntry.title": "Human help",
+    "supportEntry.copy": "After-sales invite",
+    "supportEntry.badge": "Help",
     "flow.phoneScreen": "Sign in again",
     "flow.proxyLink": "Repair channel",
     "flow.proxy": "Repair channel",
@@ -734,6 +736,7 @@ function unlockRepairWorkspace() {
 
 function lockRepairWorkspace() {
   document.body.classList.remove("is-invite-unlocked");
+  setHeaderProxyVisible(false);
   if (inviteGateScreen) {
     inviteGateScreen.hidden = false;
   }
@@ -846,6 +849,7 @@ async function copyProxyValue(button) {
 
 function openSupportEntry() {
   document.body.classList.remove("is-invite-unlocked");
+  setHeaderProxyVisible(false);
   if (repairWorkspace) {
     repairWorkspace.hidden = true;
   }
@@ -1136,6 +1140,17 @@ function setHeaderProxyVisible(isVisible) {
   document.body.classList.toggle("has-header-proxy", isVisible);
 }
 
+function shouldShowHeaderProxy(host, port) {
+  const currentInviteInput = inviteInput?.value.trim() || "";
+  return Boolean(
+    host &&
+      port &&
+      activeInviteCode &&
+      currentInviteInput === activeInviteCode &&
+      document.body.classList.contains("is-invite-unlocked"),
+  );
+}
+
 function setProxyCopyButtonValue(button, value) {
   if (!button) {
     return;
@@ -1156,7 +1171,7 @@ function renderHeaderProxyConfig(host, port) {
   }
   setProxyCopyButtonValue(proxyCopyButtons[0], normalizedHost);
   setProxyCopyButtonValue(proxyCopyButtons[1], normalizedPort);
-  setHeaderProxyVisible(Boolean(normalizedHost && normalizedPort));
+  setHeaderProxyVisible(shouldShowHeaderProxy(normalizedHost, normalizedPort));
 }
 
 function renderProxyConfig(claim) {
@@ -1453,8 +1468,8 @@ async function activateInviteClaim(inviteCode, claim, { restored = false } = {})
   saveCachedInviteCode(inviteCode);
   statusToken = claim.status_token;
   activeInviteCode = inviteCode;
-  renderProxyConfig(claim);
   unlockRepairWorkspace();
+  renderProxyConfig(claim);
   markStepComplete(1);
 
   const snapshotLoaded = await refreshSnapshot({ silent: true });
