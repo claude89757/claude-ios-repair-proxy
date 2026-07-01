@@ -136,6 +136,8 @@ def test_public_site_has_invite_acquisition_gate_with_two_entry_points():
     assert "自助使用，无售后和远程支持" in html
     assert "请作者喝杯咖啡" in html
     assert "我已请咖啡，生成邀请码" in html
+    assert "群公告会定期更新免费邀请码" not in html
+    assert "Free invite codes are updated in the group notice" not in js
     assert "支付宝随缘支持" not in html
     assert "支付宝随缘付费" not in html
     assert "已支持维护" not in html
@@ -335,8 +337,9 @@ def test_public_site_qr_codes_are_large_and_previewable():
     assert html.count("qr-scan-panel") == 1
     assert html.count("data-qr-preview") == 3
     assert "支付宝收款二维码" in html
-    assert "加群二维码" in html
-    assert "点击打开，长按保存" in html
+    assert "加入微信群" in html
+    assert "扫码入群交流" in html
+    assert "群公告会定期更新免费邀请码" not in html
     assert "放大查看" in html
     assert "打开原图" in html
     assert "下载保存" in html

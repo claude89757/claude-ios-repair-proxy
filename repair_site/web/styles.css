@@ -3403,13 +3403,6 @@ nav {
   line-height: 1.2;
 }
 
-.floating-group-qr-text {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 760;
-  line-height: 1.42;
-}
-
 .floating-group-qr-action {
   color: var(--brand);
   font-size: 12px;
@@ -3585,7 +3578,6 @@ nav {
     font-size: 14px;
   }
 
-  .floating-group-qr-text,
   .floating-group-qr-action {
     font-size: 11px;
   }
