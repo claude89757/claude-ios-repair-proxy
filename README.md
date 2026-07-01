@@ -47,7 +47,8 @@ uvicorn repair_site.status_app.main:app --host 127.0.0.1 --port 9000
 - `9000`: local FastAPI status backend
 - `10001-10999`: per-invite Claude iOS repair proxy ports by default
 - Admin-created invites expire after `INVITE_DEFAULT_TTL_SECONDS` seconds by default; production default is `86400` seconds.
-- Free/tip public buttons generate one-hour temporary invites by default; configure with `PUBLIC_INVITE_TTL_SECONDS`.
+- Free public buttons generate 30-minute temporary invites by default; configure with `PUBLIC_FREE_INVITE_TTL_SECONDS`.
+- Tip public buttons generate one-hour temporary invites by default; configure with `PUBLIC_INVITE_TTL_SECONDS`.
 
 ## Deployment
 
@@ -68,4 +69,4 @@ The deployment workflow packages only `requirements.txt` and `repair_site`, uplo
 
 ## Security Notes
 
-公开页面不内置代理账号密码。用户通过管理员发放的邀请码，或免费/打赏入口动态生成的 1 小时临时邀请码获取专属代理端口；iPhone Wi-Fi 代理认证保持关闭。端口到期或邀请码停用后会回收再利用。服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。
+公开页面不内置代理账号密码。用户通过管理员发放的邀请码，或免费/打赏入口动态生成的临时邀请码获取专属代理端口；免费入口默认 30 分钟有效，打赏入口默认 1 小时有效。iPhone Wi-Fi 代理认证保持关闭。端口到期或邀请码停用后会回收再利用。服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。

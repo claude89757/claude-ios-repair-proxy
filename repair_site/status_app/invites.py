@@ -366,6 +366,25 @@ class InviteStore:
         with self._lock:
             return self._list_active_proxy_targets_locked()
 
+    def has_public_invite_for_source_ip(self, *, source_ip: str, channel: str) -> bool:
+        normalized_source_ip = source_ip.strip()
+        normalized_channel = channel.strip().lower()
+        if not normalized_source_ip or not normalized_channel:
+            return False
+        note_prefix = f"public temporary invite: {normalized_channel}"
+        with self._lock:
+            row = self.conn.execute(
+                """
+                SELECT 1
+                FROM invites
+                WHERE source_ip = ?
+                  AND note LIKE ?
+                LIMIT 1
+                """,
+                (normalized_source_ip, f"{note_prefix}%"),
+            ).fetchone()
+            return row is not None
+
     def get_invite_by_id(
         self,
         invite_id: int,

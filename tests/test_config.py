@@ -3,6 +3,7 @@ from repair_site.status_app.config import (
     _b64encode,
     _urlsafe_digest,
     derive_proxy_password,
+    load_settings,
     new_invite_code,
     new_proxy_username,
     pbkdf2_password_hash,
@@ -149,3 +150,13 @@ def test_require_configured_enforces_required_settings():
 
     assert "ADMIN_PASSWORD_HASH" in message
     assert "STATUS_TOKEN_SECRET" in message
+
+
+def test_public_free_invite_ttl_defaults_to_30_minutes(monkeypatch):
+    monkeypatch.delenv("PUBLIC_FREE_INVITE_TTL_SECONDS", raising=False)
+    monkeypatch.delenv("PUBLIC_INVITE_TTL_SECONDS", raising=False)
+
+    settings = load_settings()
+
+    assert settings.public_free_invite_ttl_seconds == 1800
+    assert settings.public_invite_ttl_seconds == 3600

@@ -11,6 +11,8 @@ const proxyCertificateUrl = document.querySelector("#proxy-certificate-url");
 const headerProxyChip = document.querySelector("#header-proxy-chip");
 const headerProxyHost = document.querySelector("#header-proxy-host");
 const headerProxyPort = document.querySelector("#header-proxy-port");
+const headerInviteCountdown = document.querySelector("#header-invite-countdown");
+const inviteCountdownValue = document.querySelector("#invite-countdown-value");
 const statusRefreshButton = document.querySelector("#status-refresh");
 const languageToggle = document.querySelector("#language-toggle");
 const languageToggleLabel = languageToggle?.querySelector(".language-toggle-label");
@@ -35,11 +37,13 @@ const inviteBackButtons = Array.from(document.querySelectorAll("[data-invite-bac
 const qrPreviewButtons = Array.from(document.querySelectorAll("[data-qr-preview]"));
 const qrCloseButtons = Array.from(document.querySelectorAll("[data-qr-close]"));
 const supportEntryButtons = Array.from(document.querySelectorAll("[data-support-entry]"));
+const publicLimitCloseButtons = Array.from(document.querySelectorAll("[data-public-limit-close]"));
 const qrPreviewModal = document.querySelector("#qr-preview-modal");
 const qrPreviewTitle = document.querySelector("#qr-preview-title");
 const qrPreviewImage = document.querySelector("#qr-preview-image");
 const qrPreviewOpen = document.querySelector("#qr-preview-open");
 const qrPreviewDownload = document.querySelector("#qr-preview-download");
+const publicLimitModal = document.querySelector("#public-limit-modal");
 const INVITE_CACHE_KEY = "claudeRepairInviteCode";
 const LANGUAGE_CACHE_KEY = "claudeRepairLanguage";
 const PATH_LANGUAGE_PREFIXES = new Set(["en", "zh"]);
@@ -60,11 +64,13 @@ const I18N = {
     "hero.cta": "开始修复",
     "entry.kicker": "状态入口",
     "entry.title": "验证邀请码并查看临时修复通道",
-    "entry.copy": "免费/打赏入口会生成 1 小时临时邀请码；售后邀请码以管理员设置为准。验证后页面会显示本次修复端口和脱敏实时状态。",
+    "entry.copy": "免费入口会生成 30 分钟临时邀请码；打赏入口会生成 1 小时临时邀请码；售后邀请码以管理员设置为准。",
     "entry.label": "邀请码",
     "entry.placeholder": "输入邀请码",
     "entry.submit": "验证",
     "headerProxy.title": "当前修复通道",
+    "inviteCountdown.label": "邀请码剩余",
+    "inviteCountdown.expired": "已过期",
     "supportEntry.title": "人工协助",
     "supportEntry.copy": "售后邀请码",
     "supportEntry.badge": "推荐",
@@ -105,16 +111,16 @@ const I18N = {
     "inviteGate.freeTitle": "免费自助",
     "inviteGate.freeBrief": "适合完全自助操作，无售后支持。",
     "inviteGate.freeDetailTitle": "一键三连后自动验证",
-    "inviteGate.freeCopy": "适合愿意自助操作的用户。请先去小红书一键三连，完成后会生成 1 小时临时邀请码并自动验证。",
+    "inviteGate.freeCopy": "适合愿意自助操作的用户。请先去小红书一键三连，完成后会生成 30 分钟临时邀请码并自动验证。",
     "inviteGate.freePageCopy": "先打开小红书完成一键三连，也可扫码进群查看公告。完成后点击按钮自动验证。",
     "inviteGate.freePathLabel": "方式一",
     "inviteGate.freePathTitle": "小红书一键三连",
     "inviteGate.freePathCopy": "先打开小红书完成一键三连，再点击确认生成邀请码。",
     "inviteGate.selfLabel": "自助操作",
     "inviteGate.selfTitle": "自助获取",
-    "inviteGate.selfBrief": "免费使用或请作者喝杯咖啡，系统会生成 1 小时临时邀请码。适合能自行完成证书和 Wi‑Fi 代理设置的用户。",
+    "inviteGate.selfBrief": "免费使用会生成 30 分钟临时邀请码；请作者喝杯咖啡会生成 1 小时临时邀请码。适合能自行完成证书和 Wi‑Fi 代理设置的用户。",
     "inviteGate.selfDetailTitle": "自助获取临时邀请码",
-    "inviteGate.selfPageCopy": "任选一种自助方式：完成小红书一键三连，或请作者喝杯咖啡。都会生成 1 小时临时邀请码。",
+    "inviteGate.selfPageCopy": "任选一种自助方式：完成小红书一键三连，或请作者喝杯咖啡。免费入口 30 分钟有效，打赏入口 1 小时有效。",
     "inviteGate.selfServe": "自助使用，无售后和远程支持",
     "inviteGate.autoVerify": "点击后自动验证",
     "inviteGate.groupHint": "微信群主要用于交流修复经验。",
@@ -177,7 +183,7 @@ const I18N = {
     "status.refresh": "刷新状态",
     "status.copy": "邀请码验证后，这里会显示你的一次性修复端口、脱敏状态和事件元数据。正常已登录的 Claude App 可能只显示修复通道已连接，不一定触发修复事件。",
     "proxy.kicker": "临时修复通道配置",
-    "proxy.title": "请按以下信息填写当前 Wi‑Fi 的 HTTP 代理，认证保持关闭；该端口仅用于本次 Claude iOS 登录态修复，公开入口默认 1 小时失效",
+    "proxy.title": "请按以下信息填写当前 Wi‑Fi 的 HTTP 代理，认证保持关闭；该端口仅用于本次 Claude iOS 登录态修复，公开入口会短期失效（免费 30 分钟，打赏 1 小时）",
     "proxy.host": "服务器",
     "proxy.port": "端口",
     "proxy.certUrl": "证书链接",
@@ -212,7 +218,7 @@ const I18N = {
     "safety.item1": "请只在自己的设备和账号上使用，本工具只用于清理卡住的本地旧会话，不用于绕过账号、地区或网络限制。",
     "safety.item2": "修复期间不要提交、记录或共享真实 Cookie、sessionKey、routingHint、Authorization、mitmproxy 证书或设备标识。",
     "safety.item3": "服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。",
-    "safety.item4": "完成后关闭 Wi‑Fi HTTP 代理，并取消修复 CA 的完全信任；公开入口生成的临时端口默认 1 小时失效，售后邀请码以管理员设置为准。",
+    "safety.item4": "完成后关闭 Wi‑Fi HTTP 代理，并取消修复 CA 的完全信任；公开入口生成的临时端口会短期失效（免费 30 分钟，打赏 1 小时），售后邀请码以管理员设置为准。",
     "safety.item5": "如果状态只显示已连接但没有 Claude 请求，优先检查是否还有其它 VPN、代理或第三方网络工具未关闭。",
     "safety.item6": "如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。",
     "feedback.restoring": "正在恢复上次的邀请码...",
@@ -235,7 +241,15 @@ const I18N = {
     "feedback.invalidInvite": "邀请码无效或已失效。",
     "feedback.claimUnavailable": "暂时无法验证邀请码，请稍后重试。",
     "feedback.enterInvite": "请输入邀请码。",
-    "feedback.publicInviteReady": "正在生成 1 小时临时邀请码并自动验证。",
+    "feedback.publicInviteReadyFree": "正在生成 30 分钟免费临时邀请码并自动验证。",
+    "feedback.publicInviteReadyAlipay": "正在生成 1 小时临时邀请码并自动验证。",
+    "feedback.freeInviteLimit": "该网络已使用过免费体验名额。如需继续使用，请通过闲鱼获取售后邀请码。",
+    "publicLimit.kicker": "Free Invite Limit",
+    "publicLimit.title": "免费体验名额已使用",
+    "publicLimit.copy": "为了防止临时修复通道被滥用，每个网络 IP 仅可生成一次免费邀请码。若还需要继续使用或需要人工协助，请通过闲鱼获取售后邀请码。",
+    "publicLimit.xianyu": "去闲鱼获取售后邀请码",
+    "publicLimit.ack": "我知道了",
+    "publicLimit.close": "关闭",
     "feedback.xianyuCopied": "闲鱼购买链接已复制。",
     "feedback.xianyuCopyUnavailable": "当前浏览器无法自动复制，请手动复制闲鱼购买链接。",
     "feedback.proxyHostCopied": "服务器已复制。",
@@ -263,11 +277,13 @@ const I18N = {
     "hero.cta": "Start repair",
     "entry.kicker": "Status entry",
     "entry.title": "Verify invite and view the repair channel",
-    "entry.copy": "Free and tip flows generate a one-hour temporary invite. After-sales invites follow the administrator's setting. After verification, this page shows the repair port and sanitized live status for this session.",
+    "entry.copy": "Free self-service invites last 30 minutes. Tip invites last one hour. After-sales invites follow the administrator's setting.",
     "entry.label": "Invite code",
     "entry.placeholder": "Enter invite code",
     "entry.submit": "Verify",
     "headerProxy.title": "Current repair channel",
+    "inviteCountdown.label": "Invite left",
+    "inviteCountdown.expired": "Expired",
     "supportEntry.title": "Human help",
     "supportEntry.copy": "After-sales invite",
     "supportEntry.badge": "Help",
@@ -308,16 +324,16 @@ const I18N = {
     "inviteGate.freeTitle": "Free self-service",
     "inviteGate.freeBrief": "For fully self-service use. No after-sales support.",
     "inviteGate.freeDetailTitle": "Auto-verify after the Xiaohongshu action",
-    "inviteGate.freeCopy": "Best for users who can operate on their own. Visit Xiaohongshu first, then tap to generate a one-hour temporary invite and verify it automatically.",
+    "inviteGate.freeCopy": "Best for users who can operate on their own. Visit Xiaohongshu first, then tap to generate a 30-minute temporary invite and verify it automatically.",
     "inviteGate.freePageCopy": "Open Xiaohongshu first, then scan the group QR if you need the notice. After that, tap the button to auto-verify.",
     "inviteGate.freePathLabel": "Option one",
     "inviteGate.freePathTitle": "Xiaohongshu action",
     "inviteGate.freePathCopy": "Open Xiaohongshu first, complete the action, then confirm to generate an invite.",
     "inviteGate.selfLabel": "Self-service",
     "inviteGate.selfTitle": "Self-service",
-    "inviteGate.selfBrief": "Use it for free or buy the author a coffee. Either path generates a one-hour temporary invite. Best if you can handle certificate and Wi‑Fi proxy setup yourself.",
+    "inviteGate.selfBrief": "Free self-service generates a 30-minute invite. Buying the author a coffee generates a one-hour invite. Best if you can handle certificate and Wi‑Fi proxy setup yourself.",
     "inviteGate.selfDetailTitle": "Get a temporary invite yourself",
-    "inviteGate.selfPageCopy": "Choose one self-service path: complete the Xiaohongshu action, or buy the author a coffee. Both generate a one-hour temporary invite.",
+    "inviteGate.selfPageCopy": "Choose one self-service path: complete the Xiaohongshu action, or buy the author a coffee. Free invites last 30 minutes; tip invites last one hour.",
     "inviteGate.selfServe": "Self-service, no after-sales or remote support",
     "inviteGate.autoVerify": "Auto-verifies after tapping",
     "inviteGate.groupHint": "The WeChat group is mainly for repair discussion.",
@@ -380,7 +396,7 @@ const I18N = {
     "status.refresh": "Refresh status",
     "status.copy": "After invite verification, this area shows your one-time repair port, sanitized status, and event metadata. A normally signed-in Claude App may only show that the repair channel is connected and may not trigger repair events.",
     "proxy.kicker": "Temporary repair channel configuration",
-    "proxy.title": "Enter the following values in the current Wi‑Fi HTTP Proxy settings. Keep authentication off. This port is only for this Claude iOS session repair. Public temporary ports expire after one hour by default.",
+    "proxy.title": "Enter the following values in the current Wi‑Fi HTTP Proxy settings. Keep authentication off. This port is only for this Claude iOS session repair. Public temporary ports expire soon: 30 minutes for free invites, one hour for tip invites.",
     "proxy.host": "Server",
     "proxy.port": "Port",
     "proxy.certUrl": "Certificate link",
@@ -415,7 +431,7 @@ const I18N = {
     "safety.item1": "Use this only on your own device and account. This tool is for clearing stuck local session state, not for bypassing account, regional, or network restrictions.",
     "safety.item2": "Do not submit, log, or share real Cookie, sessionKey, routingHint, Authorization, mitmproxy certificates, or device identifiers during repair.",
     "safety.item3": "The service stores only sanitized status and event metadata. It does not store cookies, request bodies, or full device identifiers.",
-    "safety.item4": "After repair, turn off the Wi‑Fi HTTP proxy and disable full trust for the repair CA. Public temporary ports expire after one hour by default; after-sales invites follow the administrator's setting.",
+    "safety.item4": "After repair, turn off the Wi‑Fi HTTP proxy and disable full trust for the repair CA. Public temporary ports expire soon: 30 minutes for free invites, one hour for tip invites. After-sales invites follow the administrator's setting.",
     "safety.item5": "If status only shows connected but no Claude requests, first check whether another VPN, proxy, or third-party network tool is still enabled.",
     "safety.item6": "If status does not change for a long time, verify the iPhone Wi-Fi, certificate trust, and proxy configuration match this page.",
     "feedback.restoring": "Restoring the last invite code...",
@@ -438,7 +454,15 @@ const I18N = {
     "feedback.invalidInvite": "Invite code is invalid or expired.",
     "feedback.claimUnavailable": "Unable to verify the invite right now. Try again later.",
     "feedback.enterInvite": "Enter an invite code.",
-    "feedback.publicInviteReady": "Generating a one-hour temporary invite and verifying it automatically.",
+    "feedback.publicInviteReadyFree": "Generating a 30-minute free temporary invite and verifying it automatically.",
+    "feedback.publicInviteReadyAlipay": "Generating a one-hour temporary invite and verifying it automatically.",
+    "feedback.freeInviteLimit": "This network has already used the free trial invite. To continue, get an after-sales invite on Xianyu.",
+    "publicLimit.kicker": "Free Invite Limit",
+    "publicLimit.title": "Free trial invite already used",
+    "publicLimit.copy": "To prevent temporary repair channels from being abused, each network IP can generate one free invite only. If you still need to continue or want human assistance, please get an after-sales invite on Xianyu.",
+    "publicLimit.xianyu": "Get an after-sales invite on Xianyu",
+    "publicLimit.ack": "Got it",
+    "publicLimit.close": "Close",
     "feedback.xianyuCopied": "Xianyu purchase link copied.",
     "feedback.xianyuCopyUnavailable": "This browser cannot copy automatically. Copy the Xianyu purchase link manually.",
     "feedback.proxyHostCopied": "Server copied.",
@@ -458,6 +482,8 @@ let streamController = null;
 let statusToken = "";
 let activeInviteCode = "";
 let activeProxyPort = "";
+let activeInviteExpiresAt = "";
+let inviteCountdownTimer = null;
 let currentLanguage = loadInitialLanguage();
 let currentSnapshot = null;
 let currentFeedback = { key: "", message: "", tone: "" };
@@ -601,6 +627,7 @@ function refreshDynamicLanguage() {
   if (currentFeedback.key) {
     setFeedback(t(currentFeedback.key), currentFeedback.tone, currentFeedback.key);
   }
+  updateInviteCountdown();
   updateStepControls();
   updateStatusDock(currentSnapshot);
 }
@@ -699,6 +726,71 @@ function setFeedbackKey(key, tone = "") {
   setFeedback(t(key), tone, key);
 }
 
+function parseInviteExpiry(expiresAt) {
+  if (!expiresAt) {
+    return null;
+  }
+  const timestamp = Date.parse(expiresAt);
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function formatInviteRemaining(milliseconds) {
+  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  if (totalSeconds <= 0) {
+    return t("inviteCountdown.expired");
+  }
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const paddedMinutes = hours ? String(minutes).padStart(2, "0") : String(minutes);
+  const paddedSeconds = String(seconds).padStart(2, "0");
+  return hours ? `${hours}:${paddedMinutes}:${paddedSeconds}` : `${paddedMinutes}:${paddedSeconds}`;
+}
+
+function updateInviteCountdown() {
+  const expiryTimestamp = parseInviteExpiry(activeInviteExpiresAt);
+  if (!headerInviteCountdown || !inviteCountdownValue || expiryTimestamp === null) {
+    return;
+  }
+
+  const remaining = expiryTimestamp - Date.now();
+  inviteCountdownValue.textContent = formatInviteRemaining(remaining);
+  headerInviteCountdown.classList.toggle("is-warning", remaining > 0 && remaining <= 5 * 60 * 1000);
+  headerInviteCountdown.classList.toggle("is-expired", remaining <= 0);
+}
+
+function stopInviteCountdown() {
+  if (inviteCountdownTimer) {
+    window.clearInterval(inviteCountdownTimer);
+    inviteCountdownTimer = null;
+  }
+  activeInviteExpiresAt = "";
+  if (headerInviteCountdown) {
+    headerInviteCountdown.hidden = true;
+    headerInviteCountdown.classList.remove("is-warning", "is-expired");
+  }
+  if (inviteCountdownValue) {
+    inviteCountdownValue.textContent = "--:--";
+  }
+}
+
+function startInviteCountdown(expiresAt) {
+  stopInviteCountdown();
+  if (!headerInviteCountdown || !inviteCountdownValue) {
+    return;
+  }
+  const expiryTimestamp = parseInviteExpiry(expiresAt);
+  if (expiryTimestamp === null) {
+    return;
+  }
+
+  activeInviteExpiresAt = expiresAt;
+  headerInviteCountdown.hidden = false;
+  updateInviteCountdown();
+  inviteCountdownTimer = window.setInterval(updateInviteCountdown, 1000);
+}
+
 function setBusy(isBusy) {
   if (!inviteForm) {
     return;
@@ -737,6 +829,7 @@ function unlockRepairWorkspace() {
 function lockRepairWorkspace() {
   document.body.classList.remove("is-invite-unlocked");
   setHeaderProxyVisible(false);
+  stopInviteCountdown();
   if (inviteGateScreen) {
     inviteGateScreen.hidden = false;
   }
@@ -786,7 +879,10 @@ function selectInviteMethod(method) {
 
 async function autoClaimPublicInvite(channel = "free") {
   showInviteGateView("self");
-  setFeedbackKey("feedback.publicInviteReady", "info");
+  setFeedbackKey(
+    channel === "free" ? "feedback.publicInviteReadyFree" : "feedback.publicInviteReadyAlipay",
+    "info",
+  );
   setBusy(true);
   setAutoClaimBusy(true);
 
@@ -799,10 +895,15 @@ async function autoClaimPublicInvite(channel = "free") {
       inviteInput.value = claim.invite_code;
     }
     await activateInviteClaim(claim.invite_code, claim);
-  } catch (_error) {
+  } catch (error) {
     expireTokenState();
     resetProxyConfig();
-    setFeedbackKey("feedback.claimUnavailable", "error");
+    if (isFreeInviteLimitError(error)) {
+      setFeedbackKey("feedback.freeInviteLimit", "info");
+      openPublicLimitModal();
+    } else {
+      setFeedbackKey("feedback.claimUnavailable", "error");
+    }
     renderWaitingState("status.waitingInvite");
   } finally {
     setBusy(false);
@@ -906,6 +1007,31 @@ function closeQrPreview() {
   }
   lastQrPreviewFocus?.focus?.({ preventScroll: true });
   lastQrPreviewFocus = null;
+}
+
+function openPublicLimitModal() {
+  if (!publicLimitModal) {
+    return;
+  }
+  publicLimitModal.hidden = false;
+  document.body.classList.add("has-public-limit-modal");
+  publicLimitModal.querySelector("[data-public-limit-close]")?.focus({ preventScroll: true });
+}
+
+function closePublicLimitModal() {
+  if (!publicLimitModal) {
+    return;
+  }
+  publicLimitModal.hidden = true;
+  document.body.classList.remove("has-public-limit-modal");
+}
+
+function errorCode(error) {
+  return error?.payload?.detail?.code || error?.payload?.code || "";
+}
+
+function isFreeInviteLimitError(error) {
+  return error?.status === 409 && errorCode(error) === "free_invite_limit_reached";
 }
 
 function stepNumber(value) {
@@ -1470,6 +1596,7 @@ async function activateInviteClaim(inviteCode, claim, { restored = false } = {})
   activeInviteCode = inviteCode;
   unlockRepairWorkspace();
   renderProxyConfig(claim);
+  startInviteCountdown(claim.expires_at);
   markStepComplete(1);
 
   const snapshotLoaded = await refreshSnapshot({ silent: true });
@@ -1543,6 +1670,10 @@ qrCloseButtons.forEach((button) => {
   button.addEventListener("click", closeQrPreview);
 });
 
+publicLimitCloseButtons.forEach((button) => {
+  button.addEventListener("click", closePublicLimitModal);
+});
+
 statusRefreshButton?.addEventListener("click", () => {
   void refreshStatusManually();
 });
@@ -1582,6 +1713,9 @@ window.addEventListener("hashchange", () => {
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && qrPreviewModal && !qrPreviewModal.hidden) {
     closeQrPreview();
+  }
+  if (event.key === "Escape" && publicLimitModal && !publicLimitModal.hidden) {
+    closePublicLimitModal();
   }
 });
 

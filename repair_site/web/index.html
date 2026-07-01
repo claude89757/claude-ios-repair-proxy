@@ -51,7 +51,14 @@
           <input id="invite-code" name="invite-code" autocomplete="off" inputmode="latin" placeholder="输入邀请码" data-i18n-placeholder="entry.placeholder">
           <button type="submit" data-i18n="entry.submit">验证</button>
         </div>
-        <p class="claim-feedback" role="status" data-claim-feedback></p>
+        <div class="header-invite-status-line">
+          <p class="claim-feedback" role="status" data-claim-feedback></p>
+          <div id="header-invite-countdown" class="header-invite-countdown" aria-live="polite" hidden>
+            <span class="countdown-pulse" aria-hidden="true"></span>
+            <span data-i18n="inviteCountdown.label">邀请码剩余</span>
+            <strong id="invite-countdown-value">--:--</strong>
+          </div>
+        </div>
       </form>
       <div id="header-proxy-chip" class="header-proxy-chip" aria-label="当前修复通道" hidden>
         <span class="header-proxy-chip-title" data-i18n="headerProxy.title">当前修复通道</span>
@@ -64,7 +71,7 @@
           <strong id="header-proxy-port">-</strong>
         </button>
       </div>
-      <p class="invite-floating-note" data-i18n="entry.copy">免费/打赏入口会生成 1 小时临时邀请码；售后邀请码以管理员设置为准。验证后页面会显示本次修复端口和脱敏实时状态。</p>
+      <p class="invite-floating-note" data-i18n="entry.copy">免费入口会生成 30 分钟临时邀请码；打赏入口会生成 1 小时临时邀请码；售后邀请码以管理员设置为准。</p>
     </div>
   </header>
 
@@ -115,7 +122,7 @@
                   <strong data-i18n="inviteGate.selfTitle">自助获取</strong>
                 </span>
               </span>
-              <span data-i18n="inviteGate.selfBrief">免费使用或随缘支持维护，系统会生成 1 小时临时邀请码。适合能自行完成证书和 Wi‑Fi 代理设置的用户。</span>
+              <span data-i18n="inviteGate.selfBrief">免费使用会生成 30 分钟临时邀请码；随缘支持维护会生成 1 小时临时邀请码。适合能自行完成证书和 Wi‑Fi 代理设置的用户。</span>
             </button>
           </div>
 
@@ -163,7 +170,7 @@
             <div class="method-page-copy">
               <p class="method-label" data-i18n="inviteGate.selfLabel">自助操作</p>
               <h2 data-i18n="inviteGate.selfDetailTitle">自助获取临时邀请码</h2>
-              <p data-i18n="inviteGate.selfPageCopy">可以免费自助，也可以随缘支持维护。两种方式都会生成 1 小时临时邀请码，适合能自行完成证书和 Wi‑Fi 代理设置的用户。</p>
+              <p data-i18n="inviteGate.selfPageCopy">可以免费自助，也可以随缘支持维护。免费入口 30 分钟有效，打赏入口 1 小时有效，适合能自行完成证书和 Wi‑Fi 代理设置的用户。</p>
             </div>
 
             <div class="self-service-options">
@@ -246,6 +253,20 @@
         <div class="qr-preview-actions">
           <a id="qr-preview-open" class="button secondary" href="#" target="_blank" rel="noreferrer noopener" data-i18n="inviteGate.openOriginal">打开原图</a>
           <a id="qr-preview-download" class="button primary" href="#" download data-i18n="inviteGate.downloadQr">下载保存</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="public-limit-modal" class="public-limit-modal" role="dialog" aria-modal="true" aria-labelledby="public-limit-title" hidden>
+      <div class="public-limit-backdrop" data-public-limit-close></div>
+      <div class="public-limit-dialog">
+        <button class="public-limit-close" type="button" data-public-limit-close data-i18n="publicLimit.close">关闭</button>
+        <p class="panel-kicker" data-i18n="publicLimit.kicker">Free Invite Limit</p>
+        <h2 id="public-limit-title" data-i18n="publicLimit.title">免费体验名额已使用</h2>
+        <p data-i18n="publicLimit.copy">为了防止临时修复通道被滥用，每个网络 IP 仅可生成一次免费邀请码。若还需要继续使用或需要人工协助，请通过闲鱼获取售后邀请码。</p>
+        <div class="public-limit-actions">
+          <a class="button primary" href="https://www.goofish.com/item?spm=a21ybx.personal.feeds.1.3e076ac2wWp67j&amp;id=1061136454887&amp;categoryId=50023914" target="_blank" rel="noreferrer noopener" data-i18n="publicLimit.xianyu">去闲鱼获取售后邀请码</a>
+          <button class="button secondary" type="button" data-public-limit-close data-i18n="publicLimit.ack">我知道了</button>
         </div>
       </div>
     </div>
@@ -387,7 +408,7 @@
                   <li data-i18n="safety.item1">请只在自己的设备和账号上使用，本工具只用于清理卡住的本地旧会话，不用于绕过账号、地区或网络限制。</li>
                   <li data-i18n="safety.item2">修复期间不要提交、记录或共享真实 Cookie、sessionKey、routingHint、Authorization、mitmproxy 证书或设备标识。</li>
                   <li data-i18n="safety.item3">服务端只记录脱敏状态和事件元数据，不记录 Cookie、请求体或完整设备标识。</li>
-                  <li data-i18n="safety.item4">完成后关闭 Wi‑Fi HTTP 代理，并取消修复 CA 的完全信任；公开入口生成的临时端口默认 1 小时失效，售后邀请码以管理员设置为准。</li>
+                  <li data-i18n="safety.item4">完成后关闭 Wi‑Fi HTTP 代理，并取消修复 CA 的完全信任；公开入口生成的临时端口会短期失效（免费 30 分钟，打赏 1 小时），售后邀请码以管理员设置为准。</li>
                   <li data-i18n="safety.item5">如果状态只显示已连接但没有 Claude 请求，优先检查是否还有其它 VPN、代理或第三方网络工具未关闭。</li>
                   <li data-i18n="safety.item6">如果状态长期没有变化，先确认 iPhone 当前 Wi-Fi、证书信任和代理配置是否一致。</li>
                 </ul>
@@ -424,7 +445,7 @@
               <div class="proxy-panel-head">
                 <div>
                   <p class="panel-kicker" data-i18n="proxy.kicker">临时修复通道配置</p>
-                  <h3 id="proxy-title" data-i18n="proxy.title">请按以下信息填写当前 Wi‑Fi 的 HTTP 代理，认证保持关闭；该端口仅用于本次 Claude iOS 登录态修复，公开入口默认 1 小时失效</h3>
+                  <h3 id="proxy-title" data-i18n="proxy.title">请按以下信息填写当前 Wi‑Fi 的 HTTP 代理，认证保持关闭；该端口仅用于本次 Claude iOS 登录态修复，公开入口会短期失效（免费 30 分钟，打赏 1 小时）</h3>
                 </div>
               </div>
               <dl class="proxy-grid">

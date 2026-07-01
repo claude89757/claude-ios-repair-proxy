@@ -37,8 +37,8 @@ def test_site_contains_required_user_guidance():
     assert "正常已登录" in html
     assert "不一定触发修复事件" in html
     assert "不提供 VPN、翻墙、通用代理或网络加速能力" in html
-    assert "免费/打赏入口会生成 1 小时临时邀请码" in html
-    assert "公开入口默认 1 小时失效" in html
+    assert "免费入口会生成 30 分钟临时邀请码" in html
+    assert "免费 30 分钟，打赏 1 小时" in html
     assert "脱敏状态和事件元数据" in html
     assert "不记录 Cookie、请求体或完整设备标识" in html
     assert "Repair session ID" not in html
@@ -131,10 +131,15 @@ def test_public_site_keeps_invite_form_in_sticky_header():
     assert 'id="header-proxy-chip"' in header.group(0)
     assert 'id="header-proxy-host"' in header.group(0)
     assert 'id="header-proxy-port"' in header.group(0)
+    assert 'id="header-invite-countdown"' in header.group(0)
+    assert 'id="invite-countdown-value"' in header.group(0)
     assert "data-copy-proxy-value" in header.group(0)
     assert "headerProxyChip" in js
+    assert "headerInviteCountdown" in js
     assert "function copyProxyValue" in js
     assert "function shouldShowHeaderProxy" in js
+    assert "function startInviteCountdown" in js
+    assert "function updateInviteCountdown" in js
     assert 'document.body.classList.contains("is-invite-unlocked")' in js
     assert "navigator.clipboard.writeText(value)" in js
     assert "feedback.proxyHostCopied" in js
@@ -347,13 +352,15 @@ def test_public_invite_auto_claim_fills_invite_and_verifies_immediately():
     next_function = js.index("function focusInviteInput")
     auto_claim_block = js[auto_claim:next_function]
 
-    assert "倒计时" not in html
     assert "开始 60 秒" not in html
     assert "invite-countdown-panel" not in html
     assert "INVITE_COUNTDOWN_SECONDS" not in js
-    assert "function startInviteCountdown" not in js
     assert "function finishInviteCountdown" not in js
     assert "setInterval" not in auto_claim_block
+    assert "邀请码剩余" in html
+    assert 'id="header-invite-countdown"' in html
+    assert "function startInviteCountdown" in js
+    assert "startInviteCountdown(claim.expires_at)" in js
     assert "PUBLIC_INVITE_CODE" not in js
     assert "INV-VXK44LB9URXY" not in js
     assert "/api/invites/public" in js
@@ -362,6 +369,23 @@ def test_public_invite_auto_claim_fills_invite_and_verifies_immediately():
     assert "inviteInput.value = claim.invite_code" in auto_claim_block
     assert "临时邀请码" in js
     assert "fixed invite" not in js.lower()
+
+
+def test_public_site_shows_free_invite_limit_modal_with_xianyu_guidance():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'id="public-limit-modal"' in html
+    assert "免费体验名额已使用" in html
+    assert "为了防止临时修复通道被滥用" in html
+    assert "去闲鱼获取售后邀请码" in html
+    assert "free_invite_limit_reached" in js
+    assert "function openPublicLimitModal" in js
+    assert "function closePublicLimitModal" in js
+    assert "feedback.freeInviteLimit" in js
+    assert ".public-limit-modal" in css
+    assert ".public-limit-dialog" in css
 
 
 def test_self_service_primary_actions_appear_before_qr_codes():

@@ -17,6 +17,7 @@ def settings(
     database_path: str = ":memory:",
     *,
     public_invite_ttl_seconds: int = 3600,
+    public_free_invite_ttl_seconds: int = 1800,
 ) -> Settings:
     return Settings(
         admin_username="admin",
@@ -26,6 +27,7 @@ def settings(
         internal_api_secret="internal-secret",
         database_path=database_path,
         public_invite_ttl_seconds=public_invite_ttl_seconds,
+        public_free_invite_ttl_seconds=public_free_invite_ttl_seconds,
     )
 
 
@@ -82,6 +84,7 @@ def test_claim_invite_returns_proxy_config_and_status_token():
         "proxy_host": "sg2.claude89757.cc",
         "proxy_port": invite["proxy_port"],
         "certificate_url": "/certs/mitmproxy-ca-cert.cer",
+        "expires_at": invite["expires_at"],
         "status_token": body["status_token"],
     }
     assert "session_id" not in body
@@ -122,7 +125,7 @@ def test_claim_invite_does_not_create_magic_public_invite_code():
     assert invite_store.list_invites() == []
 
 
-def test_public_invite_endpoint_creates_one_hour_temporary_invite_each_time():
+def test_public_invite_endpoint_uses_channel_specific_temporary_invite_ttls():
     app, invite_store, _status_store = app_parts()
     client = TestClient(app)
     before = datetime.now(timezone.utc)
@@ -140,13 +143,45 @@ def test_public_invite_endpoint_creates_one_hour_temporary_invite_each_time():
     assert first_body["invite_code"] != second_body["invite_code"]
     assert first_body["proxy_port"] != second_body["proxy_port"]
     assert first_body["certificate_url"] == "/certs/mitmproxy-ca-cert.cer"
+    assert first_body["expires_at"]
+    assert second_body["expires_at"]
     assert "proxy_password" not in first_body
     assert verify_status_token(first_body["status_token"], secret="status-secret")
 
-    stored = invite_store.claim_invite(first_body["invite_code"])
-    expires_at = datetime.fromisoformat(stored["expires_at"])
-    assert before + timedelta(hours=1) <= expires_at <= after + timedelta(hours=1)
-    assert stored["note"].startswith("public temporary invite: free | IP ")
+    free_invite = invite_store.claim_invite(first_body["invite_code"])
+    free_expires_at = datetime.fromisoformat(free_invite["expires_at"])
+    assert before + timedelta(minutes=30) <= free_expires_at <= after + timedelta(minutes=30)
+    assert free_invite["note"].startswith("public temporary invite: free | IP ")
+
+    tip_invite = invite_store.claim_invite(second_body["invite_code"])
+    tip_expires_at = datetime.fromisoformat(tip_invite["expires_at"])
+    assert before + timedelta(hours=1) <= tip_expires_at <= after + timedelta(hours=1)
+    assert tip_invite["note"].startswith("public temporary invite: alipay | IP ")
+
+
+def test_public_free_invite_endpoint_limits_to_one_per_source_ip():
+    app, invite_store, _status_store = app_parts()
+    client = TestClient(app)
+    source_headers = {"cf-connecting-ip": "203.0.113.22"}
+
+    first = client.post("/api/invites/public", json={"channel": "free"}, headers=source_headers)
+    duplicate = client.post("/api/invites/public", json={"channel": "free"}, headers=source_headers)
+    paid = client.post("/api/invites/public", json={"channel": "alipay"}, headers=source_headers)
+    other_ip = client.post(
+        "/api/invites/public",
+        json={"channel": "free"},
+        headers={"cf-connecting-ip": "203.0.113.23"},
+    )
+
+    assert first.status_code == 200
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"] == {
+        "code": "free_invite_limit_reached",
+        "message": "free invite already created for this IP",
+    }
+    assert paid.status_code == 200
+    assert other_ip.status_code == 200
+    assert len(invite_store.list_invites()) == 3
 
 
 def test_public_invite_records_source_ip_and_geo_in_note():

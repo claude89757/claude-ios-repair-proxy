@@ -22,6 +22,7 @@ class Settings:
     proxy_port_end: int = 10999
     invite_default_ttl_seconds: int = 86400
     public_invite_ttl_seconds: int = 3600
+    public_free_invite_ttl_seconds: int = 1800
 
 
 def load_settings() -> Settings:
@@ -39,6 +40,9 @@ def load_settings() -> Settings:
         proxy_port_end=int(os.getenv("PROXY_PORT_END", "10999")),
         invite_default_ttl_seconds=int(os.getenv("INVITE_DEFAULT_TTL_SECONDS", "86400")),
         public_invite_ttl_seconds=int(os.getenv("PUBLIC_INVITE_TTL_SECONDS", "3600")),
+        public_free_invite_ttl_seconds=int(
+            os.getenv("PUBLIC_FREE_INVITE_TTL_SECONDS", "1800")
+        ),
     )
 
 

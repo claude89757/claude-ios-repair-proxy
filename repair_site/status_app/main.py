@@ -236,6 +236,7 @@ def _invite_claim_payload(
         "proxy_host": "sg2.claude89757.cc",
         "proxy_port": invite["proxy_port"],
         "certificate_url": "/certs/mitmproxy-ca-cert.cer",
+        "expires_at": invite.get("expires_at"),
         "status_token": sign_status_token(
             invite["session_id"],
             secret=settings.status_token_secret,
@@ -441,10 +442,27 @@ def create_app(
         settings = _settings(request.app)
         source_ip = _client_source_ip(request)
         source_geo = _client_source_geo(request)
+        invite_store = _invite_store(request.app)
+        if channel == "free" and invite_store.has_public_invite_for_source_ip(
+            source_ip=source_ip,
+            channel="free",
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "free_invite_limit_reached",
+                    "message": "free invite already created for this IP",
+                },
+            )
         note = f"public temporary invite: {channel} | IP {source_ip} | {source_geo}"
-        invite = _invite_store(request.app).create_temporary_invite(
+        ttl_seconds = (
+            settings.public_free_invite_ttl_seconds
+            if channel == "free"
+            else settings.public_invite_ttl_seconds
+        )
+        invite = invite_store.create_temporary_invite(
             note=note,
-            ttl_seconds=settings.public_invite_ttl_seconds,
+            ttl_seconds=ttl_seconds,
             source_ip=source_ip,
             source_geo=source_geo,
         )
