@@ -36,8 +36,19 @@
           <input id="invite-code" name="invite-code" autocomplete="off" inputmode="latin" placeholder="输入邀请码" data-i18n-placeholder="entry.placeholder">
           <button type="submit" data-i18n="entry.submit">验证</button>
         </div>
-        <p class="claim-feedback" data-claim-feedback></p>
+        <p class="claim-feedback" role="status" data-claim-feedback></p>
       </form>
+      <div id="header-proxy-chip" class="header-proxy-chip" aria-label="当前修复通道" hidden>
+        <span class="header-proxy-chip-title" data-i18n="headerProxy.title">当前修复通道</span>
+        <button class="header-proxy-copy" type="button" data-copy-proxy-value="" data-copy-feedback-key="feedback.proxyHostCopied">
+          <span data-i18n="proxy.host">服务器</span>
+          <strong id="header-proxy-host">-</strong>
+        </button>
+        <button class="header-proxy-copy" type="button" data-copy-proxy-value="" data-copy-feedback-key="feedback.proxyPortCopied">
+          <span data-i18n="proxy.port">端口</span>
+          <strong id="header-proxy-port">-</strong>
+        </button>
+      </div>
       <p class="invite-floating-note" data-i18n="entry.copy">免费/打赏入口会生成 1 小时临时邀请码；售后邀请码以管理员设置为准。验证后页面会显示本次修复端口和脱敏实时状态。</p>
     </div>
   </header>
@@ -313,10 +324,11 @@
                 </div>
               </div>
               <ol class="step-list">
-                <li data-i18n="step3.item1">打开飞行模式，然后只打开 Wi-Fi，保持蜂窝网络关闭。</li>
-                <li data-i18n="step3.item2">关闭手机上的其它 VPN、代理或第三方网络工具，否则 Claude 流量可能不会进入本次修复通道。</li>
-                <li data-i18n="step3.item3">进入当前 Wi-Fi 的信息页，找到 HTTP 代理，选择手动。</li>
-                <li data-i18n="step3.item4">填写页面显示的服务器和端口，认证保持关闭，其余认证字段不用填写。</li>
+                <li data-i18n="step3.item1">打开飞行模式，然后只打开 Wi-Fi，保持蜂窝网络关闭；关闭手机上的其它 VPN、代理或第三方网络工具，否则 Claude 流量可能不会进入本次修复通道。</li>
+                <li data-i18n="step3.item2">进入 <strong>设置 → Wi‑Fi</strong>，确认已经连接当前 Wi‑Fi。</li>
+                <li data-i18n="step3.item3">在当前 Wi‑Fi 名称右侧，点击 <strong>蓝色圆圈 i / 信息按钮</strong>，进入 Wi‑Fi 信息页。</li>
+                <li data-i18n="step3.item4">向下找到 <strong>HTTP 代理</strong>，选择 <strong>手动</strong>。</li>
+                <li data-i18n="step3.item5">填写 Header 固定显示的 <strong>服务器</strong> 和 <strong>端口</strong>；<strong>认证保持关闭</strong>，其余认证字段不用填写。</li>
               </ol>
               <button class="button primary step-complete-button" type="button" data-step-complete="3" data-i18n="step.next">我已完成，下一步</button>
             </article>
@@ -445,6 +457,11 @@
       </aside>
     </div>
   </main>
+
+  <button id="support-fab" class="support-fab" type="button" data-support-entry aria-label="打开售后协助">
+    <span class="support-fab-badge" data-i18n="supportFab.badge">推荐</span>
+    <span class="support-fab-main" data-i18n="supportFab.main">人工</span>
+  </button>
 
   <footer class="site-footnote" aria-label="免责声明">
     <a href="/disclaimer.html" data-i18n="footer.disclaimer">免责声明</a>

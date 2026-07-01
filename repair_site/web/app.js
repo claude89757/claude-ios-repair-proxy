@@ -8,6 +8,9 @@ const proxyConfig = document.querySelector("#proxy-config");
 const proxyHost = document.querySelector("#proxy-host");
 const proxyPort = document.querySelector("#proxy-port");
 const proxyCertificateUrl = document.querySelector("#proxy-certificate-url");
+const headerProxyChip = document.querySelector("#header-proxy-chip");
+const headerProxyHost = document.querySelector("#header-proxy-host");
+const headerProxyPort = document.querySelector("#header-proxy-port");
 const statusRefreshButton = document.querySelector("#status-refresh");
 const languageToggle = document.querySelector("#language-toggle");
 const languageToggleLabel = languageToggle?.querySelector(".language-toggle-label");
@@ -27,9 +30,11 @@ const inviteMethodPanels = Array.from(document.querySelectorAll("[data-invite-me
 const autoClaimButtons = Array.from(document.querySelectorAll("[data-invite-auto-claim]"));
 const focusInviteButtons = Array.from(document.querySelectorAll("[data-focus-invite]"));
 const copyInviteLinkButtons = Array.from(document.querySelectorAll("[data-copy-invite-link]"));
+const proxyCopyButtons = Array.from(document.querySelectorAll("[data-copy-proxy-value]"));
 const inviteBackButtons = Array.from(document.querySelectorAll("[data-invite-back]"));
 const qrPreviewButtons = Array.from(document.querySelectorAll("[data-qr-preview]"));
 const qrCloseButtons = Array.from(document.querySelectorAll("[data-qr-close]"));
+const supportEntryButtons = Array.from(document.querySelectorAll("[data-support-entry]"));
 const qrPreviewModal = document.querySelector("#qr-preview-modal");
 const qrPreviewTitle = document.querySelector("#qr-preview-title");
 const qrPreviewImage = document.querySelector("#qr-preview-image");
@@ -59,6 +64,9 @@ const I18N = {
     "entry.label": "邀请码",
     "entry.placeholder": "输入邀请码",
     "entry.submit": "验证",
+    "headerProxy.title": "当前修复通道",
+    "supportFab.badge": "推荐",
+    "supportFab.main": "人工",
     "flow.phoneScreen": "重新登录",
     "flow.proxyLink": "临时修复通道",
     "flow.proxy": "修复通道",
@@ -151,10 +159,11 @@ const I18N = {
     "step2.item2": "进入 <strong>设置 → 通用 → VPN 与设备管理</strong>，确认证书描述文件已经安装。",
     "step2.item3": "进入 <strong>设置 → 通用 → 关于本机 → 证书信任设置</strong>，确认 mitmproxy 证书已经打开“完全信任”。",
     "step3.title": "配置 Wi‑Fi 修复通道",
-    "step3.item1": "打开飞行模式，然后只打开 Wi-Fi，保持蜂窝网络关闭。",
-    "step3.item2": "关闭手机上的其它 VPN、代理或第三方网络工具，否则 Claude 流量可能不会进入本次修复通道。",
-    "step3.item3": "进入当前 Wi-Fi 的信息页，找到 HTTP 代理，选择手动。",
-    "step3.item4": "填写页面显示的服务器和端口，认证保持关闭，其余认证字段不用填写。",
+    "step3.item1": "打开飞行模式，然后只打开 Wi‑Fi，保持蜂窝网络关闭；关闭手机上的其它 VPN、代理或第三方网络工具，否则 Claude 流量可能不会进入本次修复通道。",
+    "step3.item2": "进入 <strong>设置 → Wi‑Fi</strong>，确认已经连接当前 Wi‑Fi。",
+    "step3.item3": "在当前 Wi‑Fi 名称右侧，点击 <strong>蓝色圆圈 i / 信息按钮</strong>，进入 Wi‑Fi 信息页。",
+    "step3.item4": "向下找到 <strong>HTTP 代理</strong>，选择 <strong>手动</strong>。",
+    "step3.item5": "填写 Header 固定显示的 <strong>服务器</strong> 和 <strong>端口</strong>；<strong>认证保持关闭</strong>，其余认证字段不用填写。",
     "step4.title": "打开 Claude",
     "step4.item1": "强退 Claude App，再重新打开。",
     "step4.item2": "等待 10-20 秒，保持当前 Wi‑Fi 和 HTTP 代理设置不变。",
@@ -228,6 +237,9 @@ const I18N = {
     "feedback.publicInviteReady": "正在生成 1 小时临时邀请码并自动验证。",
     "feedback.xianyuCopied": "闲鱼购买链接已复制。",
     "feedback.xianyuCopyUnavailable": "当前浏览器无法自动复制，请手动复制闲鱼购买链接。",
+    "feedback.proxyHostCopied": "服务器已复制。",
+    "feedback.proxyPortCopied": "端口已复制。",
+    "feedback.proxyCopyUnavailable": "当前浏览器无法自动复制，请手动复制：",
     "status.waitingInvite": "等待邀请码验证",
     "status.unavailable": "状态暂时不可用",
     "status.processing": "状态数据处理中",
@@ -254,6 +266,9 @@ const I18N = {
     "entry.label": "Invite code",
     "entry.placeholder": "Enter invite code",
     "entry.submit": "Verify",
+    "headerProxy.title": "Current repair channel",
+    "supportFab.badge": "Help",
+    "supportFab.main": "Human",
     "flow.phoneScreen": "Sign in again",
     "flow.proxyLink": "Repair channel",
     "flow.proxy": "Repair channel",
@@ -346,10 +361,11 @@ const I18N = {
     "step2.item2": "Go to <strong>Settings → General → VPN & Device Management</strong> and confirm the certificate profile is installed.",
     "step2.item3": "Go to <strong>Settings → General → About → Certificate Trust Settings</strong> and make sure the mitmproxy certificate is fully trusted.",
     "step3.title": "Configure the Wi‑Fi repair channel",
-    "step3.item1": "Turn on Airplane Mode, then enable Wi-Fi only and keep cellular data off.",
-    "step3.item2": "Turn off any other VPN, proxy, or third-party network tool on the phone, otherwise Claude traffic may not enter this repair channel.",
-    "step3.item3": "Open the current Wi-Fi details page, find HTTP Proxy, and choose Manual.",
-    "step3.item4": "Enter the server and port shown on this page. Keep authentication off and leave the other auth fields empty.",
+    "step3.item1": "Turn on Airplane Mode, enable Wi‑Fi only, and keep cellular data off. Turn off any other VPN, proxy, or third-party network tool on the phone, otherwise Claude traffic may not enter this repair channel.",
+    "step3.item2": "Open <strong>Settings → Wi‑Fi</strong> and confirm that the current Wi‑Fi network is connected.",
+    "step3.item3": "Tap the <strong>blue circle i / information button</strong> on the right side of the current Wi‑Fi network name to open the Wi‑Fi details page.",
+    "step3.item4": "Scroll down to <strong>HTTP Proxy</strong> and choose <strong>Manual</strong>.",
+    "step3.item5": "Enter the <strong>Server</strong> and <strong>Port</strong> fixed in the header. Keep <strong>Authentication off</strong> and leave the other auth fields empty.",
     "step4.title": "Open Claude",
     "step4.item1": "Force quit the Claude App, then open it again.",
     "step4.item2": "Wait 10-20 seconds and keep the same Wi‑Fi and HTTP proxy settings.",
@@ -423,6 +439,9 @@ const I18N = {
     "feedback.publicInviteReady": "Generating a one-hour temporary invite and verifying it automatically.",
     "feedback.xianyuCopied": "Xianyu purchase link copied.",
     "feedback.xianyuCopyUnavailable": "This browser cannot copy automatically. Copy the Xianyu purchase link manually.",
+    "feedback.proxyHostCopied": "Server copied.",
+    "feedback.proxyPortCopied": "Port copied.",
+    "feedback.proxyCopyUnavailable": "This browser cannot copy automatically. Copy manually:",
     "status.waitingInvite": "Waiting for invite verification",
     "status.unavailable": "Status temporarily unavailable",
     "status.processing": "Processing status data",
@@ -632,6 +651,10 @@ function clearCachedInviteCode() {
 }
 
 function restoreCachedInvite() {
+  if (window.location.hash === "#support") {
+    return;
+  }
+
   const inviteCode = loadCachedInviteCode();
   if (!inviteCode) {
     return;
@@ -800,6 +823,42 @@ async function copyInviteLink(button) {
     setFeedbackKey("feedback.xianyuCopied", "success");
   } catch (_error) {
     setFeedback(`${t("feedback.xianyuCopyUnavailable")} ${value}`, "info");
+  }
+}
+
+async function copyProxyValue(button) {
+  const value = button.dataset.copyProxyValue || "";
+  if (!value) {
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    setFeedbackKey(button.dataset.copyFeedbackKey || "feedback.proxyHostCopied", "success");
+    button.classList.add("is-copied");
+    window.setTimeout(() => {
+      button.classList.remove("is-copied");
+    }, 1200);
+  } catch (_error) {
+    setFeedback(`${t("feedback.proxyCopyUnavailable")} ${value}`, "info");
+  }
+}
+
+function openSupportEntry() {
+  document.body.classList.remove("is-invite-unlocked");
+  if (repairWorkspace) {
+    repairWorkspace.hidden = true;
+  }
+  if (inviteGateScreen) {
+    inviteGateScreen.hidden = false;
+  }
+  showInviteGateView("xianyu");
+  inviteGateScreen?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function openSupportEntryFromHash() {
+  if (window.location.hash === "#support") {
+    openSupportEntry();
   }
 }
 
@@ -1070,25 +1129,59 @@ function setCertificateLink(url) {
   replaceChildren(proxyCertificateUrl, [link]);
 }
 
+function setHeaderProxyVisible(isVisible) {
+  if (headerProxyChip) {
+    headerProxyChip.hidden = !isVisible;
+  }
+  document.body.classList.toggle("has-header-proxy", isVisible);
+}
+
+function setProxyCopyButtonValue(button, value) {
+  if (!button) {
+    return;
+  }
+  const normalizedValue = text(value, "");
+  button.dataset.copyProxyValue = normalizedValue;
+  button.disabled = !normalizedValue;
+}
+
+function renderHeaderProxyConfig(host, port) {
+  const normalizedHost = text(host, "");
+  const normalizedPort = text(port, "");
+  if (headerProxyHost) {
+    headerProxyHost.textContent = text(normalizedHost);
+  }
+  if (headerProxyPort) {
+    headerProxyPort.textContent = text(normalizedPort);
+  }
+  setProxyCopyButtonValue(proxyCopyButtons[0], normalizedHost);
+  setProxyCopyButtonValue(proxyCopyButtons[1], normalizedPort);
+  setHeaderProxyVisible(Boolean(normalizedHost && normalizedPort));
+}
+
 function renderProxyConfig(claim) {
   if (!proxyConfig) {
     return;
   }
 
   proxyConfig.hidden = false;
-  activeProxyPort = text(claim?.proxy_port, "");
+  const host = text(claim?.proxy_host, "");
+  const port = text(claim?.proxy_port, "");
+  activeProxyPort = port;
   if (proxyHost) {
-    proxyHost.textContent = text(claim?.proxy_host);
+    proxyHost.textContent = text(host);
   }
   if (proxyPort) {
-    proxyPort.textContent = text(claim?.proxy_port);
+    proxyPort.textContent = text(port);
   }
+  renderHeaderProxyConfig(host, port);
   setCertificateLink(claim?.certificate_url);
   updateStatusDock(currentSnapshot);
 }
 
 function resetProxyConfig() {
   activeProxyPort = "";
+  renderHeaderProxyConfig("", "");
   if (proxyConfig) {
     proxyConfig.hidden = true;
   }
@@ -1415,6 +1508,16 @@ copyInviteLinkButtons.forEach((button) => {
   });
 });
 
+proxyCopyButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    void copyProxyValue(button);
+  });
+});
+
+supportEntryButtons.forEach((button) => {
+  button.addEventListener("click", openSupportEntry);
+});
+
 qrPreviewButtons.forEach((button) => {
   button.addEventListener("click", () => {
     openQrPreview(button);
@@ -1454,6 +1557,11 @@ languageToggle?.addEventListener("click", () => {
 window.addEventListener("popstate", () => {
   const pathLanguage = languageFromPath();
   setLanguage(pathLanguage || loadCachedLanguage());
+  openSupportEntryFromHash();
+});
+
+window.addEventListener("hashchange", () => {
+  openSupportEntryFromHash();
 });
 
 window.addEventListener("keydown", (event) => {
@@ -1469,3 +1577,4 @@ resetProxyConfig();
 setFeedback("");
 renderWaitingState("status.waitingInvite");
 restoreCachedInvite();
+openSupportEntryFromHash();

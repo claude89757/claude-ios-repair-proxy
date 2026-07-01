@@ -9,6 +9,7 @@ DCOS = Path("dcos")
 
 def test_site_contains_required_user_guidance():
     html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
 
     assert "Claude iOS 登录卡死修复指南" in html
     assert "Something went wrong, try again" in html
@@ -23,10 +24,15 @@ def test_site_contains_required_user_guidance():
     assert "完全信任" in html
     assert "打开飞行模式" in html
     assert "只打开 Wi-Fi" in html
+    assert "设置 → Wi‑Fi" in html
+    assert "当前 Wi‑Fi 名称右侧" in html
+    assert "蓝色圆圈 i / 信息按钮" in html
     assert "HTTP 代理" in html
     assert "认证保持关闭" in html
     assert "关闭手机上的其它 VPN、代理或第三方网络工具" in html
     assert "否则 Claude 流量可能不会进入本次修复通道" in html
+    assert "Settings → Wi‑Fi" in js
+    assert "information button" in js
     assert "实时状态" in html
     assert "正常已登录" in html
     assert "不一定触发修复事件" in html
@@ -81,8 +87,29 @@ def test_public_site_links_to_github_repository_from_topbar():
     assert 'href="#status"' not in header.group(0)
 
 
+def test_public_site_has_global_human_support_fab():
+    html = (WEB / "index.html").read_text()
+    disclaimer = (WEB / "disclaimer.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+
+    assert 'id="support-fab"' in html
+    assert 'class="support-fab"' in html
+    assert "data-support-entry" in html
+    assert "人工" in html
+    assert "推荐" in html
+    assert 'class="support-fab"' in disclaimer
+    assert 'href="/zh#support"' in disclaimer
+    assert "function openSupportEntry" in js
+    assert "supportEntryButtons" in js
+    assert ".support-fab" in css
+    assert "position: fixed;" in css
+    assert "border-radius: 999px;" in css
+
+
 def test_public_site_keeps_invite_form_in_sticky_header():
     html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
     css = (WEB / "styles.css").read_text()
 
     header = re.search(r"<header class=\"topbar\">.*?</header>", html, re.S)
@@ -92,12 +119,23 @@ def test_public_site_keeps_invite_form_in_sticky_header():
     assert 'class="header-invite-form"' in header.group(0)
     assert 'id="invite-code"' in header.group(0)
     assert 'data-claim-feedback' in header.group(0)
+    assert 'id="header-proxy-chip"' in header.group(0)
+    assert 'id="header-proxy-host"' in header.group(0)
+    assert 'id="header-proxy-port"' in header.group(0)
+    assert "data-copy-proxy-value" in header.group(0)
+    assert "headerProxyChip" in js
+    assert "function copyProxyValue" in js
+    assert "navigator.clipboard.writeText(value)" in js
+    assert "feedback.proxyHostCopied" in js
+    assert "feedback.proxyPortCopied" in js
     assert 'class="invite-floating-note"' in header.group(0)
     assert "entry-panel" not in html
     assert html.count('id="invite-form"') == 1
     assert ".topbar {" in css
     assert "position: sticky;" in css
     assert ".header-invite-form" in css
+    assert ".header-proxy-chip" in css
+    assert ".public-page.has-header-proxy" in css
 
 
 def test_public_site_uses_step_by_step_wizard_cards():
