@@ -1,5 +1,6 @@
 const inviteForm = document.querySelector("#invite-form");
 const inviteInput = document.querySelector("#invite-code");
+const inviteSubmitButton = inviteForm?.querySelector("button[type='submit']");
 const feedbacks = Array.from(document.querySelectorAll("[data-claim-feedback]"));
 const summary = document.querySelector("#device-summary");
 const checklist = document.querySelector("#checklist");
@@ -74,6 +75,8 @@ const I18N = {
     "entry.label": "邀请码",
     "entry.placeholder": "输入邀请码",
     "entry.submit": "验证",
+    "entry.verified": "已验证",
+    "entry.getNewInvite": "重新获取",
     "headerProxy.title": "当前修复通道",
     "inviteCountdown.label": "邀请码剩余",
     "inviteCountdown.expired": "已过期",
@@ -240,6 +243,7 @@ const I18N = {
     "feedback.restoring": "正在恢复上次的邀请码...",
     "feedback.tokenExpired": "状态凭证已失效，请重新输入邀请码。",
     "feedback.statusUnavailable": "修复配置已显示，但实时状态暂时不可用。",
+    "feedback.inviteExpired": "邀请码已过期，请重新选择一种方式获取新的邀请码。",
     "feedback.refreshNeedsInvite": "请先验证邀请码，再刷新实时状态。",
     "feedback.refreshing": "正在刷新实时状态...",
     "feedback.refreshed": "实时状态已刷新。",
@@ -301,6 +305,8 @@ const I18N = {
     "entry.label": "Invite code",
     "entry.placeholder": "Enter invite code",
     "entry.submit": "Verify",
+    "entry.verified": "Verified",
+    "entry.getNewInvite": "Get new",
     "headerProxy.title": "Current repair channel",
     "inviteCountdown.label": "Invite left",
     "inviteCountdown.expired": "Expired",
@@ -467,6 +473,7 @@ const I18N = {
     "feedback.restoring": "Restoring the last invite code...",
     "feedback.tokenExpired": "The status credential expired. Enter the invite code again.",
     "feedback.statusUnavailable": "Repair configuration is shown, but live status is temporarily unavailable.",
+    "feedback.inviteExpired": "This invite expired. Choose a repair entry to get a new invite.",
     "feedback.refreshNeedsInvite": "Verify an invite code before refreshing live status.",
     "feedback.refreshing": "Refreshing live status...",
     "feedback.refreshed": "Live status refreshed.",
@@ -518,6 +525,8 @@ let activeInviteCode = "";
 let activeProxyPort = "";
 let activeInviteExpiresAt = "";
 let inviteCountdownTimer = null;
+let inviteFormBusy = false;
+let inviteActionMode = "verify";
 let publicStatsTimer = null;
 let currentLanguage = loadInitialLanguage();
 let currentSnapshot = null;
@@ -661,6 +670,7 @@ function updateLanguageToggle() {
 }
 
 function refreshDynamicLanguage() {
+  syncInviteActionButton();
   if (currentSnapshot) {
     renderSummary(currentSnapshot);
     renderChecklist(currentSnapshot);
@@ -886,6 +896,31 @@ function formatInviteRemaining(milliseconds) {
   return hours ? `${hours}:${paddedMinutes}:${paddedSeconds}` : `${paddedMinutes}:${paddedSeconds}`;
 }
 
+function syncInviteActionButton() {
+  if (!inviteSubmitButton) {
+    return;
+  }
+  const labelKey =
+    inviteActionMode === "verified"
+      ? "entry.verified"
+      : inviteActionMode === "get-new"
+        ? "entry.getNewInvite"
+        : "entry.submit";
+  inviteSubmitButton.textContent = t(labelKey);
+  inviteSubmitButton.dataset.inviteAction = inviteActionMode;
+  inviteSubmitButton.disabled = inviteFormBusy;
+  if (inviteActionMode === "verified") {
+    inviteSubmitButton.setAttribute("aria-disabled", "true");
+  } else {
+    inviteSubmitButton.removeAttribute("aria-disabled");
+  }
+}
+
+function setInviteActionMode(mode = "verify") {
+  inviteActionMode = mode === "verified" || mode === "get-new" ? mode : "verify";
+  syncInviteActionButton();
+}
+
 function updateInviteCountdown() {
   const expiryTimestamp = parseInviteExpiry(activeInviteExpiresAt);
   if (!headerInviteCountdown || !inviteCountdownValue || expiryTimestamp === null) {
@@ -898,6 +933,11 @@ function updateInviteCountdown() {
   headerInviteCountdown.classList.toggle("is-expired", remaining <= 0);
   if (remaining <= 0) {
     clearCachedInviteState();
+    setInviteActionMode("get-new");
+    if (inviteCountdownTimer) {
+      window.clearInterval(inviteCountdownTimer);
+      inviteCountdownTimer = null;
+    }
   }
 }
 
@@ -936,16 +976,14 @@ function setBusy(isBusy) {
   if (!inviteForm) {
     return;
   }
-  inviteForm.classList.toggle("is-busy", isBusy);
-  const button = inviteForm.querySelector("button");
+  inviteFormBusy = Boolean(isBusy);
+  inviteForm.classList.toggle("is-busy", inviteFormBusy);
   if (inviteInput) {
-    inviteInput.disabled = isBusy;
+    inviteInput.disabled = inviteFormBusy;
   }
-  if (button) {
-    button.disabled = isBusy;
-  }
+  syncInviteActionButton();
   if (statusRefreshButton) {
-    statusRefreshButton.disabled = isBusy;
+    statusRefreshButton.disabled = inviteFormBusy;
   }
 }
 
@@ -1587,6 +1625,23 @@ function renderWaitingState(statusKey) {
   });
 }
 
+function returnToInviteChoicesFromExpired() {
+  closeStream();
+  statusToken = "";
+  activeInviteCode = "";
+  resetRepairProgress();
+  clearCachedInviteState();
+  resetProxyConfig();
+  lockRepairWorkspace();
+  if (inviteInput) {
+    inviteInput.value = "";
+  }
+  setInviteActionMode("verify");
+  setFeedbackKey("feedback.inviteExpired", "info");
+  renderWaitingState("status.waitingInvite");
+  inviteGateScreen?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 async function readJson(response) {
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
@@ -1664,6 +1719,7 @@ function expireTokenState() {
   activeInviteCode = "";
   resetRepairProgress();
   lockRepairWorkspace();
+  setInviteActionMode("verify");
   closeStream();
 }
 
@@ -1829,6 +1885,7 @@ async function activateInviteClaim(inviteCode, claim, { restored = false } = {})
   saveCachedInviteState(inviteCode, claim.expires_at);
   statusToken = claim.status_token;
   activeInviteCode = inviteCode;
+  setInviteActionMode("verified");
   unlockRepairWorkspace();
   renderProxyConfig(claim);
   startInviteCountdown(claim.expires_at);
@@ -1850,6 +1907,16 @@ async function activateInviteClaim(inviteCode, claim, { restored = false } = {})
 
 inviteForm?.addEventListener("submit", (event) => {
   event.preventDefault();
+
+  if (inviteActionMode === "get-new") {
+    returnToInviteChoicesFromExpired();
+    return;
+  }
+
+  if (inviteActionMode === "verified") {
+    return;
+  }
+
   const inviteCode = inviteInput?.value.trim();
 
   if (!inviteCode) {
@@ -1858,6 +1925,12 @@ inviteForm?.addEventListener("submit", (event) => {
   }
 
   void activateInvite(inviteCode);
+});
+
+inviteInput?.addEventListener("input", () => {
+  if (inviteActionMode !== "verify") {
+    setInviteActionMode("verify");
+  }
 });
 
 autoClaimButtons.forEach((button) => {

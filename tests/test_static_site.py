@@ -203,6 +203,40 @@ def test_public_site_keeps_invite_form_in_sticky_header():
     assert ".public-page.has-header-proxy" in css
 
 
+def test_public_site_reuses_invite_submit_for_expired_recovery():
+    html = (WEB / "index.html").read_text()
+    js = (WEB / "app.js").read_text()
+    css = (WEB / "styles.css").read_text()
+    header = re.search(r"<header class=\"topbar\">.*?</header>", html, re.S)
+
+    assert header is not None
+    assert 'data-invite-action="verify"' in header.group(0)
+    assert "const inviteSubmitButton" in js
+    assert 'let inviteActionMode = "verify";' in js
+    assert "function syncInviteActionButton" in js
+    assert "function setInviteActionMode" in js
+    assert "function returnToInviteChoicesFromExpired" in js
+    assert '"entry.verified": "已验证"' in js
+    assert '"entry.getNewInvite": "重新获取"' in js
+    assert '"feedback.inviteExpired": "邀请码已过期，请重新选择一种方式获取新的邀请码。"' in js
+    assert '"entry.verified": "Verified"' in js
+    assert '"entry.getNewInvite": "Get new"' in js
+    assert '"feedback.inviteExpired": "This invite expired. Choose a repair entry to get a new invite."' in js
+    countdown_block = js[js.index("function updateInviteCountdown"):js.index("function stopInviteCountdown")]
+    assert 'setInviteActionMode("get-new");' in countdown_block
+    claim_block = js[js.index("async function activateInviteClaim"):js.index("inviteForm?.addEventListener")]
+    assert 'setInviteActionMode("verified");' in claim_block
+    submit_start = js.index('inviteForm?.addEventListener("submit"')
+    submit_end = js.index("autoClaimButtons.forEach", submit_start)
+    submit_block = js[submit_start:submit_end]
+    assert 'inviteActionMode === "get-new"' in submit_block
+    assert "returnToInviteChoicesFromExpired();" in submit_block
+    assert 'inviteActionMode === "verified"' in submit_block
+    assert 'inviteInput?.addEventListener("input"' in js
+    assert '.header-invite-form button[data-invite-action="verified"]' in css
+    assert '.header-invite-form button[data-invite-action="get-new"]' in css
+
+
 def test_public_site_uses_step_by_step_wizard_cards():
     html = (WEB / "index.html").read_text()
     js = (WEB / "app.js").read_text()
